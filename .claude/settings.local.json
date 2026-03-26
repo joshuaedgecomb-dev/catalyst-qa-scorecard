@@ -1,4 +1,17 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "The file that was just edited is: $ARGUMENTS. If the file path contains 'xfinity_product_knowledge_base.md', respond with EXACTLY this JSON: {\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"The product knowledge base was just updated. Read the updated xfinity_product_knowledge_base.md and sync any changed pricing, plans, features, or product details into index.html (the cheatsheet). Only update sections that correspond to what changed in the knowledge base. After updating, ask the user if they want to deploy.\"}}. If the file is NOT the knowledge base, respond with: {\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"\"}}"
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(wc:*)",
