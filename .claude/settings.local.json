@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Read(//c/Users/Joshu/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/**)",
+      "Bash(python3 scripts/search.py \"enterprise QA dashboard tool evaluation scorecard professional dark\" --design-system -p \"Catalyst QA Scorecard\")",
+      "Bash(python \"C:/Users/Joshu/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/scripts/search.py\" \"enterprise QA dashboard tool evaluation scorecard professional\" --design-system -p \"Catalyst QA Scorecard\")",
+      "Bash(python \"C:/Users/Joshu/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/src/ui-ux-pro-max/scripts/search.py\" \"enterprise QA dashboard tool evaluation scorecard professional\" --design-system -p \"Catalyst QA Scorecard\")",
+      "Bash(python:*)",
+      "Bash(sed -n '973,3070p' \"comcast_call_flow_scorecard_16 \\(25\\).html\")",
+      "Bash(printf '\\\\n</script>\\\\n</body>\\\\n</html>\\\\n')",
+      "Bash(mv _tmp_new.html comcast_call_flow_scorecard_17.html)",
+      "Bash(grep -o onclick=\"\"[^\"\"]*\"\" comcast_call_flow_scorecard_17.html)",
+      "Bash(curl -s http://localhost:11434/api/tags)",
+      "Bash(powershell -Command \"Get-Process ollama* | Stop-Process -Force\")",
+      "Bash(powershell -Command \"Start-Process ''ollama'' -ArgumentList ''serve'' -WindowStyle Hidden\")",
+      "Bash(curl -s -D - http://localhost:11434/api/tags)",
+      "Bash(curl -s -D - -H \"Origin: file://\" http://localhost:11434/api/tags)",
+      "Bash(nvidia-smi:*)",
+      "Bash(curl -s http://localhost:11434/api/show -d '{\"\"\"\"name\"\"\"\":\"\"\"\"qwen3:8b\"\"\"\"}')",
+      "Bash(curl -s -L \"https://docs.google.com/spreadsheets/d/e/2PACX-1vRagC_XDSQ84y25onmWs6MUOZcEdWZNA6fVRRDFUzNWQp3ginYLtOIQsSrwmbAERkOJ-daTvbHqEtoy/pub?gid=25912283&single=true&output=csv\")",
+      "Bash(curl -s -D - -H \"Origin: null\" \"https://docs.google.com/spreadsheets/d/e/2PACX-1vRagC_XDSQ84y25onmWs6MUOZcEdWZNA6fVRRDFUzNWQp3ginYLtOIQsSrwmbAERkOJ-daTvbHqEtoy/pub?gid=25912283&single=true&output=csv\")",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)",
+      "Skill(update-config)",
+      "Bash(mkdir -p \"/c/Users/Josh Edgecomb/.claude/commands\")",
+      "Bash(cp \"/c/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/.claude/commands/Deploy-Cheatsheet.md\" \"/c/Users/Josh Edgecomb/.claude/commands/Deploy-Cheatsheet.md\")"
+    ]
+  }
+}
