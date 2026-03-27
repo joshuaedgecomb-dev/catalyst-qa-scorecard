@@ -238,10 +238,9 @@
   textarea.ai-transcript::placeholder{color:var(--text3);}
   .ai-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   #ai-status{font-size:13px;color:var(--text2);flex:1;min-width:0;}
-  .ai-progress{display:none;height:3px;background:var(--bg3);border-radius:2px;margin-bottom:10px;overflow:hidden;}
+  .ai-progress{display:none;height:6px;background:var(--bg3);border-radius:3px;margin-bottom:10px;overflow:hidden;}
   .ai-progress.active{display:block;}
-  .ai-progress-bar{height:100%;background:var(--purple-bd);border-radius:2px;animation:pa 2s ease-in-out infinite;}
-  @keyframes pa{0%{width:5%;margin-left:0}50%{width:60%;margin-left:10%}100%{width:5%;margin-left:90%}}
+  .ai-progress-bar{height:100%;background:linear-gradient(90deg, var(--purple-bd), var(--accent));border-radius:3px;width:0%;transition:width 0.5s ease;}
   .ai-disclaimer{font-size:11px;color:var(--text3);padding:8px 12px;background:var(--bg2);border-radius:var(--r-sm);margin-top:10px;line-height:1.5;}
 
   /* ── catalyst rollup ── */
@@ -448,7 +447,7 @@
       <p>Xfinity Outbound Telesales &nbsp;·&nbsp; Quality Monitoring</p>
     </div>
     <div class="top-bar-right">
-      <button class="btn" id="nav-topbar-btn" style="display:none;background:var(--purple-bg);border-color:var(--purple-bd);color:var(--purple-tx);" onclick="toggleNavOverlay()">Compass Navigator</button>
+      <button class="btn" id="nav-topbar-btn" style="background:var(--purple-bg);border-color:var(--purple-bd);color:var(--purple-tx);" onclick="toggleNavOverlay()">Compass Navigator</button>
       <button class="btn" onclick="openRosterModal()" id="roster-btn">Roster <span id="roster-badge" style="font-size:10px;opacity:.7;"></span></button>
       <button class="btn" onclick="clearAll()">Clear all</button>
       <button class="btn" onclick="window.print()">Print / PDF</button>
@@ -563,9 +562,14 @@
             <div class="cfg-note">Default is localhost:11434. Only change if Ollama is on a different machine.</div>
           </div>
           <div class="cfg-field">
-            <label>Model name</label>
-            <input type="text" id="ollama-model" placeholder="llama3.1" oninput="save('catalyst_ollama_model',this.value)">
-            <div class="cfg-note">Must match a model you've pulled. Run <code>ollama list</code> to see what's available.</div>
+            <label>Scoring model</label>
+            <input type="text" id="ollama-model" placeholder="qwen3:14b" oninput="save('catalyst_ollama_model',this.value)">
+            <div class="cfg-note">Main model for call scoring. Needs strong instruction-following (14b+ recommended).</div>
+          </div>
+          <div class="cfg-field">
+            <label>Speaker detection model <span style="font-size:10px;color:var(--text3);">(optional)</span></label>
+            <input type="text" id="ollama-speaker-model" placeholder="Same as scoring model" oninput="save('catalyst_ollama_speaker_model',this.value)">
+            <div class="cfg-note">Smaller model for identifying Agent vs Customer in SPEAKER_XX transcripts. Leave blank to use the scoring model.</div>
           </div>
 
         </div>
@@ -605,6 +609,7 @@
         <button class="btn btn-teal" id="analyze-btn" onclick="analyzeTranscript()"><svg class="svg-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:3px;"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg> Analyze &amp; fill scorecard</button>
         <button class="btn" onclick="document.getElementById('ai-transcript').value='';document.getElementById('ai-status').textContent='';">Clear</button>
         <span id="ai-status"></span>
+        <span id="ai-elapsed" style="font-size:11px;color:var(--text3);margin-left:8px;"></span>
       </div>
       <div class="ai-disclaimer" style="margin-top:10px;">The AI fills the scorecard as a starting point. Review every score and note before exporting. AI analysis supports — not replaces — evaluator judgment.</div>
     </div>
@@ -689,10 +694,10 @@
 </div><!-- /.transcript-ref-panel -->
 
 <!-- COMPASS SCRIPT REFERENCE PANEL -->
-<div class="script-panel" id="script-ref-panel">
+<div class="script-panel collapsed" id="script-ref-panel" style="display:none;">
   <div class="sp-hdr">
     <span class="sp-hdr-title">Compass Navigator Reference</span>
-    <button class="sp-toggle" onclick="toggleScriptPanel()">Hide</button>
+    <button class="sp-toggle" onclick="toggleScriptPanel()">◀ Hide</button>
   </div>
   <div class="sp-body">
 
@@ -1297,7 +1302,7 @@ function loadTranscriptFile(file){
   reader.onload=e=>{
     document.getElementById('ai-transcript').value=e.target.result;
       speakerSeedMap=null;
-      renderTranscriptRef(e.target.result, stepEvidence);
+      // Skip initial transcript render — analyzeTranscript will detect speakers and render after normalization
 
     // Auto-populate meta fields from parsed filename
     const fp = parseFilename(file.name);
@@ -1324,6 +1329,9 @@ function loadTranscriptFile(file){
     if(fp.callerId)    labelParts.push('Caller ID: ' + fp.callerId);
     document.getElementById('transcript-drop-label').textContent = labelParts.join(' · ');
     document.getElementById('ai-status').textContent='';
+
+    // Auto-start analysis after file load
+    setTimeout(()=>analyzeTranscript(), 100);
   };
   reader.readAsText(file);
 }
@@ -1351,6 +1359,9 @@ function repairJSON(s){
   s=s.replace(/,\s*([}\]])/g,'$1');
   // 3. Missing commas between } and " on next line
   s=s.replace(/\}(\s*)"(?![\s,\]\}:])/g,'},$1"');
+  // 4. Remove duplicate top-level keys (weak models repeat blocks like "productKnowledge" multiple times)
+  // JSON.parse keeps the last duplicate, but repeated blocks can cause truncation — strip earlier dupes
+  s=s.replace(/,\s*"productKnowledge"\s*:\s*\{[^}]*\}\s*(?=,\s*"productKnowledge")/g,'');
   return s;
 }
 
@@ -1387,20 +1398,42 @@ async function checkOllama(){
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(transcript){
+  if(currentMode==='local') return buildLocalPrompt(transcript);
+  return buildCloudPrompt(transcript);
+}
+
+function buildCloudPrompt(transcript){
   const stepsJSON=JSON.stringify(STEPS.map(s=>({id:s.id,name:s.name,type:s.type,catalyst:s.catalyst,desc:s.desc,trending:s.trending})));
   const complianceJSON=JSON.stringify(COMPLIANCE_ITEMS.map(c=>({id:c.id,name:c.name,desc:c.desc,na:c.na})));
   const rfJSON=JSON.stringify(RED_FLAGS.map(rf=>({id:rf.id,name:rf.name,desc:rf.desc,subs:rf.subs})));
   const catalystCriteriaJSON=JSON.stringify(CATALYST.map(c=>({id:c.id,name:c.name,intent:c.intent,criteria:c.criteria})));
   return `You are an expert Xfinity outbound telesales quality evaluator using the Catalyst Quality Behavior framework. Analyze the call transcript below and score every step.
 
+CRITICAL — TRANSCRIPTION QUALITY:
+These transcripts are generated by automated speech-to-text systems and frequently contain errors: garbled words, merged sentences, missing punctuation, misheard phrases, and dropped words. You MUST evaluate the agent's INTENT and SUBSTANCE, not the literal transcribed text. Examples of common transcription artifacts:
+- "this will be required to monitor" = likely "the call is being recorded and monitored"
+- "trust privacy" = likely "Xfinity.com/privacy" or "Comcast privacy practices"
+- Words run together without punctuation or spacing
+- Proper nouns and URLs mangled (e.g. "xfinity dot com slash labels" → "xfinity.com labels")
+When evaluating compliance items, if the transcribed text contains recognizable fragments of the required language — even garbled — credit the agent for delivering it. Only mark compliance as failed when the required disclosure is genuinely ABSENT from the transcript, not when it is present but poorly transcribed.
+
 IMPORTANT SCORING PHILOSOPHY:
 Each call must be graded in a vacuum — evaluate what worked for this specific customer on this specific call. There is no single formula. One great discovery question that yields full household context is worth more than five surface-level questions. An agent who adapts to the customer and achieves the goal of each step effectively has demonstrated that behavior, even if the path looked different from a script.
+
+COMPLETENESS REQUIREMENT:
+You MUST score ALL steps, ALL compliance items, ALL red flags, and ALL catalyst behaviors. Every step must include a score, notes, insight, and transcriptEvidence — even if the step was N/A. Do not skip or omit any item from the response. If you are uncertain about a step, provide your best assessment with a note explaining the uncertainty.
 
 RATING SCALE:
 - type "cat" steps: use exactly one of: "ed" (Effectively Demonstrated), "pd" (Partially Demonstrated), "dnd" (Did Not Demonstrate), "na" (Not Applicable)
 - type "yn" steps: use exactly one of: "yes", "no", "na"
 - Score "na" only when genuinely not applicable (e.g. call ended early, no objection was raised for objection steps).
 - Base scores strictly on transcript evidence. Do not assume intent.
+
+CALL FLOW SEQUENCING:
+Steps follow the natural sequence of an outbound sales call. Each step's transcriptEvidence MUST come from the correct phase of the call — not from a random part of the transcript. The flow is:
+Opening (steps 1-2, first ~50 lines) → Discovery (step 3, question-asking phase) → Pitch (step 4, product presentation) → Close (step 5, asking for the sale) → Objection handling (steps 6-8, only if customer objects) → Reaffirm & close (steps 9-11, end of call after acceptance)
+Do NOT cite evidence from the close for an opening step, or from the opening for a closing step. If a step's behavior is absent from its expected call phase, that is grounds for "dnd" — do not search other phases to justify a passing score.
+EXCEPTION: If the customer objects immediately in the opening before discovery begins, objection handling (steps 6-8) can occur early in the call. The agent may need to overcome initial resistance before proceeding with the normal call flow.
 
 CUSTOMER TYPE DETECTION:
 Before scoring, determine the customer type from transcript context:
@@ -1473,13 +1506,23 @@ Respond ONLY with valid JSON — no explanation, no markdown fences, no commenta
     "strengths": ["up to 2 phrases that quote or reference a specific moment — e.g. 'Used customer daughter mention to frame family plan' not 'Good rapport'"],
     "opportunities": ["up to 2 phrases referencing specific missed moments — e.g. 'Never asked about current carrier spend during discovery' not 'Improve discovery'"],
     "critical": ["only populate if there was a red flag or auto-fail — 1 phrase max, empty array otherwise"],
-    "coachingRecommendations": [
+    "salesCoaching": [
       {
         "compassPhase": "The Compass Navigator phase this recommendation belongs to — use exact phase names: Connect | Explore | Consult | Overcome | Review",
         "focus": "Short label for this coaching focus area (e.g. Discovery Questions, Objection Handling, Tie-Backs, Consult Delivery)",
         "what": "One sentence describing exactly what the agent should do differently. MUST reference a specific moment from the transcript — what the agent said, what the customer said, and what should have happened instead. Never use generic phrases like 'improve objection handling' or 'strengthen tie-backs' without citing the specific gap.",
         "transcriptEvidence": "The EXACT quote from the transcript that shows the gap. Copy the agent's actual words. This is required and must be a real quote, not a paraphrase.",
         "example": "A concrete script the agent could use next time in that exact situation — written as actual words they would say to this customer. Reference what was discovered on this call.",
+        "priority": "high|medium"
+      }
+    ],
+    "complianceCoaching": [
+      {
+        "compassPhase": "Connect | Review (whichever phase the compliance item belongs to)",
+        "focus": "Short label (e.g. Recording Disclosure, Authentication, Broadband Labels, Order Summary, Closing Statement)",
+        "what": "One sentence describing the compliance gap — what was required, what the agent said or omitted, and what they must say next time.",
+        "transcriptEvidence": "The EXACT quote showing the compliance gap, or note that the required language was completely absent.",
+        "example": "The exact verbatim compliance language the agent should have delivered.",
         "priority": "high|medium"
       }
     ]
@@ -1499,6 +1542,7 @@ These are mandatory disclosures. When scoring steps 2, 3, 5, 11, and 12, check s
    When authentication IS required, it must occur before that sensitive information is shared. Authentication is satisfied by EITHER:
    - A 6-digit verification code collected and confirmed — this alone is full authentication for any campaign, OR
    - Full service address AND phone number on the account (fallback when no code is used)
+   IMPORTANT: When the agent asks for "best contact information including shipping address" and the customer provides an address and phone number, that IS authentication via address + phone. The agent collecting this information satisfies the authentication requirement — do not penalize just because the agent framed it as "contact information" rather than "verification."
    ACSR scenarios require address + phone, but this is not determinable from a transcript — do not penalize if a code was collected.
 
 3. BROADBAND LABELS (Step 5) — Required whenever Internet or Mobile is offered:
@@ -1537,6 +1581,142 @@ If any objection handling step (steps 7 or 8) scored pd or dnd, you MUST include
 }`;
 }
 
+// Condensed prompt for local/Ollama models — fits in smaller context windows
+function buildLocalPrompt(transcript){
+  // ── Number every transcript line so model returns line numbers instead of generating quotes ──
+  const txLines=transcript.split(/\r?\n/);
+  const totalLines=txLines.length;
+  const numberedTranscript=txLines.map((l,i)=>`[${i+1}] ${l}`).join('\n');
+
+  // ── Serialize scorecard data ──
+  const stepsJSON=JSON.stringify(STEPS.map(s=>({id:s.id,name:s.name,type:s.type,catalyst:s.catalyst,trending:s.trending})));
+  const complianceJSON=JSON.stringify(COMPLIANCE_ITEMS.map(c=>({id:c.id,name:c.name,desc:c.desc,na:c.na})));
+  const rfJSON=JSON.stringify(RED_FLAGS.map(rf=>({id:rf.id,name:rf.name,desc:rf.desc,subs:rf.subs})));
+  const catalystJSON=JSON.stringify(CATALYST.map(c=>({id:c.id,name:c.name,intent:c.intent,criteria:c.criteria})));
+
+  return `You are an expert Xfinity outbound telesales quality evaluator. Analyze the transcript and produce a complete JSON scorecard.
+
+SCORING PHILOSOPHY:
+Grade each call in a vacuum — evaluate what worked for this specific customer on this specific call. There is no single formula. An agent who adapts to the customer and achieves the goal of each step effectively has demonstrated that behavior, even if the path looked different from a script. If the agent accomplished the goal of a step — even imperfectly — that is at minimum "pd". Reserve "dnd" ONLY for steps the agent completely skipped or failed to attempt at all.
+
+SCORING VALUES — strings only, never numbers:
+- "cat" type steps: "ed" (effectively demonstrated), "pd" (partially demonstrated), "dnd" (did not demonstrate — behavior was ABSENT), "na" (not applicable)
+- "yn" type steps: "yes", "no", "na"
+- Score "na" only when genuinely not applicable (e.g. no objection raised, no sale made, call ended early).
+
+CUSTOMER TYPE DETECTION:
+- "existing" = customer already has Xfinity services and agent is calling to add a product. Clues: agent references current plan, account details, existing services.
+- "new" = customer has no current Xfinity services (Nonsub/BAU). Clues: agent pitches from scratch.
+For existing customers: using the customer's name early in the opening signals pre-call prep — factor into Step 1.
+
+TRANSCRIPTION NOTE:
+These are auto-generated transcripts with speech-to-text errors — garbled words, merged sentences, mangled URLs. Examples: "required to monitor" = "recorded and monitored", "trust privacy" = "Xfinity.com/privacy". Evaluate intent, not literal text. If fragments of required compliance language are recognizable but garbled, credit the agent.
+
+AUTHENTICATION:
+Authentication is satisfied by EITHER a 6-digit verification code OR full service address + phone number. When the agent asks for "contact info including shipping address" and gets address + phone, that IS authentication. Only required for existing customers when account-specific information is discussed.
+
+RED FLAGS:
+Default ALL to "flagged":false. Only flag if the AGENT did something egregious — swearing, hanging up, deliberately lying about pricing, or talking to a coworker on an open line. Missing a compliance step is NOT a red flag. A weak pitch is NOT a red flag. If in doubt, do NOT flag.
+
+COMPLIANCE:
+Score "yes" if the agent addressed the item even partially or if garbled speech-to-text shows fragments of the required language. Score "no" ONLY if the item was required for this call type and was completely absent. Score "na" if not applicable (check the na field).
+
+KEY COMPLIANCE REQUIREMENTS:
+- Recording disclosure: must be in the opening, before discovery questions
+- Broadband labels (xfinity.com/labels): required when Internet or Mobile is offered
+- Before submitting: verbatim required before sending order summary
+- Post-approval: "order summary within 6 hours" / "xfinity.com/MyAccount"
+- Closing: "1-800-XFINITY (934-6489) or visit Xfinity.com" — required every call
+
+PRODUCT KNOWLEDGE — flag anything not listed here in productFlags:
+${getProductKnowledge()}
+
+CATALYST BEHAVIORS:
+Score each independently across the ENTIRE transcript — not just the steps they map to. A behavior can show up anywhere in the call. Read the full transcript before scoring. Each behavior has ed/pd/dnd criteria below — use them.
+${catalystJSON}
+
+SCORECARD STEPS (the "catalyst" field shows which behaviors apply):
+${stepsJSON}
+
+STEP DESCRIPTIONS — what to evaluate and WHICH LINE NUMBERS contain the evidence:
+1. Positive greeting [LINES 1-60] — warm tone, natural rapport, recording disclosure. Pick 1-2 line numbers.
+2. Set the agenda [LINES 1-60] — agent states WHY they are calling ("the reason for my call is..." / "you are eligible for..."). Pick 1-2 line numbers.
+3. Discover needs [MIDDLE of call, before pitch] — the AGENT asks proactive questions about Users, Usage, Devices, Cost. Customer questions do NOT count. Pick 2-5 line numbers showing the agent's discovery questions.
+4. Link the need [AFTER DISCOVERY] — pitch tied to discovered needs. Broadband labels required for Internet/Mobile. Pick 2-4 line numbers.
+5. Assume the sale [AFTER PITCH] — confidently ask customer to commit. Pick 1-2 line numbers.
+6. Understand the objection [IF CUSTOMER OBJECTS] — acknowledge and probe. "na" if no objection. Pick 1-3 line numbers.
+7. Overcome the objection [IF CUSTOMER OBJECTS] — address directly, restate value. "na" if no objection. Pick 1-3 line numbers.
+8. Re-close [AFTER OBJECTION] — ask for sale again. "na" if no objection. Pick 1-2 line numbers.
+9. Reaffirm the sale [AFTER ACCEPTANCE] — confirm good choice. "na" if no sale. Pick 1-2 line numbers.
+10. Positive close [END OF CALL, lines ${Math.max(1,totalLines-50)}-${totalLines}] — thank customer, closing compliance. Pick 1-3 line numbers.
+11. Summarize the sale [END OF CALL] — order details, pricing, next steps. "na" if no sale. Pick 1-3 line numbers.
+
+RED FLAGS:
+${rfJSON}
+
+COMPLIANCE CHECKLIST (score each yes/no/na):
+${complianceJSON}
+
+CAMPAIGNS: "Xfinity Mobile Add A Line" | "XM Likely" | "Add XMC" | "Nonsub BAU" | ""
+
+COMPLETENESS REQUIREMENT:
+You MUST score ALL 11 steps, ALL 6 red flags, ALL 11 compliance items, and ALL 6 catalyst behaviors.
+
+EVIDENCE FORMAT:
+Instead of quoting the transcript, return LINE NUMBERS. Each line in the transcript below is numbered [1], [2], etc. For each step, return "evidenceLines" as an array of line numbers where the evidence is found. We will extract the actual text from these line numbers — you do NOT need to reproduce any transcript text.
+
+=== NUMBERED TRANSCRIPT (${totalLines} lines) ===
+${numberedTranscript}
+=== END TRANSCRIPT ===
+
+Respond with valid JSON. You may think first in <think> tags — only the JSON after </think> will be used. Start JSON with {
+
+You MUST generate ALL of the following items — do not stop early:
+- steps: 11 objects (id: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+- redFlags: 6 objects (id: rf1, rf2, rf3, rf4, rf5, rf6) — all flagged:false unless proven
+- compliance: 11 objects (id: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11)
+- catalystBehaviors: 6 objects (id: b1, b2, b3, b4, b5, b6)
+- executiveSummary with salesCoaching and complianceCoaching arrays
+
+JSON structure:
+{
+  "customerType": "existing|new",
+  "steps": [
+    {"id":1, "score":"ed|pd|dnd|na", "trending":[], "notes":"coaching note", "evidenceLines":[2,3]},
+    {"id":2, "score":"...", "trending":[], "notes":"...", "evidenceLines":[8,9]},
+    {"id":3, "score":"...", "notes":"...", "evidenceLines":[25,30,35]},
+    {"id":4, "notes":"...", "evidenceLines":[...]}, {"id":5, ...}, {"id":6, ...},
+    {"id":7, ...}, {"id":8, ...}, {"id":9, ...}, {"id":10, ...}, {"id":11, ...}
+  ],
+  "redFlags": [
+    {"id":"rf1","flagged":false,"subs":[],"notes":""}, {"id":"rf2","flagged":false,"subs":[],"notes":""},
+    {"id":"rf3","flagged":false,"subs":[],"notes":""}, {"id":"rf4","flagged":false,"subs":[],"notes":""},
+    {"id":"rf5","flagged":false,"subs":[],"notes":""}, {"id":"rf6","flagged":false,"subs":[],"notes":""}
+  ],
+  "compliance": [
+    {"id":"c1","score":"yes|no|na","notes":"..."}, {"id":"c2","score":"...","notes":"..."},
+    {"id":"c3",...}, {"id":"c4",...}, {"id":"c5",...}, {"id":"c6",...},
+    {"id":"c7",...}, {"id":"c8",...}, {"id":"c9",...}, {"id":"c10",...}, {"id":"c11",...}
+  ],
+  "catalystBehaviors": [
+    {"id":"b1","score":"ed|pd|dnd","notes":"..."}, {"id":"b2","score":"...","notes":"..."},
+    {"id":"b3",...}, {"id":"b4",...}, {"id":"b5",...}, {"id":"b6",...}
+  ],
+  "productFlags": [],
+  "suggestedOutcome": "Successful sale | No sale – [reason]",
+  "suggestedCampaign": "",
+  "executiveSummary": {
+    "topPriority": "5-8 words",
+    "summary": "2-3 sentences with transcript quotes",
+    "strengths": ["specific moment"],
+    "opportunities": ["specific gap"],
+    "critical": [],
+    "salesCoaching": [{"compassPhase":"phase","focus":"label","what":"guidance","evidenceLines":[45,46],"example":"script to say","priority":"high|medium"}],
+    "complianceCoaching": []
+  }
+}`;
+}
+
 // ─── Analyze transcript ───────────────────────────────────────────────────────
 async function analyzeTranscript(){
   const transcript=(document.getElementById('ai-transcript').value||'').trim();
@@ -1546,21 +1726,69 @@ async function analyzeTranscript(){
   if(!transcript){statusEl.style.color='var(--red-tx)';statusEl.textContent='Please paste a transcript first.';return;}
 
   statusEl.style.color='var(--text2)';
-  statusEl.textContent=currentMode==='cloud'?'Sending to Anthropic…':'Sending to local Ollama…';
   progress.classList.add('active');
+  const progressBar=progress.querySelector('.ai-progress-bar');
+  if(progressBar) progressBar.style.width='0%';
 
-  const prompt=buildPrompt(transcript);
+  // Timed progress bar + elapsed timer
+  let progressPct=0;
+  const startTime=Date.now();
+  const elapsedEl=document.getElementById('ai-elapsed');
+  if(elapsedEl) elapsedEl.textContent='0s';
+  const progressTimer=setInterval(()=>{
+    if(progressPct<15) progressPct+=3;        // 0-15%: speaker detection
+    else if(progressPct<40) progressPct+=1.5;  // 15-40%: prompt sent, model thinking
+    else if(progressPct<70) progressPct+=0.8;  // 40-70%: generating steps
+    else if(progressPct<90) progressPct+=0.3;  // 70-90%: generating summary
+    else if(progressPct<95) progressPct+=0.1;  // 90-95%: slow crawl
+    if(progressBar) progressBar.style.width=Math.min(progressPct,95)+'%';
+    if(elapsedEl) elapsedEl.textContent=Math.round((Date.now()-startTime)/1000)+'s';
+  },500);
+  function stopProgress(success){
+    clearInterval(progressTimer);
+    if(progressBar) progressBar.style.width=success?'100%':'0%';
+    const totalSec=Math.round((Date.now()-startTime)/1000);
+    if(elapsedEl) elapsedEl.textContent=success?`${totalSec}s`:'';
+    setTimeout(()=>progress.classList.remove('active'),success?800:0);
+  }
+
+  // Normalize speaker labels before scoring — replace SPEAKER_XX with Agent/Customer
+  let normalizedTranscript=transcript;
+  const hasSpeakerIds=/^SPEAKER_\d+:/m.test(transcript);
+  if(hasSpeakerIds){
+    statusEl.textContent='Identifying speakers…';
+    if(!speakerSeedMap) speakerSeedMap=await detectSpeakersWithAI(transcript);
+    if(speakerSeedMap&&Object.keys(speakerSeedMap).length){
+      const lines=transcript.split(/\r?\n/);
+      normalizedTranscript=lines.map(line=>{
+        const m=line.match(/^(SPEAKER_\d+):\s*/);
+        if(!m) return line;
+        const role=speakerSeedMap[m[1]];
+        const label=role==='agent'?'Agent':'Customer';
+        return label+': '+line.slice(m[0].length);
+      }).join('\n');
+      // Write normalized transcript back to textarea so evidence validation and transcript panel use Agent/Customer labels
+      document.getElementById('ai-transcript').value=normalizedTranscript;
+      console.log('Speaker normalization applied — SPEAKER_XX labels replaced with Agent/Customer');
+    }
+  }
+
+  statusEl.textContent=currentMode==='cloud'?'Sending to Anthropic…':'Sending to local Ollama…';
+
+  const prompt=buildPrompt(normalizedTranscript);
+  console.log('Prompt size:', prompt.length, 'chars (~' + Math.round(prompt.length/4) + ' tokens)');
+  console.log('Transcript preview (first 300 chars):', normalizedTranscript.slice(0,300));
   let raw='';
 
   try{
     if(currentMode==='cloud'){
       const apiKey=(document.getElementById('ai-api-key').value||'').trim();
-      if(!apiKey){progress.classList.remove('active');statusEl.style.color='var(--red-tx)';statusEl.textContent='Please enter your Anthropic API key.';return;}
+      if(!apiKey){stopProgress(false);statusEl.style.color='var(--red-tx)';statusEl.textContent='Please enter your Anthropic API key.';return;}
       const model=document.getElementById('cloud-model').value;
       const res=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model,max_tokens:4096,messages:[{role:'user',content:prompt}]})
+        body:JSON.stringify({model,max_tokens:8192,messages:[{role:'user',content:prompt}]})
       });
       if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`API error ${res.status}`);}
       const d=await res.json();
@@ -1569,19 +1797,21 @@ async function analyzeTranscript(){
       // Ollama — OpenAI-compatible endpoint
       const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
       const model=(document.getElementById('ollama-model').value||'llama3.2').trim();
-      if(!model){progress.classList.remove('active');statusEl.style.color='var(--red-tx)';statusEl.textContent='Please enter a model name (e.g. llama3.2).';return;}
+      if(!model){stopProgress(false);statusEl.style.color='var(--red-tx)';statusEl.textContent='Please enter a model name (e.g. llama3.2).';return;}
+      console.log('Scoring using model:', model);
       const res=await fetch(`${base}/v1/chat/completions`,{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           model,
           messages:[
-            {role:'system',content:'You are a precise JSON-only responder. Never output anything except valid JSON. No explanations, no markdown, no backticks. Do not include any thinking or reasoning tags.'},
+            {role:'system',content:'You are a precise JSON-only responder. After any thinking, output ONLY valid JSON. No markdown fences, no backticks. All scores MUST be strings, NEVER numbers. Step scores: "ed", "pd", "dnd", "na", "yes", or "no". Catalyst scores: "ed", "pd", or "dnd". Compliance scores: "yes", "no", or "na".'},
             {role:'user',content:prompt}
           ],
+          max_tokens:16384,
           stream:false,
           temperature:0.1,
-          options:{num_ctx:16384}
+          options:{num_ctx:65536,num_predict:16384}
         })
       });
       if(!res.ok){
@@ -1589,7 +1819,21 @@ async function analyzeTranscript(){
         throw new Error(`Ollama error ${res.status}${txt?' — '+txt.slice(0,120):''}`);
       }
       const d=await res.json();
-      raw=d?.choices?.[0]?.message?.content||'';
+      const msg=d?.choices?.[0]?.message||{};
+      // qwen3 splits output: 'content' has the JSON, 'reasoning' has thinking. Read both.
+      raw=msg.content||'';
+      if(!raw||raw.trim().length<10) raw=msg.reasoning||'';
+      // Log finish reason to detect truncation
+      const finish=d?.choices?.[0]?.finish_reason||'unknown';
+      console.log('Ollama finish_reason:', finish, 'content:', (msg.content||'').length, 'reasoning:', (msg.reasoning||'').length, 'total raw:', raw.length);
+      if(finish==='length') console.warn('Response was TRUNCATED by output token limit — increase max_tokens');
+    }
+
+    // Check for empty/garbage responses (model overwhelmed by prompt size)
+    if(!raw||raw.trim().length<50){
+      console.error('RAW AI RESPONSE (too short):\n',raw);
+      const promptSize=Math.round(prompt.length/4);
+      throw new Error(`Model returned an empty or garbage response (${raw.trim().length} chars). Prompt is ~${promptSize} tokens — the model may be overwhelmed. Try again or use Cloud/Anthropic mode.`);
     }
 
     let clean=stripToJSON(raw);
@@ -1603,14 +1847,44 @@ async function analyzeTranscript(){
       if(!result){console.error('RAW AI RESPONSE:\n',raw);console.error('CLEANED:\n',clean);throw new Error('Could not parse AI response as JSON. Try a larger/smarter model, or try again.');}
     }
 
+    // Normalize alternate key names BEFORE validation
+    if(!result.catalystBehaviors) result.catalystBehaviors=result.catalyst||result.behaviors||result.catalyst_behaviors||result.catalystScores;
+    if(!result.compliance) result.compliance=result.complianceItems||result.compliance_items||result.complianceScores;
+    if(!result.redFlags) result.redFlags=result.red_flags||result.flags;
+
+    // Debug: log parsed result keys
+    console.log('PARSED AI RESULT keys:', Object.keys(result));
+    console.log('steps count:', (result.steps||[]).length, 'catalyst count:', (result.catalystBehaviors||[]).length, 'compliance count:', (result.compliance||[]).length, 'redFlags count:', (result.redFlags||[]).length);
+
+    // Validate response quality before applying
+    const stepsArr=normalizeArray(result.steps);
+    const hasValidScores=stepsArr.some(s=>{
+      const step=STEPS.find(st=>st.id===s.id);
+      return step && normalizeScore(s.score, step.type);
+    });
+    const hasCatalyst=Array.isArray(result.catalystBehaviors)&&result.catalystBehaviors.length>0;
+    const hasCompliance=Array.isArray(result.compliance)&&result.compliance.length>0;
+    if(!hasValidScores){
+      console.error('RAW AI RESPONSE:\n',raw);
+      throw new Error('The AI response did not contain valid step scores. Your model may be too small for this prompt — try a larger model (qwen3:32b, llama3.3:70b, or use Cloud/Anthropic mode).');
+    }
+    if(!hasCatalyst||!hasCompliance){
+      console.warn('AI response is missing catalyst behaviors or compliance items — results may be incomplete. Consider using a larger model.');
+    }
+
     applyResult(result);
-    progress.classList.remove('active');
+    stopProgress(true);
     const filled=(result.steps||[]).filter(s=>s.score).length;
-    statusEl.style.color='var(--green-tx)';
-    statusEl.textContent=`✓ ${filled} steps scored by AI (${currentMode==='cloud'?'Anthropic':'Ollama'}). Review before finalizing.`;
+    const warnings=[];
+    if(!hasCatalyst) warnings.push('missing catalyst behaviors');
+    if(!hasCompliance) warnings.push('missing compliance items');
+    statusEl.style.color=warnings.length?'var(--amber-tx)':'var(--green-tx)';
+    statusEl.textContent=warnings.length
+      ?`⚠ ${filled} steps scored but ${warnings.join(' and ')}. Try a larger model for complete results.`
+      :`✓ ${filled} steps scored by AI (${currentMode==='cloud'?'Anthropic':'Ollama'}). Review before finalizing.`;
 
   } catch(e){
-    progress.classList.remove('active');
+    stopProgress(false);
     statusEl.style.color='var(--red-tx)';
     if(currentMode==='local'&&e instanceof TypeError&&e.message==='Failed to fetch'){
       statusEl.textContent='Error: Cannot reach Ollama (CORS blocked). Run: set OLLAMA_ORIGINS=* && ollama serve';
@@ -1622,18 +1896,73 @@ async function analyzeTranscript(){
 
 function normalizeArray(val){
   if(Array.isArray(val)) return val.map(item=>{if(item&&item.id!==undefined){item.id=isNaN(item.id)?item.id:Number(item.id);}return item;});
-  if(val&&typeof val==='object') return Object.entries(val).map(([k,v])=>{const id=isNaN(k)?k:Number(k);return typeof v==='object'?{id,...v}:{id,value:v};});
+  if(val&&typeof val==='object') return Object.entries(val).map(([k,v])=>{
+    // Handle keys like "step1", "step2" → extract numeric id
+    let id=k;
+    const numMatch=k.match(/(\d+)/);
+    if(numMatch) id=Number(numMatch[1]);
+    else if(!isNaN(k)) id=Number(k);
+    return typeof v==='object'?{id,...v}:{id,value:v};
+  });
+  return [];
+}
+// Normalize bad score values from weak models
+function normalizeScore(score, type){
+  if(score===null||score===undefined) return null;
+  // Handle numeric scores (some models return 1-10 or 0-100 scales)
+  if(typeof score==='number'||(!isNaN(score)&&typeof score==='string'&&score.trim()!=='')){
+    const n=Number(score);
+    if(n>100||n<0) return null;
+    // Detect scale: if max value in the result is <=10, it's a 1-10 scale
+    if(type==='cat'){
+      if(n<=10){
+        // 1-10 scale: 8-10=ed, 5-7=pd, 1-4=dnd, 0=na
+        if(n>=8) return 'ed';
+        if(n>=5) return 'pd';
+        return n<=0?'na':'dnd';
+      }
+      // 0-100 scale
+      if(n>=80) return 'ed';
+      if(n>=60) return 'pd';
+      return n<=0?'na':'dnd';
+    } else {
+      if(n<=10) return n>=7?'yes':n<=0?'na':'no';
+      return n>=70?'yes':n<=0?'na':'no';
+    }
+  }
+  const s=String(score).toLowerCase().trim();
+  // Map common bad values to valid scores
+  const catMap={'complete':'ed','pass':'ed','good':'ed','yes':'ed','positive':'ed','partial':'pd','incomplete':'pd','neutral':'pd','fail':'dnd','no':'dnd','missing':'dnd','negative':'dnd','na':'na','n/a':'na'};
+  const ynMap={'complete':'yes','pass':'yes','good':'yes','ed':'yes','true':'yes','positive':'yes','fail':'no','dnd':'no','false':'no','missing':'no','incomplete':'no','negative':'no','na':'na','n/a':'na'};
+  if(type==='cat'){
+    if(['ed','pd','dnd','na'].includes(s)) return s;
+    return catMap[s]||null;
+  } else {
+    if(['yes','no','na'].includes(s)) return s;
+    return ynMap[s]||null;
+  }
+}
+// Normalize fields that should be arrays but models return as strings
+function ensureArray(val){
+  if(Array.isArray(val)) return val;
+  if(typeof val==='string'&&val.trim()) return [val];
   return [];
 }
 function applyResult(result){
   result.steps=normalizeArray(result.steps);
-  result.catalystBehaviors=normalizeArray(result.catalystBehaviors);
-  result.redFlags=normalizeArray(result.redFlags);
-  result.compliance=normalizeArray(result.compliance);
+  result.catalystBehaviors=normalizeArray(result.catalystBehaviors||result.catalyst||result.behaviors||result.catalyst_behaviors);
+  result.redFlags=normalizeArray(result.redFlags||result.red_flags||result.flags);
+  result.compliance=normalizeArray(result.compliance||result.complianceItems||result.compliance_items);
   (result.steps).forEach(s=>{
     const step=STEPS.find(st=>st.id===s.id);
-    if(!step||!s.score) return;
+    if(!step) return;
+    // Normalize score for weak models that return "complete", "pass", numeric, etc.
+    const normalized=normalizeScore(s.score, step.type);
+    if(normalized) s.score=normalized;
+    if(!s.score) return;
     setScore(s.id,s.score,true);
+    // Normalize trending — some models return a string instead of array
+    s.trending=ensureArray(s.trending);
     if(s.trending&&s.trending.length){
       if(!trendChecked[s.id]) trendChecked[s.id]=[];
       s.trending.forEach(label=>{
@@ -1644,20 +1973,34 @@ function applyResult(result){
       });
     }
     if(s.notes){notes[s.id]=s.notes;const ta=document.getElementById(`notes-${s.id}`);if(ta) ta.value=s.notes;}
-    // AI Insight — use dedicated insight, fall back to notes
-    const insightText=s.insight||s.notes||'';
+    // AI Insight — use notes as insight (insight field dropped from model output)
+    const insightText=s.notes||'';
     if(insightText){
       const ins=document.getElementById(`insight-${s.id}`);
       if(ins){ins.textContent=insightText;ins.className='ev-text';ins.style.fontStyle='normal';}
     }
-    // Transcript Evidence — use dedicated field, fall back to notes for scroll-to-transcript
-    const evText=s.transcriptEvidence||s.notes||'';
+    // Transcript Evidence — convert line numbers to actual text with validation
+    const txta=document.getElementById('ai-transcript');
+    const txLinesAll=txta?txta.value.split(/\r?\n/):[];
+    let evText='';
+    if(s.evidenceLines&&Array.isArray(s.evidenceLines)&&s.evidenceLines.length){
+      let validLines=s.evidenceLines.map(n=>Number(n)).filter(n=>n>=1&&n<=txLinesAll.length);
+      // Steps 1-2: enforce first 60 lines only
+      if(s.id<=2) validLines=validLines.filter(n=>n<=60);
+      // Step 3 (discovery): only Agent lines — customer questions don't count
+      if(s.id===3) validLines=validLines.filter(n=>/^Agent:/i.test(txLinesAll[n-1]||''));
+      evText=validLines.map(n=>{
+        const line=txLinesAll[n-1];
+        return line?line.trim():'';
+      }).filter(Boolean).join('\n');
+    }
+    if(!evText) evText=s.transcriptEvidence||'';
     if(evText){
       stepEvidence[s.id]=evText;
       const ep=document.getElementById(`ev-text-${s.id}`);
       if(ep){
-        ep.textContent=s.transcriptEvidence?evText:'Click to find this step in the transcript';
-        ep.className='ev-text';ep.style.fontStyle=s.transcriptEvidence?'normal':'italic';
+        ep.textContent=evText;
+        ep.className='ev-text';ep.style.fontStyle='normal';
         ep.style.cursor='pointer';ep.title='Click to find in transcript';
         ep.onclick=function(){scrollToTranscriptEvidence(evText);};
       }
@@ -1666,7 +2009,11 @@ function applyResult(result){
   // Apply AI-scored catalyst behaviors directly — overrides derived rollup
   (result.catalystBehaviors||[]).forEach(b=>{
     const el=document.getElementById(`cb-${b.id}`);
-    if(!el||!b.score) return;
+    if(!el) return;
+    // Normalize score for models that return numeric or non-standard values
+    const normalized=normalizeScore(b.score, 'cat');
+    if(normalized) b.score=normalized;
+    if(!b.score) return;
     const labels={ed:'Effectively Demonstrated',pd:'Partially Demonstrated',dnd:'Did Not Demonstrate'};
     const label=labels[b.score];
     if(!label) return;
@@ -1683,6 +2030,8 @@ function applyResult(result){
     const btn=document.getElementById(`${rf.id}-btn`);
     if(btn){btn.className='rf-flag-btn active';btn.textContent='⛔ Flagged';}
     if(!rfSubs[rf.id]) rfSubs[rf.id]=[];
+    // Normalize subs — some models return a string instead of array
+    rf.subs=ensureArray(rf.subs);
     (rf.subs||[]).forEach(label=>{
       const idx=rfd.subs.indexOf(label);if(idx<0) return;
       const cb=document.getElementById(`${rf.id}s${idx}`);
@@ -1693,7 +2042,11 @@ function applyResult(result){
   // Apply AI compliance scores
   (result.compliance||[]).forEach(ci=>{
     const item=COMPLIANCE_ITEMS.find(c=>c.id===ci.id);
-    if(!item||!ci.score) return;
+    if(!item) return;
+    // Normalize score for models that return numeric or non-standard values
+    const normalized=normalizeScore(ci.score, 'yn');
+    if(normalized) ci.score=normalized;
+    if(!ci.score) return;
     complianceScores[ci.id]=ci.score;
     ['yes','no','na'].forEach(v=>{
       const b=document.getElementById(`ci-btn-${ci.id}-${v}`);
@@ -1748,6 +2101,7 @@ function applyResult(result){
     if(flagEl) flagEl.style.display='none';
   }
   // Render executive summary
+  console.log('executiveSummary present:', !!result.executiveSummary, result.executiveSummary ? Object.keys(result.executiveSummary) : 'MISSING');
   if(result.executiveSummary){
     const es=result.executiveSummary;
     const panel=document.getElementById('exec-panel');
@@ -1755,26 +2109,64 @@ function applyResult(result){
     const text=document.getElementById('exec-text');
     const pills=document.getElementById('exec-pills');
     if(panel&&priority&&text&&pills){
-      priority.textContent=es.topPriority||'';
-      text.textContent=es.summary||'';
+      priority.textContent=es.topPriority||es.top_priority||es.priority||'';
+      text.textContent=es.summary||es.overview||es.analysis||es.description||'';
       let pillHtml='';
       (es.strengths||[]).forEach(s=>{pillHtml+=`<span class="exec-pill strength">✓ ${s}</span>`;});
       (es.opportunities||[]).forEach(s=>{pillHtml+=`<span class="exec-pill opportunity">↑ ${s}</span>`;});
       (es.critical||[]).forEach(s=>{pillHtml+=`<span class="exec-pill critical">⛔ ${s}</span>`;});
       pills.innerHTML=pillHtml;
 
-      // Coaching recommendations
-      const recs=es.coachingRecommendations||[];
+      // Coaching recommendations — split into sales and compliance sections
+      // Backward compat: if model returns old coachingRecommendations, use it as salesCoaching
+      console.log('Exec summary keys:', Object.keys(es), 'FULL ES:', JSON.stringify(es).slice(0,500));
+      console.log('salesCoaching:', es.salesCoaching);
+      console.log('complianceCoaching:', es.complianceCoaching);
+      console.log('coachingRecommendations:', es.coachingRecommendations);
+      // Normalize coaching rec fields — models use inconsistent formats
+      // Convert evidenceLines to text for coaching recs
+      const txta2=document.getElementById('ai-transcript');
+      const txLinesCoach=txta2?txta2.value.split(/\r?\n/):[];
+      function normalizeCoachingRec(r){
+        // Handle plain strings — model returned an array of strings instead of objects
+        if(typeof r==='string') return {compassPhase:'',focus:'Coaching',what:r,transcriptEvidence:'',example:'',priority:'medium'};
+        // Map every possible key name the model might use
+        const phase=String(r.compassPhase||r.phase||r.step||'').replace(/[^a-zA-Z\s]/g,'').trim();
+        // Map step names to compass phases
+        const phaseMap={discovery:'Explore',pitch:'Consult',close:'Consult',objection:'Overcome',greeting:'Connect',opening:'Connect',agenda:'Connect',reaffirm:'Review',summary:'Review',compliance:'Review'};
+        const mappedPhase=phaseMap[phase.toLowerCase()]||phase;
+        // Convert evidenceLines to text if present
+        let evidence=r.transcriptEvidence||r.evidence||r.quote||r.transcript||'';
+        if(!evidence&&r.evidenceLines&&Array.isArray(r.evidenceLines)){
+          evidence=r.evidenceLines.map(n=>txLinesCoach[Number(n)-1]||'').filter(Boolean).join('\n');
+        }
+        return {
+          compassPhase:mappedPhase,
+          focus:r.focus||r.area||r.label||r.topic||mappedPhase||'Coaching',
+          what:r.what||r.action||r.recommendation||r.description||r.note||'',
+          transcriptEvidence:evidence,
+          example:r.example||r.script||r.suggestion||r.sample||'',
+          priority:r.priority||r.severity||'medium'
+        };
+      }
+      // Broad fallback — models use unpredictable key names for coaching
+      const rawSales=es.salesCoaching||es.coachingRecommendations||es.nextSteps||es.coaching||es.recommendations||es.sales||[];
+      const rawCompliance=es.complianceCoaching||es.compliance_coaching||[];
+      console.log('Raw salesCoaching items:', JSON.stringify(rawSales));
+      console.log('Raw complianceCoaching items:', JSON.stringify(rawCompliance));
+      const salesRecs=rawSales.map(normalizeCoachingRec);
+      const complianceRecs=rawCompliance.map(normalizeCoachingRec);
+      console.log('Normalized salesRecs:', JSON.stringify(salesRecs));
+      console.log('Normalized complianceRecs:', JSON.stringify(complianceRecs));
       let coachHtml='';
-      if(recs.length){
-        coachHtml+=`<div class="coaching-section">
-          <div class="coaching-section-label">Coaching recommendations</div>
-          <div class="coaching-cards">`;
+
+      function renderCoachingCards(recs){
+        let html='';
         recs.forEach(r=>{
           const p=(r.priority||'medium').toLowerCase();
           const badgeLabel=p==='high'?'High priority':'Medium priority';
           const isObjHandling=(r.focus||'').toLowerCase().includes('objection');
-          coachHtml+=`<div class="coaching-card priority-${p}">
+          html+=`<div class="coaching-card priority-${p}">
             <div class="coaching-card-hdr">
               <span class="coaching-card-focus">${r.focus||''}${isObjHandling?' <span class="coaching-framework-tag">Understand → Acknowledge → Reinforce → Assume</span>':''}</span>
               <span class="coaching-card-badge ${p}">${badgeLabel}</span>
@@ -1786,7 +2178,18 @@ function applyResult(result){
             <div class="coaching-card-example">"${r.example}"</div>`:''}
           </div>`;
         });
-        coachHtml+=`</div></div>`;
+        return html;
+      }
+
+      if(salesRecs.length){
+        coachHtml+=`<div class="coaching-section">
+          <div class="coaching-section-label">Sales coaching</div>
+          <div class="coaching-cards">${renderCoachingCards(salesRecs)}</div></div>`;
+      }
+      if(complianceRecs.length){
+        coachHtml+=`<div class="coaching-section" style="margin-top:12px;">
+          <div class="coaching-section-label">Compliance coaching</div>
+          <div class="coaching-cards">${renderCoachingCards(complianceRecs)}</div></div>`;
       }
 
       // Append to exec body
@@ -1863,20 +2266,22 @@ function toggleNavOverlay(){
 function esc2(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 async function detectSpeakersWithAI(transcript){
-  // Fire a short, focused call to identify which SPEAKER_XX is agent vs customer.
-  // Reads the full transcript for maximum accuracy.
+  // Identify which SPEAKER_XX is agent vs customer using AI.
+  // Sends first + last 40 lines for context (opening has intro, end has closing).
   // Returns an object like {SPEAKER_02:'agent', SPEAKER_04:'customer'} or null on failure.
   try {
     const lines=transcript.split(/\r?\n/).filter(l=>l.trim());
-    const sample=lines.join('\n');
 
-    // Extract unique speaker IDs from the sample
-    const spkIds=[...new Set(sample.match(/SPEAKER_\d+/g)||[])];
-    if(!spkIds.length) return null; // no SPEAKER_ labels — nothing to do
+    // Extract unique speaker IDs
+    const spkIds=[...new Set(transcript.match(/SPEAKER_\d+/g)||[])];
+    if(!spkIds.length) return null;
+
+    // Send full transcript — model needs the complete call to reliably identify speakers
+    const sample=lines.join('\n');
 
     const prompt=`You are analyzing a call center transcript. This is an OUTBOUND telesales call from an Xfinity/Comcast sales agent to a customer.
 
-TRANSCRIPT:
+TRANSCRIPT (opening and closing of the call):
 ${sample}
 
 SPEAKER IDs found: ${spkIds.join(', ')}
@@ -1900,7 +2305,7 @@ KEY FACTS:
 - Speakers with only brief responses are almost always the customer.
 
 Return ONLY valid JSON, no explanation, no markdown:
-{"speakers": {"SPEAKER_02": "agent", "SPEAKER_04": "customer"}}`; 
+{"speakers": {"SPEAKER_02": "agent", "SPEAKER_04": "customer"}}`;
 
     let raw='';
     if(currentMode==='cloud'){
@@ -1917,31 +2322,45 @@ Return ONLY valid JSON, no explanation, no markdown:
       raw=d?.content?.[0]?.text||'';
     } else {
       const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
-      const model=(document.getElementById('ollama-model').value||'').trim();
+      // Use dedicated speaker detection model if set, otherwise fall back to scoring model
+      const spkModel=(document.getElementById('ollama-speaker-model')?.value||'').trim();
+      const scoringModel=(document.getElementById('ollama-model').value||'').trim();
+      const model=spkModel||scoringModel;
       if(!model) return null;
+      console.log('Speaker detection using model:', model);
       const res=await fetch(`${base}/v1/chat/completions`,{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           model,
           messages:[
-            {role:'system',content:'You are a precise JSON-only responder. Never output anything except valid JSON. Do not include any thinking or reasoning tags.'},
-            {role:'user',content:prompt}
+            {role:'system',content:'/no_think\nRespond with only valid JSON. No thinking, no markdown.'},
+            {role:'user',content:'/no_think\n'+prompt}
           ],
+          max_tokens:500,
           stream:false,
           temperature:0,
-          options:{num_ctx:16384}
+          options:{num_ctx:32768,num_predict:500}
         })
       });
       if(!res.ok) return null;
       const d=await res.json();
-      raw=d?.choices?.[0]?.message?.content||'';
+      const msg=d?.choices?.[0]?.message||{};
+      // qwen3 on OpenAI endpoint puts output in 'reasoning' when thinking is enabled, 'content' when not
+      raw=msg.content||msg.reasoning||'';
+      console.log('Speaker detection raw response length:', raw.length, 'content:', (msg.content||'').length, 'reasoning:', (msg.reasoning||'').length);
     }
 
     let clean=stripToJSON(raw);
     let parsed;
-    try{parsed=JSON.parse(clean);}catch(e){parsed=JSON.parse(repairJSON(clean));}
-    if(parsed&&parsed.speakers&&typeof parsed.speakers==='object') return parsed.speakers;
+    try{parsed=JSON.parse(clean);}catch(e){
+      try{parsed=JSON.parse(repairJSON(clean));}catch(e2){}
+    }
+    if(parsed&&parsed.speakers&&typeof parsed.speakers==='object'){
+      console.log('Speaker detection succeeded:', JSON.stringify(parsed.speakers));
+      return parsed.speakers;
+    }
+    console.warn('Speaker detection: no valid speakers map in response. Raw:', raw.slice(0,200));
     return null;
   } catch(e){
     console.warn('Speaker AI detection failed:',e);
@@ -2042,16 +2461,22 @@ async function renderTranscriptRef(transcript, stepEvidenceMap){
   const lines=transcript.split(/\r?\n/);
   const annotated=annotateLines(lines, stepEvidenceMap||{});
 
-  // Assign roles: use AI speaker map if available, else heuristic fallback
+  // Assign roles: detect pre-normalized Agent/Customer labels first, then SPEAKER_XX, then heuristic
   let roleMap;
+  const hasAgentLabels=lines.some(l=>/^(Agent|Customer):/i.test(l));
   const hasSpeakerIds=lines.some(l=>/^SPEAKER_\d+:/.test(l));
-  if(hasSpeakerIds && speakerSeedMap && Object.keys(speakerSeedMap).length){
+  if(hasAgentLabels){
+    // Transcript already normalized with Agent/Customer labels — map directly
+    roleMap=lines.map(line=>{
+      if(/^Agent:/i.test(line)) return 'agent';
+      if(/^Customer:/i.test(line)) return 'customer';
+      return 'unknown';
+    });
+  } else if(hasSpeakerIds && speakerSeedMap && Object.keys(speakerSeedMap).length){
     roleMap=assignRolesBySpkId(lines, speakerSeedMap);
   } else if(hasSpeakerIds && !speakerSeedMap){
-    // AI not available — mark all as unknown, show waiting state
     roleMap=lines.map(()=>'unknown');
   } else {
-    // No SPEAKER_XX labels — use signal-based heuristic
     roleMap=assignRolesByHeuristic(lines);
   }
   let html='';
@@ -2720,7 +3145,23 @@ function clearBulkQueue(){
 
 // ── AI call (returns parsed result object) ────────────────────────────────────
 async function callAI(transcript, attempt=1){
-  const prompt=buildPrompt(transcript);
+  // Normalize SPEAKER_XX labels to Agent/Customer before scoring
+  let normalizedTranscript=transcript;
+  const hasSpeakerIds=/^SPEAKER_\d+:/m.test(transcript);
+  if(hasSpeakerIds){
+    const spkMap=await detectSpeakersWithAI(transcript);
+    if(spkMap&&Object.keys(spkMap).length){
+      const lines=transcript.split(/\r?\n/);
+      normalizedTranscript=lines.map(line=>{
+        const m=line.match(/^(SPEAKER_\d+):\s*/);
+        if(!m) return line;
+        const role=spkMap[m[1]];
+        const label=role==='agent'?'Agent':'Customer';
+        return label+': '+line.slice(m[0].length);
+      }).join('\n');
+    }
+  }
+  const prompt=buildPrompt(normalizedTranscript);
   let raw='';
   const TIMEOUT_MS = 5 * 60 * 1000; // 5 min — enough for any local model on a long transcript
 
@@ -2733,7 +3174,7 @@ async function callAI(transcript, attempt=1){
       const res=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',signal:controller.signal,
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model,max_tokens:4096,messages:[{role:'user',content:prompt}]})
+        body:JSON.stringify({model,max_tokens:8192,messages:[{role:'user',content:prompt}]})
       });
       clearTimeout(timer);
       if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`API ${res.status}`);}
@@ -2755,19 +3196,20 @@ async function callAI(transcript, attempt=1){
         body:JSON.stringify({
           model,
           messages:[
-            {role:'system',content:'Respond only with valid JSON. No markdown, no explanation. Do not include any thinking or reasoning tags.'},
+            {role:'system',content:'You are a precise JSON-only responder. After any thinking, output ONLY valid JSON. No markdown fences, no backticks. All scores MUST be strings, NEVER numbers. Step scores: "ed", "pd", "dnd", "na", "yes", or "no". Catalyst scores: "ed", "pd", or "dnd". Compliance scores: "yes", "no", or "na".'},
             {role:'user',content:prompt}
           ],
+          max_tokens:16384,
           stream:false,
           temperature:0.1,
-          options:{num_ctx:16384}})
+          options:{num_ctx:65536,num_predict:16384}})
       });
       clearTimeout(timer);
       if(!res.ok){
         const txt=await res.text().catch(()=>'');
         throw new Error(`Ollama ${res.status}${txt?' — '+txt.slice(0,80):''}`);
       }
-      const d=await res.json();raw=d?.choices?.[0]?.message?.content||'';
+      const d=await res.json();const bmsg=d?.choices?.[0]?.message||{};raw=bmsg.content||'';if(!raw||raw.trim().length<10) raw=bmsg.reasoning||'';
     } catch(e){
       clearTimeout(timer);
       if(e.name==='AbortError') throw new Error('Request timed out after 5 minutes — try a faster model or shorter transcript');
@@ -3134,7 +3576,7 @@ async function downloadBulkZip(){
 // ── Individual coaching HTML report ──────────────────────────────────────────
 function buildIndividualCoachingHTML(p){
   const es = p.executiveSummary || {};
-  const recs = es.coachingRecommendations || [];
+  const recs = [].concat(es.salesCoaching||es.coachingRecommendations||[]).concat(es.complianceCoaching||[]);
 
   const RC = { ed:'#3b6d11', pd:'#854f0b', dnd:'#791f1f', yes:'#3b6d11', no:'#791f1f', na:'#888',
     'Effectively Demonstrated':'#3b6d11','Partially Demonstrated':'#854f0b','Did Not Demonstrate':'#791f1f','Not scored':'#888' };
@@ -3322,7 +3764,7 @@ function buildTrendReportHTML(results){
 
   // Coaching focus areas
   var focusCount={}, focusByAgent={};
-  results.forEach(function(r){ ((r.executiveSummary||{}).coachingRecommendations||[]).forEach(function(rec){ var f=rec.focus||'Other'; focusCount[f]=(focusCount[f]||0)+1; if(!focusByAgent[f]) focusByAgent[f]=[]; focusByAgent[f].push(r); }); });
+  results.forEach(function(r){ var es=r.executiveSummary||{}; var allRecs=[].concat(es.salesCoaching||es.coachingRecommendations||[]).concat(es.complianceCoaching||[]); allRecs.forEach(function(rec){ var f=rec.focus||'Other'; focusCount[f]=(focusCount[f]||0)+1; if(!focusByAgent[f]) focusByAgent[f]=[]; focusByAgent[f].push(r); }); });
   var topFocus=Object.entries(focusCount).sort(function(a,b){ return b[1]-a[1]; }).slice(0,8);
   var focusRows=topFocus.map(function(e){ return '<tr><td style="padding:7px 12px;border-bottom:0.5px solid #eee;font-size:13px;">'+esc(e[0])+'</td><td style="padding:7px 12px;border-bottom:0.5px solid #eee;font-size:13px;font-weight:600;text-align:right;">'+e[1]+'</td><td style="padding:7px 12px;border-bottom:0.5px solid #eee;font-size:12px;color:#888;text-align:right;">'+Math.round(e[1]/total*100)+'%</td></tr>'; });
   var focusNarrative='';
@@ -3424,43 +3866,33 @@ document.getElementById('f-date').valueAsDate=new Date();
 const savedMode=load('catalyst_mode','local');
 setMode(savedMode);
 // ─── Products modal ──────────────────────────────────────────────────────────
-const DEFAULT_PRODUCT_CORE=`Internet: 300M=$70 APPD/$80 EDP, 500M=$85/$95, 1G=$100/$110, 1.2G=$130/$140. All include Gateway, unlimited data, WiFi Hotspot. APPD=$10 discount w/ bank account+paperless.
-Upload speeds: Base=35Mbps, Genesis=100Mbps, FDX/EPON=symmetrical. Xfinity Pro add-on $15/mo.
-NOW Internet: 100Mbps=$30, 200Mbps=$45 (no credit check, prepaid, XB3 gateway).
-Competitive edge: wired (not deprioritized like AT&T Air/T-Mobile/Verizon 5G), 99.9% reliability, speed upgrades, Advanced Security included.
+const DEFAULT_PRODUCT_CORE=`INTERNET WiFi DEALS (w/ APPD pricing):
+300M=$40/mo(5Y), 500M=$50(5Y)/$45(1Y), 1G=$60(5Y)/$55(1Y), 1.2/2G=$100(5Y)/$95(1Y). Without APPD add $10.
+All include: Gateway, unlimited data, Advanced Security, WiFi Hotspot, 1 XM Unlimited line included 12mo ($480 value).
+1G+ also get Disney+, Hulu, Peacock included 36mo.
+APPD = Auto-Pay & Paperless Discount ($10/mo off with bank account auto-pay + paperless billing).
 
-Mobile (requires postpay Internet): Unlimited=$40/line (30GB prioritized, SD), Premium Unlimited=$50/line (100GB, 4K, 30GB 5G hotspot, Global Travel, Call Guard, Elite Upgrade). Multi-line: 2=$60/$80, 3=$80/$110, 4=$100/$140. Setup $25/line. Mexico/Canada included both plans.
-NOW Mobile: $25/line prepaid (20GB, no credit check, BYOD or budget PIF only, cancel anytime). At 4 lines=$100 same as Unlimited — upsell.
-Add-ons: Smartwatch $10/mo, Tablet $20/mo (15GB). WiFi PowerBoost included.
+MOBILE (requires postpay Internet):
+Unlimited: 1=$40, 2=$60, 3=$80, 4=$100 (+$20/line after). 30GB priority, SD video, MX/CA included.
+Premium Unlimited: 1=$50, 2=$80, 3=$110, 4=$140 (+$30/line). 100GB priority, 4K, 30GB 5G hotspot, Global Travel, Call Guard included.
+Promo: 1st Unlimited line on us 12mo for new XM w/ 300M+ Internet. $25 activation waived.
+Device promos (thru 4/21/26): iPhone 17e "on us" w/ trade-in (Premium, up to $599.99). Up to $1,100 off Samsung w/ trade-in. $400-$500 off flagship no trade-in (Premium).
+Smartwatch $10/mo, Tablet $20/mo.
 
-StreamSaver (expanded 3/17/26, 8 bundles): Peacock+Disney+Hulu=$15, Peacock+Netflix+AppleTV=$18(original), 3-app combos w/HBOMax=$22, 4-5 app combos=$30. Saves 25%+.
-NOW StreamSaver (includes NOW TV 125+ channels): 3-app=$30, 4-app=$35. Original NOW bundle ($30) works on NOW Internet; new bundles need Xfinity Internet.
-Xumo Stream Box included w/ Internet, $15 activation waived w/ StreamSaver. Competitors offer zero streaming bundles.
-Upgrades: Netflix no-ads +$10, Premium +$17, Peacock Plus +$6, HBOMax no-ads +$7.50, Disney+/Hulu no-ads +$7.
+XMC (pitch with EVERY device): Low=$9/mo($0-300), Mid=$15($301-949), High=$17($950-1194), Ultra=$19($1195+).
+Unlimited glass repair, loss/theft, early upgrade at 50% paid. 3 claims/12mo. BYOD eligible. NOT for NOW Mobile.
 
-XMC (device protection, pitch with EVERY device sale): Low $9/mo ($0-300 MSRP), Mid $15 ($301-949), High $17 ($950-1194), Ultra $19 ($1195+). Free unlimited screen repair, loss/theft, 3 claims/12mo, early upgrade at 50% paid. NOT for NOW Mobile. Beats AppleCare+.
+STREAMSAVER (8 bundles, expanded 3/17/26):
+Peacock+Disney+Hulu=$15, Peacock+Netflix+AppleTV=$18, 3-app w/HBO=$22, 4-5 app=$30. Saves 25-41%.
+Upgrades: Netflix no-ads +$10, HBO no-ads +$7.50, Disney+/Hulu no-ads +$7, Peacock Plus +$6.
 
-Smart Home: $10/mo — 24/7 recording up to 6 cameras, 7-day cloud, Urgent Response, AI detection. Equipment: Indoor camera $2.50/mo(24mo), Outdoor camera/Doorbell/Lock $5/mo(24mo). Requires Gateway + xCam2/3 or Doorbell. 99% of home sales.
-Home Security: $55/mo APPD/$65 EDP (24/7 professional monitoring) + equipment: Base(3 sensors)=$15/mo, Complete(5 sensors+camera+keypad)=$20/mo, Ultimate(10 sensors+2 cameras+keypad)=$25/mo. Customer owns after payoff. Lead with Security first, Smart Home as fallback.
+NOW PRODUCTS (no credit check, prepaid):
+NOW Internet: 100M=$30, 200M=$45. NOW Mobile: $25/line (20GB, BYOD). NOW StreamSaver: 3-app=$30, 4-app=$35 (includes NOW TV 125+ channels).
 
-TV: Xfinity TV for sports/live/DVR (X1 4K box, 150-300hr DVR). NOW TV for budget live (125+ channels, no locals, $30 w/ StreamSaver). StreamSaver for cord-cutters.
+Broadband Labels: MUST reference xfinity.com/labels on ANY Internet or Mobile offer.
+If agent quotes a price, product, or promo NOT listed above, flag it as a productFlag.`;
 
-Voice Premier: $30/mo APPD/$40 EDP. Unlimited local+domestic+international (90+ countries). Additional line $9.95/mo. Backup battery $65.
-
-Broadband Labels: MUST reference xfinity.com/labels on ANY Internet or Mobile offer (FCC compliance).`;
-
-const DEFAULT_PRODUCT_DEALS=`WiFi Deals (effective 4/1/26): 5Y prices: 300M=$45, 500M=$60, 1G=$70, 1.2/2G=$100. 1Y prices: 300M=$40, 500M=$50, 1G=$60, 1.2/2G=$90.
-Deal includes: equipment + XM Unlimited line, no contract, risk-free 30 days, save up to $1,500 vs AT&T/Verizon.
-Gig+ Streaming: Disney+, Hulu, Peacock Premium included 36 months for 1G and above.
-5Y deals for new/transferring/video-only/DINA. 1Y in CSG only, lead with 5Y.
-
-Mobile Promos (through April 21, 2026):
-- Free Unlimited line 12 months ($480 value) — new XM customers w/ 300M+ Internet
-- Waived $25 activation fee
-Trade-in: iPhone 17e "On Us" w/ trade-in (Premium Unlimited, up to $599.99). Samsung up to $1,100 (Premium Unlimited). Apple/Google/Moto up to $830. Samsung up to $500.
-Flagship (no trade-in): iPhone 17e $400 off (Premium Unlimited). Samsung $500 off (Premium Unlimited), $200 off (Unlimited). Apple/Samsung/Google/Moto $400 off (Premium Unlimited).
-Tablets/Watches: Galaxy Tab A11+ 50% off (thru 3/31). Diamond members $300 off smartwatches (thru 4/19).
-Gift cards (Retail/Field only): $400 Mastercard (2 new lines + DPP device). $200 Mastercard (2 new lines + BYOD/PIF, thru 5/10).`;
+const DEFAULT_PRODUCT_DEALS=`Deals are included in the core product knowledge above. This section is for additional temporary promotions only.`;
 
 function openProductsModal(){
   document.getElementById('products-overlay').style.display='flex';
@@ -3628,6 +4060,7 @@ const savedKey=load('catalyst_api_key');if(savedKey) document.getElementById('ai
 const savedCloudModel=load('catalyst_cloud_model');if(savedCloudModel){const s=document.getElementById('cloud-model');for(let i=0;i<s.options.length;i++){if(s.options[i].value===savedCloudModel){s.selectedIndex=i;break;}}}
 const savedOllamaUrl=load('catalyst_ollama_url');if(savedOllamaUrl) document.getElementById('ollama-url').value=savedOllamaUrl;
 const savedOllamaModel=load('catalyst_ollama_model');if(savedOllamaModel) document.getElementById('ollama-model').value=savedOllamaModel;
+const savedSpkModel=load('catalyst_ollama_speaker_model');if(savedSpkModel) document.getElementById('ollama-speaker-model').value=savedSpkModel;
 const savedSheetsUrl=load('gc_scorecard_url');if(savedSheetsUrl) document.getElementById('sheets-url').value=savedSheetsUrl;
 // Load product knowledge
 document.getElementById('prod-core').value=load('catalyst_product_core')||DEFAULT_PRODUCT_CORE;
