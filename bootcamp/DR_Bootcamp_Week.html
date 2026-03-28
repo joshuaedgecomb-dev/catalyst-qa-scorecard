@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Catalyst Coaching Bootcamp — DR Site Week</title>
+<style>
+  @page { size: letter; margin: 0.4in 0.5in; }
+  @media print { .page-break { page-break-before: always; } }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', 'Inter', Arial, sans-serif; font-size: 10.5pt; color: #1a1d23; line-height: 1.5; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Cover page */
+  .cover { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(145deg, #0f172a 0%, #1e293b 40%, #334155 100%); color: #fff; padding: 60px; }
+  .cover h1 { font-size: 36pt; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .cover h2 { font-size: 16pt; font-weight: 400; color: #94a3b8; margin-bottom: 40px; }
+  .cover .meta { font-size: 11pt; color: #64748b; line-height: 2; }
+  .cover .meta strong { color: #cbd5e1; }
+  .cover-divider { width: 80px; height: 3px; background: linear-gradient(90deg, #38bdf8, #818cf8); border-radius: 2px; margin: 24px auto; }
+
+  /* Day pages */
+  .day-header { background: linear-gradient(135deg, var(--day-c1), var(--day-c2)); color: #fff; padding: 18px 28px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .day-header h2 { font-size: 20pt; font-weight: 700; }
+  .day-header .day-label { font-size: 11pt; opacity: 0.85; text-align: right; }
+  .day-header .day-label strong { display: block; font-size: 14pt; opacity: 1; }
+
+  /* Sections */
+  .session { border: 1.5px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
+  .session-header { padding: 8px 16px; font-weight: 700; font-size: 10pt; text-transform: uppercase; letter-spacing: 0.6px; display: flex; justify-content: space-between; align-items: center; }
+  .session-body { padding: 12px 18px; }
+  .session-time { font-size: 9pt; font-weight: 600; opacity: 0.8; }
+
+  .morning .session-header { background: linear-gradient(90deg, var(--day-c1), var(--day-c2)); color: #fff; }
+  .followup .session-header { background: #f1f5f9; color: #475569; border-bottom: 1px solid #e2e8f0; }
+  .afternoon .session-header { background: linear-gradient(90deg, var(--day-c2), var(--day-c1)); color: #fff; }
+
+  /* Content elements */
+  h3 { font-size: 12pt; font-weight: 700; color: #1e293b; margin: 10px 0 6px; }
+  h4 { font-size: 10.5pt; font-weight: 600; color: #475569; margin: 8px 0 4px; }
+  ul { padding-left: 18px; margin-bottom: 8px; }
+  li { margin-bottom: 3px; }
+  li strong { color: #1e293b; }
+  ol { padding-left: 18px; margin-bottom: 8px; }
+  ol li { margin-bottom: 5px; }
+
+  .callout { background: #f8fafc; border-left: 3px solid var(--day-c1); padding: 8px 14px; border-radius: 0 6px 6px 0; margin: 8px 0; font-size: 10pt; }
+  .callout-amber { background: #fffbeb; border-left-color: #f59e0b; }
+  .callout-green { background: #f0fdf4; border-left-color: #22c55e; }
+  .callout-red { background: #fef2f2; border-left-color: #ef4444; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pill { display: inline-block; font-size: 8.5pt; font-weight: 700; padding: 2px 10px; border-radius: 12px; margin-right: 4px; }
+  .pill-ed { background: #dcfce7; color: #166534; }
+  .pill-pd { background: #fef3c7; color: #92400e; }
+  .pill-dnd { background: #fee2e2; color: #991b1b; }
+
+  .script-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 8px 14px; margin: 6px 0; font-style: italic; font-size: 10pt; color: #0c4a6e; }
+  .vs-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+  .vs-bad { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 8px 12px; }
+  .vs-good { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 12px; }
+  .vs-label { font-size: 8.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .vs-bad .vs-label { color: #991b1b; }
+  .vs-good .vs-label { color: #166534; }
+
+  .takeaway-box { background: linear-gradient(135deg, #f0f9ff, #eff6ff); border: 1.5px solid #93c5fd; border-radius: 8px; padding: 12px 16px; margin: 10px 0; }
+  .takeaway-box h4 { color: #1d4ed8; margin-top: 0; }
+
+  .footer { text-align: center; font-size: 8pt; color: #94a3b8; margin-top: 16px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+
+  /* Day color themes */
+  .day1 { --day-c1: #6366f1; --day-c2: #818cf8; }
+  .day2 { --day-c1: #8b5cf6; --day-c2: #a78bfa; }
+  .day3 { --day-c1: #0891b2; --day-c2: #22d3ee; }
+  .day4 { --day-c1: #dc2626; --day-c2: #f87171; }
+  .day5 { --day-c1: #059669; --day-c2: #34d399; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- COVER PAGE -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <h1>Catalyst Coaching Bootcamp</h1>
+  <h2>5-Day Intensive &bull; DR Site</h2>
+  <div class="cover-divider"></div>
+  <div class="meta">
+    <strong>Xfinity Outbound Telesales</strong><br>
+    Compass Navigator &bull; Catalyst Quality Behaviors<br><br>
+    <strong>Format</strong><br>
+    30-min Morning Huddle &bull; Midday Follow-Up &bull; 15-min Afternoon Focus<br><br>
+    <strong>Prepared by</strong><br>
+    Performance Analytics &bull; March 2026
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 1 — POSITIVE INTRODUCTION -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day1">
+  <div class="day-header">
+    <h2>The Power of the First 30 Seconds</h2>
+    <div class="day-label"><strong>Day 1</strong>Positive Introduction</div>
+  </div>
+
+  <!-- MORNING HUDDLE -->
+  <div class="session morning">
+    <div class="session-header">Morning Huddle <span class="session-time">30 minutes</span></div>
+    <div class="session-body">
+
+      <h3>Why This Matters</h3>
+      <p>Outbound telesales is an interruption. The customer didn't ask for this call. You have <strong>30 seconds</strong> to earn their willingness to stay on the line. The opening isn't just a formality -it's where trust is built or lost.</p>
+
+      <div class="callout">
+        <strong>Catalyst Behaviors in Play:</strong>
+        <span class="pill pill-ed">Engage Actively</span>
+        <span class="pill pill-ed">Own It</span>
+        -Warmth + competence from the first word.
+      </div>
+
+      <h3>What "Effectively Demonstrated" Looks Like</h3>
+      <ul>
+        <li><strong>Genuine warmth</strong> -the customer hears a smile, not a script</li>
+        <li><strong>Natural pace</strong> -not rushed, not robotic</li>
+        <li><strong>Personal connection</strong> -find the small window between getting their name and launching into the pitch ("How's your day going?")</li>
+        <li><strong>Pre-call prep</strong> (existing customers) -using the customer's name early shows you reviewed their account before dialing</li>
+        <li><strong>Recording disclosure delivered</strong> -before any discovery questions, naturally woven in</li>
+      </ul>
+
+      <h3>The Compass Navigator Opening</h3>
+      <div class="script-box">
+        "Hello! My name is [First Last], and I'm calling from Xfinity. May I speak with [Customer Name]?"<br>
+        <em>[Confirm identity, ask how their day is going]</em><br>
+        "Before we continue, I need to inform you that the call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices, please visit Xfinity.com/privacy."
+      </div>
+
+      <h3>Common Pitfalls</h3>
+      <div class="vs-box">
+        <div class="vs-bad">
+          <div class="vs-label">What DND sounds like</div>
+          <ul style="font-size:9.5pt;">
+            <li>Robotic, memorized delivery</li>
+            <li>Flat tone -no warmth</li>
+            <li>Jumping straight from "Nice to meet you" into the pitch</li>
+            <li>Recording disclosure skipped or delivered after discovery</li>
+            <li>No personalization at all</li>
+          </ul>
+        </div>
+        <div class="vs-good">
+          <div class="vs-label">What ED sounds like</div>
+          <ul style="font-size:9.5pt;">
+            <li>Sounds like a real person, not reading</li>
+            <li>Pauses to let the customer respond</li>
+            <li>"I see you've been with us for 3 years -that's awesome!"</li>
+            <li>Recording disclosure feels natural, not rushed</li>
+            <li>Customer feels welcomed, not processed</li>
+          </ul>
+        </div>
+      </div>
+
+      
+  </div>
+
+  <!-- MIDDAY FOLLOW-UP -->
+  <div class="session followup">
+    <div class="session-header">Midday Follow-Up <span class="session-time">Throughout the day</span></div>
+    <div class="session-body">
+      <h4>Floor Walk Focus</h4>
+      <ul>
+        <li>Listen for the <strong>first 30 seconds</strong> of live calls -is the greeting warm or robotic?</li>
+        <li>Check: is the recording disclosure being delivered <strong>before</strong> discovery?</li>
+        <li>Spot-check: are agents using the customer's name on existing customer calls?</li>
+      </ul>
+      <h4>Quick Wins to Coach</h4>
+      <ul>
+        <li>If an agent sounds flat &rarr; have them stand up for their next call</li>
+        <li>If the disclosure sounds rushed &rarr; practice saying it at half speed, then speed up naturally</li>
+        <li>If they skip the personal moment &rarr; challenge them to ask one non-scripted question in the opening</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- AFTERNOON SESSION -->
+  <div class="session afternoon">
+    <div class="session-header">Afternoon Focus <span class="session-time">15 minutes</span></div>
+    <div class="session-body">
+      <h3>Debrief &amp; Practice</h3>
+      <ul>
+        <li><strong>Round-table:</strong> "What's one thing you changed about your opening today? What happened?"</li>
+        <li><strong>Live practice:</strong> Pair up. One person is the customer, one is the agent. Do the first 30 seconds. Switch.</li>
+        <li><strong>Challenge for tomorrow:</strong> Record yourself doing your opening before your first call tomorrow. Listen back. Would you stay on the line?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">Catalyst Coaching Bootcamp &bull; DR Site &bull; Day 1 of 5 &bull; Xfinity Outbound Telesales &bull; March 2026</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 2 — DISCOVERING WITH INTENT -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day2">
+  <div class="day-header">
+    <h2>Discovering with Intent</h2>
+    <div class="day-label"><strong>Day 2</strong>Qualitative vs. Quantitative</div>
+  </div>
+
+  <div class="session morning">
+    <div class="session-header">Morning Huddle <span class="session-time">30 minutes</span></div>
+    <div class="session-body">
+
+      <h3>Why This Matters</h3>
+      <p>Discovery is <strong>the agent asking questions</strong> -not the customer asking you. It's the foundation of the entire pitch. A generic pitch happens because of generic discovery. A tailored pitch that closes happens because you uncovered something real.</p>
+
+      <div class="callout">
+        <strong>Catalyst Behavior:</strong>
+        <span class="pill pill-ed">Discover Needs</span>
+        -Ask proactive, relevant questions that reveal something new.
+      </div>
+
+      <h3>The 4 Pillars of Discovery</h3>
+      <div class="two-col">
+        <div>
+          <h4>Users</h4>
+          <p>Who lives in the home? Adults, kids, elderly? Remote workers?</p>
+          <div class="script-box">"Who all is in the household using WiFi or devices?"</div>
+
+          <h4>Usage</h4>
+          <p>How do they use their services day to day? Streaming, gaming, WFH?</p>
+          <div class="script-box">"Walk me through a typical evening -what's everyone doing on their devices?"</div>
+        </div>
+        <div>
+          <h4>Devices</h4>
+          <p>What are they connecting? Phones, tablets, smart home, gaming consoles?</p>
+          <div class="script-box">"How many devices would you say are connected at any given time?"</div>
+
+          <h4>Cost</h4>
+          <p>What are they paying now? What matters financially?</p>
+          <div class="script-box">"What are you currently paying for your Internet and phone service combined?"</div>
+        </div>
+      </div>
+
+      <h3>Qualitative vs. Quantitative</h3>
+      <div class="vs-box">
+        <div class="vs-bad">
+          <div class="vs-label">Quantitative (Closed)</div>
+          <p style="font-size:9.5pt;">"Do you have WiFi?" &rarr; "Yes."<br>"Do you stream?" &rarr; "Yes."<br>"Do you have a phone?" &rarr; "Yes."</p>
+          <p style="font-size:9pt;color:#991b1b;margin-top:6px;"><strong>Result:</strong> Three questions, zero insight. You know nothing you didn't already know. The pitch that follows will be generic.</p>
+        </div>
+        <div class="vs-good">
+          <div class="vs-label">Qualitative (Open-Ended)</div>
+          <p style="font-size:9.5pt;">"Tell me about your household -who's home during the day and what are they usually doing online?"</p>
+          <p style="font-size:9pt;color:#166534;margin-top:6px;"><strong>Result:</strong> One question uncovers 3 pillars -Users, Usage, Devices. Now you can pitch with specificity: "Since your daughter is doing virtual school and your husband works from home..."</p>
+        </div>
+      </div>
+
+      <div class="callout callout-amber">
+        <strong>Key Rule:</strong> One great open-ended question that yields a full picture of the household is worth more than five closed questions that return one-word answers. Quality over quantity.
+      </div>
+
+      
+  </div>
+
+  <div class="session followup">
+    <div class="session-header">Midday Follow-Up <span class="session-time">Throughout the day</span></div>
+    <div class="session-body">
+      <h4>Floor Walk Focus</h4>
+      <ul>
+        <li>Listen for <strong>open-ended vs. closed questions</strong> -are agents asking "tell me about" or "do you have"?</li>
+        <li>Check: are agents covering all <strong>4 pillars</strong> before pitching?</li>
+        <li>Listen for <strong>tie-backs being noted</strong> -are they writing down what the customer says?</li>
+      </ul>
+      <h4>Coaching Moment</h4>
+      <ul>
+        <li>If an agent jumps to pitch after one question &rarr; "What else could you have asked before presenting?"</li>
+        <li>If discovery sounds like a survey &rarr; "React to what they say. If they mention kids, ask about the kids."</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="session afternoon">
+    <div class="session-header">Afternoon Focus <span class="session-time">15 minutes</span></div>
+    <div class="session-body">
+      <h3>Debrief &amp; Practice</h3>
+      <ul>
+        <li><strong>Share-out:</strong> "What's the most interesting thing you learned about a customer today through discovery?"</li>
+        <li><strong>Exercise:</strong> Write down 3 open-ended questions you want to try tomorrow. Share with a partner.</li>
+        <li><strong>Challenge:</strong> Tomorrow, try to get a customer to tell you a story about their household in discovery. Not answers -a story.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">Catalyst Coaching Bootcamp &bull; DR Site &bull; Day 2 of 5 &bull; Xfinity Outbound Telesales &bull; March 2026</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 3 — LINKING & BEING THE AMBASSADOR -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day3">
+  <div class="day-header">
+    <h2>Linking &amp; Being the Ambassador</h2>
+    <div class="day-label"><strong>Day 3</strong>From Discovery to Recommendation</div>
+  </div>
+
+  <div class="session morning">
+    <div class="session-header">Morning Huddle <span class="session-time">30 minutes</span></div>
+    <div class="session-body">
+
+      <h3>Why This Matters</h3>
+      <p>Discovery without a tailored pitch is wasted effort. Being an Ambassador means you don't just list features -you connect them to what the customer told you. The customer should hear their own words reflected back in your recommendation.</p>
+
+      <div class="callout">
+        <strong>Catalyst Behavior:</strong>
+        <span class="pill pill-ed">Be an Ambassador</span>
+        -Speak confidently and proudly about Xfinity. Tie needs to value, not just features.
+      </div>
+
+      <h3>The Logic Bridge</h3>
+      <p>Every recommendation needs a <strong>"because"</strong>. The Consult phase follows this formula:</p>
+
+      <div class="script-box">
+        "Based on what you told me, I think I have the perfect plan for you..."<br><br>
+        "I heard you say [what they told you in discovery], so I included [product] because [specific benefit for their household]."
+      </div>
+
+      <h3>Feature Lists vs. Recommendations</h3>
+      <div class="vs-box">
+        <div class="vs-bad">
+          <div class="vs-label">Feature List (DND)</div>
+          <p style="font-size:9.5pt;">"So our 1 Gig plan comes with unlimited data, a gateway, WiFi hotspot access, and Advanced Security. It's $60 a month with auto-pay."</p>
+          <p style="font-size:9pt;color:#991b1b;margin-top:4px;">Generic. Could be said to any customer. No connection to what was discovered.</p>
+        </div>
+        <div class="vs-good">
+          <div class="vs-label">Tailored Recommendation (ED)</div>
+          <p style="font-size:9.5pt;">"You mentioned your husband works from home and your kids are streaming constantly -so I'm recommending the 1 Gig plan because it gives your whole household the speed to do everything at once without anyone lagging. And since you said you're paying $80 right now, this actually brings you down to $60 with the same reliability."</p>
+          <p style="font-size:9pt;color:#166534;margin-top:4px;">Personal. References their household. Explains <em>why</em> it fits. Addresses cost.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-green">
+        <strong>Compliance Reminder:</strong> When pitching Internet or Mobile, you MUST reference broadband labels: "You can also see this information at Xfinity.com/labels." Weave it naturally into the pitch -don't bolt it on at the end.
+      </div>
+
+      <h3>Product Confidence</h3>
+      <ul>
+        <li><strong>Know your products.</strong> If you hesitate or look things up mid-pitch, the customer loses confidence.</li>
+        <li><strong>Pitch the right product.</strong> A household of heavy streamers needs Gig -not 300 Mbps. Match the product to the need.</li>
+        <li><strong>Speak positively.</strong> "Our WiFi just works -99.9% reliability" beats "It's better than what you have."</li>
+        <li><strong>Include the XM line.</strong> "You're also getting a phone line included for 12 months -that's $480 in savings on top of everything else."</li>
+      </ul>
+
+      
+  </div>
+
+  <div class="session followup">
+    <div class="session-header">Midday Follow-Up <span class="session-time">Throughout the day</span></div>
+    <div class="session-body">
+      <h4>Floor Walk Focus</h4>
+      <ul>
+        <li>Listen for the <strong>"because"</strong> -are agents connecting features to discovered needs?</li>
+        <li>Check: are agents using <strong>tie-back language</strong> ("You mentioned...", "I heard you say...")?</li>
+        <li>Listen for <strong>broadband labels</strong> -is it being referenced during the pitch?</li>
+        <li>Spot-check: is the <strong>right product</strong> being pitched for the household?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="session afternoon">
+    <div class="session-header">Afternoon Focus <span class="session-time">15 minutes</span></div>
+    <div class="session-body">
+      <h3>Debrief &amp; Practice</h3>
+      <ul>
+        <li><strong>Exercise:</strong> Give each agent a fake customer profile (family of 4, heavy gamers, budget-conscious). Build a pitch in 60 seconds using tie-backs. Present to the group.</li>
+        <li><strong>Discussion:</strong> "What product did you pitch today that you felt really confident about? What made you confident?"</li>
+        <li><strong>Challenge:</strong> Tomorrow, start your pitch with "Based on what you told me..." on every call. See how it changes the customer's response.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">Catalyst Coaching Bootcamp &bull; DR Site &bull; Day 3 of 5 &bull; Xfinity Outbound Telesales &bull; March 2026</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 4 — OBJECTIONS & OVERCOMING THEM -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day4">
+  <div class="day-header">
+    <h2>Objections &amp; Overcoming Them</h2>
+    <div class="day-label"><strong>Day 4</strong>The 4-Step Framework</div>
+  </div>
+
+  <div class="session morning">
+    <div class="session-header">Morning Huddle <span class="session-time">30 minutes</span></div>
+    <div class="session-body">
+
+      <h3>Why This Matters</h3>
+      <p>An objection is not a rejection -it's the customer telling you they need more information. The agents who close the most aren't the ones who never hear "no" -they're the ones who know what to do when they hear it.</p>
+
+      <div class="callout">
+        <strong>Catalyst Behaviors in Play:</strong>
+        <span class="pill pill-ed">Engage Actively</span>
+        <span class="pill pill-ed">Own It</span>
+        <span class="pill pill-ed">Be an Ambassador</span>
+        -Listen, take responsibility, and restate value.
+      </div>
+
+      <h3>The Compass Navigator 4-Step Objection Framework</h3>
+
+      <div style="background:#fff5f5;border:1.5px solid #fca5a5;border-radius:8px;padding:14px 18px;margin:10px 0;">
+        <ol style="font-size:10.5pt;">
+          <li style="margin-bottom:10px;">
+            <strong>Understand the Objection</strong><br>
+            Don't assume you know why they're hesitating. If the objection is vague ("I'll think about it"), probe:<br>
+            <div class="script-box">"I completely understand. Just so I can help -what specifically are you unsure about?"</div>
+          </li>
+          <li style="margin-bottom:10px;">
+            <strong>Empathize &amp; Overcome</strong><br>
+            Show you heard them before pivoting. Open with empathy, then bridge to the solution:<br>
+            <div class="script-box">"I completely understand that, however..."</div>
+          </li>
+          <li style="margin-bottom:10px;">
+            <strong>Restate Key Tie-Backs</strong><br>
+            Anchor back to what they told you in discovery. This is why discovery matters:<br>
+            <div class="script-box">"I heard you say [X], so I wanted to make sure you had [benefit] -that's exactly why I recommended this plan."</div>
+          </li>
+          <li>
+            <strong>Add Additional Value</strong><br>
+            Introduce one more benefit they haven't heard yet:<br>
+            <div class="script-box">"And on top of that, this plan also includes [new benefit] which would help with [their situation]."</div>
+          </li>
+        </ol>
+      </div>
+
+      <h3>Common Objections &amp; Responses</h3>
+      <div class="two-col" style="font-size:9.5pt;">
+        <div>
+          <h4>"I need to think about it"</h4>
+          <p><strong>Understand:</strong> "Absolutely -what part are you thinking over?"</p>
+          <p><strong>If price:</strong> Reframe value per day. "$60/mo is $2/day for your whole household."</p>
+
+          <h4>"Too expensive"</h4>
+          <p><strong>Empathize:</strong> "I completely understand budget is important."</p>
+          <p><strong>Restate:</strong> "You mentioned you're paying $80 now -this actually saves you $20/month."</p>
+        </div>
+        <div>
+          <h4>"I'm under contract"</h4>
+          <p><strong>Understand:</strong> "When does your contract end?" &rarr; explore timing.</p>
+          <p><strong>Value:</strong> "Even with an ETF, the savings over 12 months often exceed the fee."</p>
+
+          <h4>"Not interested"</h4>
+          <p><strong>Probe:</strong> "Is it the product itself, or is this just not a good time?"</p>
+          <p><strong>If timing:</strong> Respect it, but plant the seed with one benefit they'll remember.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-red">
+        <strong>Critical Rule:</strong> Never speak negatively about competitors. "Our service is 99.9% reliable" is good. "AT&T is unreliable" is a red flag (rf5).
+      </div>
+
+      
+  </div>
+
+  <div class="session followup">
+    <div class="session-header">Midday Follow-Up <span class="session-time">Throughout the day</span></div>
+    <div class="session-body">
+      <h4>Floor Walk Focus</h4>
+      <ul>
+        <li>Listen for objections -is the agent <strong>probing</strong> or immediately rebutting?</li>
+        <li>Check: after overcoming, does the agent <strong>re-close</strong> or just move on?</li>
+        <li>Listen for empathy -does "I understand" sound genuine or reflexive?</li>
+      </ul>
+      <h4>Coaching Moment</h4>
+      <ul>
+        <li>If an agent gives up after one "no" &rarr; "What could you have asked to understand the real concern?"</li>
+        <li>If the rebuttal sounds scripted &rarr; "Tie it back to something they told you earlier."</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="session afternoon">
+    <div class="session-header">Afternoon Focus <span class="session-time">15 minutes</span></div>
+    <div class="session-body">
+      <h3>Debrief &amp; Role Play</h3>
+      <ul>
+        <li><strong>Role play:</strong> Pair up. Customer throws an objection. Agent walks through all 4 steps. Switch roles.</li>
+        <li><strong>Group discussion:</strong> "What's the hardest objection you heard today? How did you handle it?"</li>
+        <li><strong>Challenge:</strong> Tomorrow, when you hear "I'll think about it," your first response must be a question, not a statement.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">Catalyst Coaching Bootcamp &bull; DR Site &bull; Day 4 of 5 &bull; Xfinity Outbound Telesales &bull; March 2026</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 5 — PUTTING IT ALL TOGETHER -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day5">
+  <div class="day-header">
+    <h2>Putting It All Together</h2>
+    <div class="day-label"><strong>Day 5</strong>Full Call Flow Mastery</div>
+  </div>
+
+  <div class="session morning">
+    <div class="session-header">Morning Huddle <span class="session-time">30 minutes</span></div>
+    <div class="session-body">
+
+      <h3>The Complete Compass Navigator Flow</h3>
+      <p>This week we broke the call into pieces. Today we put them back together. A great call flows naturally through each phase -the customer shouldn't feel the transitions.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0;text-align:center;font-size:9pt;">
+        <div style="background:#fff7ed;border:1.5px solid #fb923c;border-radius:6px;padding:8px 4px;">
+          <div style="font-weight:700;color:#c2410c;font-size:10pt;">Connect</div>
+          <div style="color:#9a3412;margin-top:2px;">Greeting<br>Agenda<br>Disclosure</div>
+        </div>
+        <div style="background:#faf5ff;border:1.5px solid #a78bfa;border-radius:6px;padding:8px 4px;">
+          <div style="font-weight:700;color:#6d28d9;font-size:10pt;">Explore</div>
+          <div style="color:#5b21b6;margin-top:2px;">Users<br>Usage<br>Devices &bull; Cost</div>
+        </div>
+        <div style="background:#f0fdf4;border:1.5px solid #4ade80;border-radius:6px;padding:8px 4px;">
+          <div style="font-weight:700;color:#15803d;font-size:10pt;">Consult</div>
+          <div style="color:#166534;margin-top:2px;">Tie-backs<br>Recommendation<br>Labels</div>
+        </div>
+        <div style="background:#fff1f2;border:1.5px solid #fb7185;border-radius:6px;padding:8px 4px;">
+          <div style="font-weight:700;color:#be123c;font-size:10pt;">Overcome</div>
+          <div style="color:#9f1239;margin-top:2px;">Understand<br>Empathize<br>Restate &bull; Value</div>
+        </div>
+        <div style="background:#f0fdfa;border:1.5px solid #2dd4bf;border-radius:6px;padding:8px 4px;">
+          <div style="font-weight:700;color:#0f766e;font-size:10pt;">Review</div>
+          <div style="color:#134e4a;margin-top:2px;">Reaffirm<br>Summarize<br>Close</div>
+        </div>
+      </div>
+
+      <h3>This Week's Behaviors in Review</h3>
+      <div class="two-col" style="font-size:9.5pt;">
+        <div>
+          <p><strong>Day 1 -Positive Introduction:</strong> Warmth from word one. Smile before you dial. Use their name. Deliver the disclosure naturally.</p>
+          <p><strong>Day 2 -Discovery:</strong> Open-ended questions across Users, Usage, Devices, Cost. One great question beats five closed ones. Discovery is the agent asking, not the customer.</p>
+        </div>
+        <div>
+          <p><strong>Day 3 -Linking &amp; Ambassador:</strong> Every recommendation needs a "because." Use their words. Lead with benefits, not features. Broadband labels woven in.</p>
+          <p><strong>Day 4 -Objections:</strong> Understand &rarr; Empathize &rarr; Restate &rarr; Add Value. Always probe before rebutting. Always re-close after overcoming.</p>
+        </div>
+      </div>
+
+      <h3>The 6 Catalyst Behaviors -Self-Assessment</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0;font-size:9.5pt;">
+        <div style="background:#cffafe;border-radius:6px;padding:8px 10px;"><strong style="color:#0e7490;">Engage Actively</strong><br>Am I treating this as a conversation or a transaction?</div>
+        <div style="background:#dbeafe;border-radius:6px;padding:8px 10px;"><strong style="color:#1d4ed8;">Own It</strong><br>Am I demonstrating expertise and keeping the customer informed?</div>
+        <div style="background:#fef3c7;border-radius:6px;padding:8px 10px;"><strong style="color:#d97706;">Make It Effortless</strong><br>Am I delivering information in digestible pieces?</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 10px;"><strong style="color:#7c3aed;">Discover Needs</strong><br>Am I asking questions that reveal something new?</div>
+        <div style="background:#dcfce7;border-radius:6px;padding:8px 10px;"><strong style="color:#16a34a;">Be an Ambassador</strong><br>Am I connecting products to this customer's life?</div>
+        <div style="background:#fce7f3;border-radius:6px;padding:8px 10px;"><strong style="color:#be185d;">Show Appreciation</strong><br>Does the customer feel valued, not processed?</div>
+      </div>
+
+      
+  </div>
+
+  <div class="session followup">
+    <div class="session-header">Midday Follow-Up <span class="session-time">Throughout the day</span></div>
+    <div class="session-body">
+      <h4>Full Call Observation</h4>
+      <ul>
+        <li>Listen to <strong>complete calls</strong> today -opening through close</li>
+        <li>Score them against the Compass Navigator flow -did the agent hit all 5 phases?</li>
+        <li>Identify the <strong>strongest phase</strong> and the <strong>biggest gap</strong> for each agent</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="session afternoon">
+    <div class="session-header">Afternoon Focus <span class="session-time">15 minutes</span></div>
+    <div class="session-body">
+      <h3>Bootcamp Wrap-Up</h3>
+      <ul>
+        <li><strong>Each agent shares:</strong> "What's the one thing from this week that changed how I approach my calls?"</li>
+        <li><strong>Recognition:</strong> Call out agents who showed the most improvement or effort this week</li>
+        <li><strong>Commitment:</strong> Each agent writes down one specific behavior they will sustain going forward. Post it at their desk.</li>
+      </ul>
+
+      <div class="callout callout-green">
+        <strong>Remember:</strong> The goal isn't perfection on every call. It's consistent, intentional improvement -one behavior at a time. The Catalyst framework gives you the roadmap. The Compass Navigator gives you the structure. You bring the energy.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Catalyst Coaching Bootcamp &bull; DR Site &bull; Day 5 of 5 &bull; Xfinity Outbound Telesales &bull; March 2026</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Catalyst Coaching Bootcamp - Facilitator Guide</title>
+<style>
+  @page { size: letter; margin: 0.4in 0.5in; }
+  @media print { .page-break { page-break-before: always; } }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', 'Inter', Arial, sans-serif; font-size: 10.5pt; color: #1a1d23; line-height: 1.55; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .cover { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%); color: #fff; padding: 60px; }
+  .cover h1 { font-size: 34pt; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
+  .cover h2 { font-size: 18pt; font-weight: 400; color: #c7d2fe; margin-bottom: 6px; }
+  .cover h3 { font-size: 13pt; font-weight: 600; color: #fbbf24; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; }
+  .cover-divider { width: 80px; height: 3px; background: #fbbf24; border-radius: 2px; margin: 20px auto; }
+  .cover .meta { font-size: 11pt; color: #a5b4fc; line-height: 2; }
+  .cover .meta strong { color: #e0e7ff; }
+
+  .day-header { background: linear-gradient(135deg, var(--day-c1), var(--day-c2)); color: #fff; padding: 16px 24px; border-radius: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .day-header h2 { font-size: 18pt; font-weight: 700; }
+  .day-header .day-label { font-size: 11pt; opacity: 0.85; text-align: right; }
+  .day-header .day-label strong { display: block; font-size: 13pt; opacity: 1; }
+
+  h3 { font-size: 12pt; font-weight: 700; color: #1e293b; margin: 12px 0 6px; }
+  h4 { font-size: 10.5pt; font-weight: 600; color: #475569; margin: 8px 0 4px; }
+  ul, ol { padding-left: 18px; margin-bottom: 8px; }
+  li { margin-bottom: 4px; }
+  li strong { color: #1e293b; }
+
+  .section { border: 1.5px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .section-hdr { padding: 7px 14px; font-weight: 700; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 0.6px; display: flex; justify-content: space-between; align-items: center; }
+  .section-body { padding: 10px 16px; }
+  .section-time { font-size: 9pt; font-weight: 600; opacity: 0.8; }
+
+  .hdr-morning { background: linear-gradient(90deg, var(--day-c1), var(--day-c2)); color: #fff; }
+  .hdr-follow { background: #f1f5f9; color: #475569; border-bottom: 1px solid #e2e8f0; }
+  .hdr-afternoon { background: linear-gradient(90deg, var(--day-c2), var(--day-c1)); color: #fff; }
+  .hdr-activity { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fde68a; }
+  .hdr-takeaway { background: #eff6ff; color: #1d4ed8; border-bottom: 1px solid #bfdbfe; }
+  .hdr-commit { background: #f0fdf4; color: #166534; border-bottom: 1px solid #bbf7d0; }
+
+  .facilitator-note { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 8px 12px; margin: 8px 0; font-size: 9.5pt; }
+  .facilitator-note strong { color: #92400e; }
+
+  .timing { display: inline-block; background: #e0e7ff; color: #3730a3; font-size: 8.5pt; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+  .energy-tag { display: inline-block; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .energy-high { background: #fee2e2; color: #991b1b; }
+  .energy-med { background: #fef3c7; color: #92400e; }
+  .energy-low { background: #dbeafe; color: #1e40af; }
+
+  .script-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 8px 12px; margin: 6px 0; font-style: italic; font-size: 9.5pt; color: #0c4a6e; }
+  .callout { background: #f8fafc; border-left: 3px solid var(--day-c1); padding: 8px 12px; border-radius: 0 6px 6px 0; margin: 8px 0; font-size: 9.5pt; }
+  .callout-red { background: #fef2f2; border-left-color: #ef4444; }
+
+  .checklist { list-style: none; padding-left: 4px; }
+  .checklist li { padding: 3px 0 3px 22px; position: relative; }
+  .checklist li::before { content: '\2610'; position: absolute; left: 0; font-size: 12pt; color: #94a3b8; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .footer { text-align: center; font-size: 8pt; color: #94a3b8; margin-top: 14px; padding-top: 6px; border-top: 1px solid #e2e8f0; }
+
+  .day1 { --day-c1: #6366f1; --day-c2: #818cf8; }
+  .day2 { --day-c1: #8b5cf6; --day-c2: #a78bfa; }
+  .day3 { --day-c1: #0891b2; --day-c2: #22d3ee; }
+  .day4 { --day-c1: #dc2626; --day-c2: #f87171; }
+  .day5 { --day-c1: #059669; --day-c2: #34d399; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <h1>Facilitator Guide</h1>
+  <h2>Catalyst Coaching Bootcamp</h2>
+  <h3>Confidential - Leadership Only</h3>
+  <div class="cover-divider"></div>
+  <div class="meta">
+    <strong>5-Day Intensive - DR Site</strong><br>
+    Xfinity Outbound Telesales<br><br>
+    <strong>Structure per Day</strong><br>
+    30-min Morning Huddle (high energy)<br>
+    Midday Floor Walk + Coaching<br>
+    15-min Afternoon Focus Session<br><br>
+    <strong>Prepared by</strong><br>
+    Performance Analytics - March 2026
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 1 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day1">
+  <div class="day-header">
+    <h2>The Power of the First 30 Seconds</h2>
+    <div class="day-label"><strong>Day 1</strong>Positive Introduction</div>
+  </div>
+
+  <!-- MORNING -->
+  <div class="section">
+    <div class="section-hdr hdr-morning">Morning Huddle <span class="section-time">30 min</span> <span class="energy-tag energy-high">High Energy</span></div>
+    <div class="section-body">
+
+      <h3>Run of Show</h3>
+      <ol>
+        <li><strong>Open with energy</strong> <span class="timing">2 min</span> - Stand up, music playing as agents walk in. Set the tone that this week is different.</li>
+        <li><strong>Frame the week</strong> <span class="timing">3 min</span> - "This week we're doing a 5-day bootcamp. Every day, one topic. Morning huddle, midday check-ins, afternoon debrief. By Friday, you'll own the Compass Navigator call flow."</li>
+        <li><strong>Today's topic: The Opening</strong> <span class="timing">8 min</span> - Walk through why the first 30 seconds matter. Outbound is an interruption. The customer didn't ask for this call. You have seconds to earn their attention.
+          <ul>
+            <li>Play a <strong>bad example</strong> (robotic, flat, rushed) vs. a <strong>good example</strong> (warm, natural, personal connection)</li>
+            <li>Ask the room: "Which agent would you stay on the line for?"</li>
+          </ul>
+        </li>
+        <li><strong>The Compass Navigator opening script</strong> <span class="timing">5 min</span> - Walk through the scripted opening. Emphasize the natural delivery, not memorized recitation. Point out the window for personal connection between getting the name and stating the reason for the call.
+          <div class="script-box">"Hello! My name is [First Last], and I'm calling from Xfinity. May I speak with [Customer Name]?"<br>[Confirm identity, ask how their day is going]<br>"Before we continue, I need to inform you that the call is being recorded and monitored..."</div>
+        </li>
+        <li><strong>Existing customer bonus</strong> <span class="timing">3 min</span> - If they already have Xfinity, using their name early shows you prepped. "I see you've been with us for 3 years" is a power move. It costs nothing and changes the call.</li>
+        <li><strong>Recording disclosure</strong> <span class="timing">3 min</span> - Must happen before discovery. Practice saying it naturally at a conversational pace. If it sounds rushed, slow it down.</li>
+        <li><strong>Preview the activity</strong> <span class="timing">1 min</span> - "This afternoon, you're going to pair up and practice your opening. Right now, think about what you want yours to sound like."</li>
+      </ol>
+
+      <div class="facilitator-note">
+        <strong>Facilitator Tip:</strong> Don't lecture. Ask questions. "Who here has had a customer hang up in the first 10 seconds? What do you think happened?" Get them talking early so the huddle feels like a conversation, not a presentation.
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY -->
+  <div class="section">
+    <div class="section-hdr hdr-activity">Day 1 Activity: The 30-Second Challenge <span class="section-time">Built into afternoon</span></div>
+    <div class="section-body">
+      <h4>Setup</h4>
+      <ul>
+        <li>Pair agents up. One plays the customer, one plays the agent.</li>
+        <li>Customer answers the phone with a neutral "Hello?"</li>
+        <li>Agent delivers their full opening: greeting, name, company, ask for the right person, personal connection, recording disclosure.</li>
+        <li><strong>Time limit: 30 seconds.</strong> Use a stopwatch.</li>
+      </ul>
+      <h4>Rules</h4>
+      <ul>
+        <li>The opening must include a genuine personal connection moment (not just "How are you?")</li>
+        <li>Recording disclosure must be delivered before the 30-second mark</li>
+        <li>After each round, the "customer" gives one piece of feedback: what made them want to stay on the line, or what made them want to hang up</li>
+      </ul>
+      <h4>Debrief Questions</h4>
+      <ul>
+        <li>"What felt different about doing it live vs. reading it?"</li>
+        <li>"What did your partner do that made you actually want to listen?"</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- MIDDAY -->
+  <div class="section">
+    <div class="section-hdr hdr-follow">Midday Floor Walk <span class="section-time">Throughout the day</span></div>
+    <div class="section-body">
+      <h4>What to Listen For</h4>
+      <ul class="checklist">
+        <li>Is the greeting warm or robotic?</li>
+        <li>Is the recording disclosure delivered before discovery questions?</li>
+        <li>Are agents using the customer's name on existing customer calls?</li>
+        <li>Is there a pause for personal connection or does it jump straight to pitch?</li>
+      </ul>
+      <h4>Quick Coaching Interventions</h4>
+      <ul>
+        <li>Agent sounds flat? Have them stand up for their next call.</li>
+        <li>Disclosure sounds rushed? Practice at half speed, then bring it up naturally.</li>
+        <li>No personal connection? Challenge them: "Ask one non-scripted question in your next opening."</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- AFTERNOON -->
+  <div class="section">
+    <div class="section-hdr hdr-afternoon">Afternoon Focus <span class="section-time">15 min</span> <span class="energy-tag energy-med">Reflective</span></div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Run the 30-Second Challenge activity</strong> <span class="timing">8 min</span></li>
+        <li><strong>Round-table debrief</strong> <span class="timing">5 min</span> - "What's one thing you changed about your opening today? What happened?"</li>
+        <li><strong>Set the challenge for tomorrow</strong> <span class="timing">2 min</span> - "Record yourself doing your opening before your first call tomorrow morning. Listen back. Would you stay on the line?"</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- TAKEAWAYS -->
+  <div class="section">
+    <div class="section-hdr hdr-takeaway">Commitments You're Looking For</div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Smile before you dial.</strong> Tone changes when you smile. The customer hears it.</li>
+        <li><strong>Use their name within the first 15 seconds</strong> on existing customer calls. It signals pre-call preparation.</li>
+        <li><strong>Pause after "How are you?"</strong> Actually listen. Respond to what they say before moving on.</li>
+        <li><strong>Deliver the recording disclosure naturally.</strong> Practice until it sounds conversational, not read.</li>
+      </ol>
+      <div class="facilitator-note">
+        <strong>Success Metric:</strong> By end of day, every agent should be able to deliver a warm, natural opening with recording disclosure in under 30 seconds without sounding scripted.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Facilitator Guide - Confidential - Catalyst Coaching Bootcamp - DR Site - Day 1 of 5</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 2 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day2">
+  <div class="day-header">
+    <h2>Discovering with Intent</h2>
+    <div class="day-label"><strong>Day 2</strong>Qualitative vs. Quantitative</div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-morning">Morning Huddle <span class="section-time">30 min</span> <span class="energy-tag energy-high">High Energy</span></div>
+    <div class="section-body">
+      <h3>Run of Show</h3>
+      <ol>
+        <li><strong>Quick Day 1 callback</strong> <span class="timing">2 min</span> - "Who recorded themselves this morning? How did it sound?" Quick show of hands or call on 1-2 people.</li>
+        <li><strong>Frame today's topic</strong> <span class="timing">3 min</span> - "Yesterday was about getting them to stay. Today is about learning enough to make them want to buy." Discovery is the AGENT asking questions, not the customer asking you.</li>
+        <li><strong>The 4 Pillars</strong> <span class="timing">8 min</span> - Walk through Users, Usage, Devices, Cost with examples for each:
+          <div class="two-col" style="margin:6px 0;font-size:9.5pt;">
+            <div>
+              <strong>Users:</strong> "Who all is in the household?"<br>
+              <strong>Usage:</strong> "Walk me through a typical evening online."
+            </div>
+            <div>
+              <strong>Devices:</strong> "How many devices are connected at once?"<br>
+              <strong>Cost:</strong> "What are you paying for Internet and phone combined?"
+            </div>
+          </div>
+        </li>
+        <li><strong>Qualitative vs. Quantitative demo</strong> <span class="timing">8 min</span> - This is the core lesson. Do a live comparison:
+          <ul>
+            <li><strong>Bad:</strong> "Do you have WiFi?" / "Do you stream?" / "Do you have a phone?" = three questions, zero insight</li>
+            <li><strong>Good:</strong> "Tell me about your household. Who's home during the day and what are they usually doing online?" = one question, three pillars uncovered</li>
+          </ul>
+          Ask the room: "Which agent knows more about the customer after their questions?"
+        </li>
+        <li><strong>Key rule</strong> <span class="timing">2 min</span> - One great open-ended question beats five closed ones. Quality over quantity. Discovery should feel like a conversation, not an interrogation.</li>
+        <li><strong>Tie-backs preview</strong> <span class="timing">3 min</span> - "Everything the customer tells you in discovery becomes ammunition for your pitch tomorrow. Write it down. When they say 'my kids stream all day,' that's a tie-back you'll use in the Consult."</li>
+        <li><strong>Preview the activity</strong> <span class="timing">2 min</span></li>
+      </ol>
+
+      <div class="facilitator-note">
+        <strong>Facilitator Tip:</strong> Have two agents role-play discovery live in front of the group. One asks only closed questions. The other asks open-ended. After both, ask the group which agent learned more. The contrast sells the lesson better than any slide.
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-activity">Day 2 Activity: Discovery Bingo <span class="section-time">Built into afternoon</span></div>
+    <div class="section-body">
+      <h4>Setup</h4>
+      <ul>
+        <li>Give each agent a simple 2x2 grid with the 4 pillars: Users, Usage, Devices, Cost</li>
+        <li>Pair up. One is the customer (use a persona card: e.g., "You're a single mom with 2 kids, one is a gamer, you're paying $120/mo for AT&T")</li>
+        <li>The agent has 3 minutes to fill all 4 boxes through open-ended questions only</li>
+        <li>If the agent asks a closed question (yes/no), the customer calls it out and the agent must rephrase</li>
+      </ul>
+      <h4>Debrief</h4>
+      <ul>
+        <li>"How many pillars did you uncover? What was hardest to get to?"</li>
+        <li>"What question worked best? Share it with the group."</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-follow">Midday Floor Walk <span class="section-time">Throughout the day</span></div>
+    <div class="section-body">
+      <ul class="checklist">
+        <li>Are agents asking open-ended or closed questions?</li>
+        <li>Are all 4 pillars being covered before the pitch?</li>
+        <li>Are agents noting tie-backs for use in the Consult?</li>
+        <li>Does discovery sound like a conversation or an intake form?</li>
+      </ul>
+      <h4>Quick Coaching</h4>
+      <ul>
+        <li>Agent jumps to pitch after one question: "What else could you have asked before presenting?"</li>
+        <li>Discovery sounds like a survey: "React to what they say. If they mention kids, ask about the kids."</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-afternoon">Afternoon Focus <span class="section-time">15 min</span> <span class="energy-tag energy-med">Reflective</span></div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Run Discovery Bingo</strong> <span class="timing">8 min</span></li>
+        <li><strong>Share-out</strong> <span class="timing">5 min</span> - "What's the most interesting thing you learned about a customer today through discovery?"</li>
+        <li><strong>Challenge for tomorrow</strong> <span class="timing">2 min</span> - "Try to get a customer to tell you a story about their household. Not answers. A story."</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-takeaway">Commitments You're Looking For</div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Ask at least one open-ended question per pillar.</strong> If you only get to two pillars, make them Users and Usage.</li>
+        <li><strong>Listen for tie-backs.</strong> When the customer says something, write it down. You'll use it in the pitch.</li>
+        <li><strong>Don't interrogate.</strong> Discovery should feel like a conversation. React to what they say.</li>
+        <li><strong>Never skip discovery.</strong> A pitch without discovery is a feature list. A pitch with discovery is a recommendation.</li>
+      </ol>
+      <div class="facilitator-note">
+        <strong>Success Metric:</strong> By end of day, agents should be asking predominantly open-ended questions and covering at least 3 of 4 pillars before pitching.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Facilitator Guide - Confidential - Catalyst Coaching Bootcamp - DR Site - Day 2 of 5</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 3 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day3">
+  <div class="day-header">
+    <h2>Linking & Being the Ambassador</h2>
+    <div class="day-label"><strong>Day 3</strong>From Discovery to Recommendation</div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-morning">Morning Huddle <span class="section-time">30 min</span> <span class="energy-tag energy-high">High Energy</span></div>
+    <div class="section-body">
+      <h3>Run of Show</h3>
+      <ol>
+        <li><strong>Day 2 callback</strong> <span class="timing">2 min</span> - "Did anyone get a customer to tell them a story yesterday? What did you learn?"</li>
+        <li><strong>Frame today</strong> <span class="timing">3 min</span> - "Yesterday you learned how to uncover needs. Today you learn how to USE what you uncovered. This is where discovery becomes a sale."</li>
+        <li><strong>The logic bridge</strong> <span class="timing">8 min</span> - Every recommendation needs a "because." Walk through the Consult formula:
+          <div class="script-box">"Based on what you told me, I think I have the perfect plan..."<br>"I heard you say [X], so I included [product] because [benefit]."</div>
+          <p style="margin-top:6px;">Do a live demo: take a fake customer profile and build the pitch using tie-backs in real time. Show the difference between a feature list and a tailored recommendation.</p>
+        </li>
+        <li><strong>Feature list vs. recommendation</strong> <span class="timing">5 min</span> - Show both side by side:
+          <ul>
+            <li><strong>Bad:</strong> "Our 1 Gig plan comes with unlimited data, a gateway, and Advanced Security. $60 a month."</li>
+            <li><strong>Good:</strong> "You mentioned your husband works from home and your kids stream constantly, so I'm recommending the 1 Gig plan because your whole household can be online at once without anyone lagging. And since you said you're paying $80 now, this actually brings you down to $60."</li>
+          </ul>
+        </li>
+        <li><strong>Product confidence</strong> <span class="timing">5 min</span> - You can't pitch what you don't know. Quick product knowledge check:
+          <ul>
+            <li>What's included in the WiFi deal at each tier?</li>
+            <li>What's the XM line promo worth? ($480 over 12 months)</li>
+            <li>When do you mention broadband labels?</li>
+          </ul>
+        </li>
+        <li><strong>Broadband labels compliance</strong> <span class="timing">3 min</span> - Required on every Internet or Mobile offer. Weave it into the pitch naturally: "You can also see this information at Xfinity.com/labels."</li>
+        <li><strong>Preview activity</strong> <span class="timing">2 min</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-activity">Day 3 Activity: 60-Second Pitch Build <span class="section-time">Built into afternoon</span></div>
+    <div class="section-body">
+      <h4>Setup</h4>
+      <ul>
+        <li>Prepare 4-5 customer persona cards with discovery details already filled in (e.g., "Family of 4, heavy gamers, currently on AT&T at $90/mo, 3 phones and a tablet")</li>
+        <li>Each agent draws a card and has <strong>60 seconds</strong> to build and deliver a pitch using tie-backs</li>
+        <li>The pitch MUST include: "Based on what you told me..." and at least one "I heard you say..."</li>
+        <li>Must reference broadband labels</li>
+      </ul>
+      <h4>Judging Criteria (group votes)</h4>
+      <ul>
+        <li>Did the pitch connect features to the customer's specific life?</li>
+        <li>Would you buy based on that pitch?</li>
+        <li>Was broadband labels included naturally?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-follow">Midday Floor Walk <span class="section-time">Throughout the day</span></div>
+    <div class="section-body">
+      <ul class="checklist">
+        <li>Are agents using tie-back language? ("You mentioned...", "I heard you say...")</li>
+        <li>Is the pitch connecting features to discovered needs or listing features generically?</li>
+        <li>Are broadband labels being referenced during the pitch?</li>
+        <li>Is the right product being pitched for the household?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-afternoon">Afternoon Focus <span class="section-time">15 min</span> <span class="energy-tag energy-high">Competitive</span></div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Run the 60-Second Pitch Build</strong> <span class="timing">10 min</span></li>
+        <li><strong>Group vote on best pitch</strong> <span class="timing">3 min</span></li>
+        <li><strong>Challenge for tomorrow</strong> <span class="timing">2 min</span> - "Start every pitch tomorrow with 'Based on what you told me...' See how it changes the customer's response."</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-takeaway">Commitments You're Looking For</div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Never pitch without a "because."</strong> If you can't finish "I'm recommending this because you said...", you didn't discover enough.</li>
+        <li><strong>Use the customer's exact words.</strong> "You mentioned..." and "I heard you say..." are the most powerful phrases in the Consult.</li>
+        <li><strong>Lead with the benefit, not the feature.</strong> "Your kids can stream without buffering" beats "It comes with unlimited data."</li>
+        <li><strong>Reference broadband labels naturally.</strong> Practice weaving it in so it doesn't sound like compliance.</li>
+      </ol>
+      <div class="facilitator-note">
+        <strong>Success Metric:</strong> By end of day, agents should be using at least one tie-back per pitch and referencing broadband labels on every Internet/Mobile offer.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Facilitator Guide - Confidential - Catalyst Coaching Bootcamp - DR Site - Day 3 of 5</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 4 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day4">
+  <div class="day-header">
+    <h2>Objections & Overcoming Them</h2>
+    <div class="day-label"><strong>Day 4</strong>The 4-Step Framework</div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-morning">Morning Huddle <span class="section-time">30 min</span> <span class="energy-tag energy-high">High Energy</span></div>
+    <div class="section-body">
+      <h3>Run of Show</h3>
+      <ol>
+        <li><strong>Day 3 callback</strong> <span class="timing">2 min</span> - "Who started with 'Based on what you told me' yesterday? How did the customer react?"</li>
+        <li><strong>Frame today</strong> <span class="timing">3 min</span> - "An objection is NOT a rejection. It's the customer telling you they need more information. The agents who close the most aren't the ones who never hear 'no.' They're the ones who know what to do when they hear it."</li>
+        <li><strong>The 4-Step Framework</strong> <span class="timing">12 min</span> - This is the core of today. Walk through each step with a live example:
+          <ol>
+            <li><strong>Understand</strong> - Don't assume. Probe. "What specifically concerns you about that?"</li>
+            <li><strong>Empathize & Overcome</strong> - "I completely understand that, however..."</li>
+            <li><strong>Restate Tie-Backs</strong> - "I heard you say [X], so I wanted to make sure..."</li>
+            <li><strong>Add Value</strong> - Introduce one new benefit they haven't heard</li>
+          </ol>
+          <p style="margin-top:6px;">Do a live demo: facilitator plays the customer, an agent walks through all 4 steps. Then debrief with the group.</p>
+        </li>
+        <li><strong>Common objections walkthrough</strong> <span class="timing">6 min</span>
+          <div class="two-col" style="font-size:9.5pt;">
+            <div>
+              <strong>"I'll think about it"</strong> - "Absolutely. What part are you thinking over?"<br><br>
+              <strong>"Too expensive"</strong> - Reframe: "That's $2/day for your whole household."
+            </div>
+            <div>
+              <strong>"Under contract"</strong> - "When does it end?" Then explore timing.<br><br>
+              <strong>"Not interested"</strong> - "Is it the product itself, or is this just not a good time?"
+            </div>
+          </div>
+        </li>
+        <li><strong>Critical rule</strong> <span class="timing">2 min</span> - Never speak negatively about competitors. That's a red flag (auto-fail). "Our service is 99.9% reliable" is fine. "AT&T is terrible" is not.</li>
+        <li><strong>The re-close</strong> <span class="timing">3 min</span> - After overcoming, you MUST ask again. Don't leave the sale hanging. Close with the same confidence as the first time.</li>
+      </ol>
+
+      <div class="facilitator-note">
+        <strong>Facilitator Tip:</strong> The biggest mistake agents make is going straight to rebuttal without understanding the real objection. Drill Step 1 (Understand) harder than the others. If they get the real reason, the rest flows naturally.
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-activity">Day 4 Activity: Objection Gauntlet <span class="section-time">Built into afternoon</span></div>
+    <div class="section-body">
+      <h4>Setup</h4>
+      <ul>
+        <li>Prepare objection cards: "I need to think about it", "Too expensive", "I'm under contract", "Not interested", "I need to talk to my spouse", "I already have a provider"</li>
+        <li>Agent sits in the hot seat. Facilitator (or another agent) draws a card and delivers the objection.</li>
+        <li>Agent must walk through ALL 4 steps in order: Understand, Empathize, Restate, Add Value</li>
+        <li>Then re-close. The "customer" decides if they'd stay on the line.</li>
+        <li>Rotate through 3-4 agents. Group gives feedback after each.</li>
+      </ul>
+      <h4>What to Watch For</h4>
+      <ul>
+        <li>Did they probe before rebutting? (Step 1 is the one most agents skip)</li>
+        <li>Did empathy sound genuine or scripted?</li>
+        <li>Did they use a tie-back from discovery? (They can make one up for this exercise)</li>
+        <li>Did they re-close?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-follow">Midday Floor Walk <span class="section-time">Throughout the day</span></div>
+    <div class="section-body">
+      <ul class="checklist">
+        <li>When an objection comes up, does the agent probe or immediately rebut?</li>
+        <li>After overcoming, does the agent re-close or just move on?</li>
+        <li>Does "I understand" sound genuine or reflexive?</li>
+        <li>Is the agent using tie-backs from discovery in their rebuttal?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-afternoon">Afternoon Focus <span class="section-time">15 min</span> <span class="energy-tag energy-high">Competitive</span></div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Run the Objection Gauntlet</strong> <span class="timing">10 min</span></li>
+        <li><strong>Group discussion</strong> <span class="timing">3 min</span> - "What's the hardest objection you heard today? How did you handle it?"</li>
+        <li><strong>Challenge for tomorrow</strong> <span class="timing">2 min</span> - "When you hear 'I'll think about it' tomorrow, your first response must be a question, not a statement."</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-takeaway">Commitments You're Looking For</div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Always probe before rebutting.</strong> "What specifically concerns you?" changes the conversation.</li>
+        <li><strong>Lead with empathy.</strong> "I completely understand" - and mean it.</li>
+        <li><strong>Use their own words in the rebuttal.</strong> Tie-backs from discovery are your strongest tool.</li>
+        <li><strong>Always re-close after overcoming.</strong> Don't leave the sale hanging. Ask again with confidence.</li>
+      </ol>
+      <div class="facilitator-note">
+        <strong>Success Metric:</strong> By end of day, agents should be probing before rebutting on every objection and re-closing after every overcome attempt.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Facilitator Guide - Confidential - Catalyst Coaching Bootcamp - DR Site - Day 4 of 5</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DAY 5 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="page-break day5">
+  <div class="day-header">
+    <h2>Putting It All Together</h2>
+    <div class="day-label"><strong>Day 5</strong>Full Call Flow Mastery</div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-morning">Morning Huddle <span class="section-time">30 min</span> <span class="energy-tag energy-high">High Energy</span></div>
+    <div class="section-body">
+      <h3>Run of Show</h3>
+      <ol>
+        <li><strong>Week recap</strong> <span class="timing">5 min</span> - Quick-fire review. Point at the board/screen:
+          <ul>
+            <li>Day 1: First 30 seconds. Smile, name, connection, disclosure.</li>
+            <li>Day 2: Discovery. Open-ended. 4 pillars. Conversation, not interrogation.</li>
+            <li>Day 3: Linking. Tie-backs. "Because." Lead with benefits.</li>
+            <li>Day 4: Objections. Understand first. Empathize. Restate. Add value. Re-close.</li>
+          </ul>
+          "Today we connect all four into one complete call."
+        </li>
+        <li><strong>The Compass Navigator flow</strong> <span class="timing">5 min</span> - Walk through all 5 phases: Connect, Explore, Consult, Overcome, Review. Show how each day's topic maps to a phase. The customer shouldn't feel the transitions.</li>
+        <li><strong>The 6 Catalyst Behaviors self-check</strong> <span class="timing">8 min</span> - Go through each one. For each, ask the room: "On a scale of 1-5, where are you right now on this behavior?"
+          <ul>
+            <li><strong>Engage Actively</strong> - Am I treating this as a conversation or a transaction?</li>
+            <li><strong>Own It</strong> - Am I demonstrating expertise and keeping the customer informed?</li>
+            <li><strong>Make It Effortless</strong> - Am I delivering information in digestible pieces?</li>
+            <li><strong>Discover Needs</strong> - Am I asking questions that reveal something new?</li>
+            <li><strong>Be an Ambassador</strong> - Am I connecting products to this customer's life?</li>
+            <li><strong>Show Appreciation</strong> - Does the customer feel valued, not processed?</li>
+          </ul>
+        </li>
+        <li><strong>Going forward message</strong> <span class="timing">5 min</span> - This isn't the end of training. It's the beginning of intentional improvement. Pick one behavior each day. Master it. Move to the next. The QA scorecard is a mirror, not a judgment.</li>
+        <li><strong>Preview the final activity</strong> <span class="timing">2 min</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-activity">Day 5 Activity: Full Call Simulation <span class="section-time">Built into afternoon</span></div>
+    <div class="section-body">
+      <h4>Setup</h4>
+      <ul>
+        <li>Prepare 3-4 detailed customer personas (name, current provider, household, budget, likely objection)</li>
+        <li>One agent volunteers for the hot seat. Facilitator plays the customer using the persona.</li>
+        <li>Agent must run the <strong>entire call flow</strong>: Opening, Discovery, Pitch with tie-backs, Handle the objection, Re-close, Summarize</li>
+        <li>The rest of the group scores on paper: Did they hit each phase? What was strongest? What was the gap?</li>
+        <li>Run 2-3 agents if time allows</li>
+      </ul>
+      <h4>Debrief</h4>
+      <ul>
+        <li>Group gives feedback: strongest phase and biggest gap</li>
+        <li>Facilitator highlights one thing each agent did well that they should keep doing</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-follow">Midday Floor Walk <span class="section-time">Throughout the day</span></div>
+    <div class="section-body">
+      <ul class="checklist">
+        <li>Listen to complete calls today, not just segments</li>
+        <li>Does the call flow through all 5 Compass Navigator phases?</li>
+        <li>Identify each agent's strongest phase and biggest gap</li>
+        <li>Note 1-2 agents to recognize in the afternoon wrap-up</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-afternoon">Afternoon Focus <span class="section-time">15 min</span> <span class="energy-tag energy-med">Celebratory</span></div>
+    <div class="section-body">
+      <ol>
+        <li><strong>Run Full Call Simulation</strong> <span class="timing">8 min</span></li>
+        <li><strong>Recognition</strong> <span class="timing">3 min</span> - Call out agents who showed the most improvement or effort this week. Be specific about what you observed.</li>
+        <li><strong>Personal commitment</strong> <span class="timing">4 min</span> - Each agent writes down one specific behavior they will sustain going forward. Post it at their desk. This is their personal contract with themselves.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr hdr-commit">Bootcamp Commitments - Full Week</div>
+    <div class="section-body">
+      <div class="two-col">
+        <div>
+          <h4>Day 1: Opening</h4>
+          <ol style="font-size:9.5pt;">
+            <li>Smile before you dial</li>
+            <li>Use their name in the first 15 seconds</li>
+            <li>Pause after "How are you?" and listen</li>
+            <li>Recording disclosure delivered naturally</li>
+          </ol>
+          <h4>Day 2: Discovery</h4>
+          <ol style="font-size:9.5pt;">
+            <li>Open-ended questions covering 4 pillars</li>
+            <li>Listen for and record tie-backs</li>
+            <li>Conversation, not interrogation</li>
+            <li>Never skip discovery</li>
+          </ol>
+        </div>
+        <div>
+          <h4>Day 3: Linking</h4>
+          <ol style="font-size:9.5pt;">
+            <li>Every pitch has a "because"</li>
+            <li>Use the customer's exact words</li>
+            <li>Benefits over features</li>
+            <li>Broadband labels woven in naturally</li>
+          </ol>
+          <h4>Day 4: Objections</h4>
+          <ol style="font-size:9.5pt;">
+            <li>Probe before rebutting</li>
+            <li>Lead with genuine empathy</li>
+            <li>Tie-backs in the rebuttal</li>
+            <li>Always re-close after overcoming</li>
+          </ol>
+        </div>
+      </div>
+      <div class="facilitator-note" style="margin-top:10px;">
+        <strong>Post-Bootcamp:</strong> Use the Catalyst QA Scorecard to track these behaviors weekly. Share results in team huddles. Celebrate ED scores. Coach on DND patterns. The bootcamp plants the seed. Consistent reinforcement grows it.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Facilitator Guide - Confidential - Catalyst Coaching Bootcamp - DR Site - Day 5 of 5</div>
+</div>
+
+</body>
+</html>
