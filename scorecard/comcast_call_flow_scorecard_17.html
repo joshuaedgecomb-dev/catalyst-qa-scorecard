@@ -1704,18 +1704,39 @@ ${catalystJSON}
 SCORECARD STEPS (the "catalyst" field shows which behaviors apply):
 ${stepsJSON}
 
-STEP DESCRIPTIONS — what to evaluate and WHICH LINE NUMBERS contain the evidence:
-1. Positive greeting [LINES 1-60] — warm tone, natural rapport, recording disclosure. Pick 1-2 line numbers.
-2. Set the agenda [LINES 1-60] — agent states WHY they are calling ("the reason for my call is..." / "you are eligible for..."). Pick 1-2 line numbers.
-3. Discover needs [MIDDLE of call, before pitch] — the AGENT asks proactive questions about Users, Usage, Devices, Cost. IMPORTANT: Discovery means the AGENT is asking questions to learn about the customer BEFORE pitching. If the agent went straight from agenda to pitch without asking questions, score "dnd". If the CUSTOMER asked questions (e.g. "how much is the tablet?") but the agent never asked about their household, usage, devices, or budget, that is NOT discovery — score "dnd". The agent must be the one asking. Pick 2-5 line numbers showing the agent's discovery questions. If no discovery occurred, provide evidenceLines from where the agent jumped to pitch.
-4. Link the need [AFTER DISCOVERY] — pitch tied to what was discovered. If discovery was skipped (step 3 = dnd), this step cannot score higher than "pd" because there were no discovered needs to link to. A generic pitch without tie-backs is "pd" at best. Broadband labels required for Internet/Mobile. Pick 2-4 line numbers.
-5. Assume the sale [AFTER PITCH] — confidently ask customer to commit. Pick 1-2 line numbers.
-6. Understand the objection [IF CUSTOMER OBJECTS] — acknowledge and discover the real concern. "na" if no objection. Pick 1-3 line numbers.
-7. Overcome the objection [IF CUSTOMER OBJECTS] — address directly, restate value. "na" if no objection. Pick 1-3 line numbers.
-8. Re-close [AFTER OBJECTION] — ask for sale again. "na" if no objection. Pick 1-2 line numbers.
-9. Reaffirm the sale [AFTER ACCEPTANCE] — confirm good choice. "na" if no sale. Pick 1-2 line numbers.
-10. Positive close [END OF CALL, lines ${Math.max(1,totalLines-50)}-${totalLines}] — thank customer, closing compliance. Pick 1-3 line numbers.
-11. Summarize the sale [END OF CALL] — order details, pricing, next steps. "na" if no sale. Pick 1-3 line numbers.
+STEP DESCRIPTIONS — evaluate each step, write notes about what the agent did well or poorly, reference (line X):
+
+1. Positive greeting [LINES 1-60] — Warm greeting with natural rapport and recording disclosure.
+   LOOK FOR: Did the agent sound scripted or robotic? Was the pace natural? Did they pause for personal connection? Did they use the customer's name (existing customer)? Was the recording disclosure delivered before discovery? Write notes about what you observed.
+
+2. Set the agenda [LINES 1-60] — Agent states the PURPOSE of the call with SALES INTENT.
+   LOOK FOR: Did the agent say WHY they are calling with sales intent ("you qualify for...", "you are eligible for...")? Or did they only do a service check ("how is everything working?")? A service check alone = "pd" at best. Score "ed" only if clear sales framing before discovery. Write notes about what the agent said.
+
+3. Discover needs [MIDDLE, before pitch] — AGENT asks proactive questions about Users, Usage, Devices, Cost.
+   LOOK FOR: Did the agent ask ANY questions about the customer's household, how they use services, what devices they have, or what they pay? If the agent went straight to pitch without asking = "dnd". Customer asking questions does NOT count. Write notes about what questions were asked or what was missed.
+
+4. Link the need [AFTER DISCOVERY] — Pitch tied to discovered needs with tie-backs.
+   LOOK FOR: Did the agent skip discovery and pitch anyway? Was the pitch generic or personalized? Did they tie features to the customer's life? Was the pitch confident? Were broadband labels referenced? If discovery was absent, cap at "pd". Write notes about how the pitch connected (or didn't) to the customer.
+
+5. Assume the sale [AFTER PITCH] — Confidently ask the customer to commit.
+   LOOK FOR: Did the agent ask for the sale directly? Did they ask with confidence or create doubt? Did they wait too long? Write notes.
+
+6. Understand the objection [IF CUSTOMER OBJECTS] — Acknowledge and discover the real concern. "na" if no objection.
+   LOOK FOR: Did the agent acknowledge the hesitation? Did they ask questions to understand why? Or did they jump to rebuttal? Write notes.
+
+7. Overcome the objection [IF CUSTOMER OBJECTS] — Address directly, restate value using discovered needs. "na" if no objection.
+   LOOK FOR: Did the agent attempt a rebuttal? Was empathy genuine? Did they re-anchor to customer needs? Was the approach aggressive? Write notes.
+
+8. Re-close [AFTER OBJECTION] — Ask for the sale again with confidence. "na" if no objection.
+   LOOK FOR: Did the agent re-ask after overcoming? With the same energy? Write notes.
+
+9. Reaffirm the sale [AFTER ACCEPTANCE] — Confirm the customer made a good choice. "na" if no sale.
+
+10. Positive close [END, lines ${Math.max(1,totalLines-50)}-${totalLines}] — Thank customer, check for questions, closing compliance (1-800-XFINITY).
+    LOOK FOR: Did the agent rush? Was there a genuine closing courtesy? Was the compliance closing statement delivered?
+
+11. Summarize the sale [END] — Order details, pricing, promos, next steps. "na" if no sale.
+    LOOK FOR: Were all order details covered? Was billing explained? Were next steps clear?
 
 RED FLAGS:
 ${rfJSON}
@@ -2104,39 +2125,53 @@ function applyResult(result){
       });
       updateTrendCount(s.id);
     }
-    if(s.notes){notes[s.id]=s.notes;const ta=document.getElementById(`notes-${s.id}`);if(ta) ta.value=s.notes;}
-    // AI Insight — use notes as insight (insight field dropped from model output)
-    const insightText=s.notes||'';
-    if(insightText){
-      const ins=document.getElementById(`insight-${s.id}`);
-      if(ins){ins.textContent=insightText;ins.className='ev-text';ins.style.fontStyle='normal';}
+    if(s.notes){
+      notes[s.id]=s.notes;
+      const ta=document.getElementById(`notes-${s.id}`);
+      if(ta){ta.value=s.notes;ta.style.display='none';} // Hide textarea when AI fills it - feedback panel shows the content
     }
-    // Transcript Evidence — convert line numbers to actual text with validation
+    // Combined step feedback: notes + inline transcript evidence
     const txta=document.getElementById('ai-transcript');
     const txLinesAll=txta?txta.value.split(/\r?\n/):[];
-    let evText='';
+
+    // Build evidence text from line numbers
+    let evidenceQuotes=[];
     if(s.evidenceLines&&Array.isArray(s.evidenceLines)&&s.evidenceLines.length){
       let validLines=s.evidenceLines.map(n=>Number(n)).filter(n=>n>=1&&n<=txLinesAll.length);
-      // Steps 1-2: enforce first 60 lines only
       if(s.id<=2) validLines=validLines.filter(n=>n<=60);
-      // Step 3 (discovery): only Agent lines — customer questions don't count
       if(s.id===3) validLines=validLines.filter(n=>/^Agent:/i.test(txLinesAll[n-1]||''));
-      evText=validLines.map(n=>{
-        const line=txLinesAll[n-1];
-        return line?line.trim():'';
-      }).filter(Boolean).join('\n');
+      evidenceQuotes=validLines.map(n=>{
+        const line=(txLinesAll[n-1]||'').trim();
+        const cleaned=line.replace(/^(Agent|Customer):\s*/i,'').trim();
+        return {lineNum:n, full:line, cleaned};
+      }).filter(q=>q.cleaned);
     }
-    if(!evText) evText=s.transcriptEvidence||'';
-    if(evText){
-      stepEvidence[s.id]=evText;
-      const ep=document.getElementById(`ev-text-${s.id}`);
-      if(ep){
-        ep.textContent=evText;
-        ep.className='ev-text';ep.style.fontStyle='normal';
-        ep.style.cursor='pointer';ep.title='Click to find in transcript';
-        ep.onclick=function(){scrollToTranscriptEvidence(evText);};
+
+    // Render combined feedback panel
+    const feedbackEl=document.getElementById(`step-feedback-${s.id}`);
+    if(feedbackEl){
+      const noteText=s.notes||'';
+      if(noteText||evidenceQuotes.length){
+        let html='<div style="font-size:12.5px;color:var(--text2);line-height:1.65;">'+
+          (noteText?noteText.replace(/</g,'&lt;'):'')+
+          '</div>';
+        if(evidenceQuotes.length){
+          html+='<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">';
+          evidenceQuotes.forEach(q=>{
+            const escaped=q.full.replace(/'/g,"\\'").slice(0,100);
+            html+=`<div style="font-size:11.5px;padding:5px 10px;background:var(--surface);border-radius:var(--r-sm);border-left:2px solid var(--purple-bd);cursor:pointer;color:var(--text2);line-height:1.5;transition:background .15s ease;" onclick="scrollToTranscriptEvidence('${escaped}')" title="Line ${q.lineNum}">
+              <span style="font-size:10px;color:var(--text3);margin-right:6px;">L${q.lineNum}</span>${q.full.replace(/</g,'&lt;')}
+            </div>`;
+          });
+          html+='</div>';
+        }
+        feedbackEl.innerHTML=html;
       }
     }
+
+    // Store evidence for scroll-to functionality
+    const evText=evidenceQuotes.map(q=>q.full).join('\n');
+    if(evText) stepEvidence[s.id]=evText;
   });
   // ── Post-process: validate discoveryPillars — check that "asked" evidence is actually a question from the agent ──
   const dp=result.discoveryPillars||{};
@@ -2177,6 +2212,53 @@ function applyResult(result){
   const frictionSignals=txForValidation.filter(l=>/please enter a valid|can.t use|try.*(again|it again)|here we go again|i.m lost|what is saying|let me resend/i.test(l.toLowerCase()));
   const hasProcessFriction=frictionSignals.length>=2;
 
+  // Check for sales agenda in first 60 lines
+  const openingAgentForCheck=txForValidation.slice(0,60).filter(l=>/^Agent:/i.test(l)).map(l=>l.replace(/^Agent:\s*/i,'').trim().toLowerCase());
+  const salesAgendaPatterns=/eligible|qualify|offer|promotion|savings|save|deal|special|add a line|upgrade|switch|reason.*call.*(?:offer|eligible|qualify|promotion)|calling.*because/i;
+  const serviceCheckOnly=/how.*(?:service|internet|working|everything)|make sure.*working|check.*on/i;
+  const hasSalesAgenda=openingAgentForCheck.some(l=>salesAgendaPatterns.test(l));
+  const hasServiceCheckOnly=openingAgentForCheck.some(l=>serviceCheckOnly.test(l))&&!hasSalesAgenda;
+  console.log('Agenda check: hasSalesAgenda=', hasSalesAgenda, 'hasServiceCheckOnly=', hasServiceCheckOnly);
+
+  if(hasServiceCheckOnly&&!hasSalesAgenda){
+    const step2=result.steps.find(s=>s.id===2);
+    if(step2&&step2.score==='ed'){
+      step2.score='pd';
+      step2.notes='Agent checked on services but did not state sales intent or the purpose of the call before pitching. A service check is not the same as setting the agenda.';
+      setScore(2,'pd',true);
+      const fb2=document.getElementById('step-feedback-2');
+      if(fb2) fb2.innerHTML='<div style="font-size:12.5px;color:var(--amber-tx);line-height:1.65;">'+step2.notes+'</div>';
+      console.log('Post-process: Step 2 downgraded to pd (service check, no sales agenda)');
+    }
+  }
+
+  // Check for recording disclosure in first 60 lines
+  const openingForCheck=txForValidation.slice(0,60).join(' ').toLowerCase();
+  const hasRecordingDisclosure=/record|monitor|quality.*standard|privacy/i.test(openingForCheck);
+  console.log('Recording disclosure check:', hasRecordingDisclosure, 'in first 60 lines');
+
+  // If no recording disclosure, flag compliance c1/c2 area and note on step 1
+  if(!hasRecordingDisclosure){
+    // Update step 1 feedback to note missing disclosure
+    const step1=result.steps.find(s=>s.id===1);
+    if(step1&&step1.score==='ed'){
+      step1.score='pd';
+      step1.notes=(step1.notes||'')+' Recording/monitoring disclosure was not delivered in the opening.';
+      setScore(1,'pd',true);
+      const fb1=document.getElementById('step-feedback-1');
+      if(fb1) fb1.innerHTML='<div style="font-size:12.5px;color:var(--amber-tx);line-height:1.65;">'+step1.notes+'</div>';
+      console.log('Post-process: Step 1 downgraded to pd (missing recording disclosure)');
+      // Auto-check recording disclosure indicator
+      const step1Trends=STEPS.find(s=>s.id===1)?.trending||[];
+      const disclosureIdx=step1Trends.findIndex(t=>/recording.*disclosure.*not delivered/i.test(t));
+      if(disclosureIdx>=0){
+        const cb=document.getElementById(`tr-1-${disclosureIdx}`);
+        if(cb&&!cb.checked){cb.checked=true;if(!trendChecked[1]) trendChecked[1]=[];if(!trendChecked[1].includes(disclosureIdx)) trendChecked[1].push(disclosureIdx);}
+        updateTrendCount(1);
+      }
+    }
+  }
+
   // Validate and correct catalyst scores
   (result.catalystBehaviors||[]).forEach(b=>{
     // B4 (Discover Needs): if no discovery questions found, cap at dnd
@@ -2206,15 +2288,60 @@ function applyResult(result){
     }
   });
 
-  // Also correct step 3 if no discovery
+  // Also correct steps 3 and 4 if no discovery
   if(!hasDiscovery){
     const step3=result.steps.find(s=>s.id===3);
     if(step3&&(step3.score==='ed'||step3.score==='pd')){
       step3.score='dnd';
-      step3.notes='Agent did not ask proactive discovery questions before pitching.';
+      step3.notes='Agent did not ask proactive discovery questions about Users, Usage, Devices, or Cost before pitching. The customer may have volunteered information, but discovery requires the agent to ask.';
       setScore(3,'dnd',true);
+      const fb3=document.getElementById('step-feedback-3');
+      if(fb3) fb3.innerHTML='<div style="font-size:12.5px;color:var(--red-tx);line-height:1.65;">'+step3.notes+'</div>';
+      const ta3=document.getElementById('notes-3');
+      if(ta3){ta3.value=step3.notes;ta3.style.display='none';}
       console.log('Post-process: Step 3 corrected to dnd (no discovery questions)');
     }
+    // Step 4 (pitch): cap at pd if no discovery — can't tie products to needs you never discovered
+    const step4=result.steps.find(s=>s.id===4);
+    if(step4&&step4.score==='ed'){
+      step4.score='pd';
+      step4.notes=(step4.notes||'')+' (Capped at PD: pitch was not tied to discovered needs because discovery was absent.)';
+      setScore(4,'pd',true);
+      const fb4=document.getElementById('step-feedback-4');
+      if(fb4) fb4.innerHTML='<div style="font-size:12.5px;color:var(--amber-tx);line-height:1.65;">'+step4.notes+'</div>';
+      console.log('Post-process: Step 4 capped to pd (no discovery to tie back to)');
+    }
+
+    // Auto-check relevant coaching indicators for step 3 (discovery)
+    const step3Trends=STEPS.find(s=>s.id===3)?.trending||[];
+    const discoveryChecks=[
+      'No meaningful discovery',
+      'Did not uncover how the customer uses their services or devices',
+    ];
+    discoveryChecks.forEach(label=>{
+      const idx=step3Trends.indexOf(step3Trends.find(t=>t.toLowerCase().startsWith(label.toLowerCase().slice(0,20))));
+      if(idx>=0){
+        const cb=document.getElementById(`tr-3-${idx}`);
+        if(cb&&!cb.checked){cb.checked=true;if(!trendChecked[3]) trendChecked[3]=[];if(!trendChecked[3].includes(idx)) trendChecked[3].push(idx);}
+      }
+    });
+    updateTrendCount(3);
+
+    // Auto-check relevant coaching indicators for step 4 (pitch without discovery)
+    const step4Trends=STEPS.find(s=>s.id===4)?.trending||[];
+    const pitchChecks=[
+      'Skipped directly to pitch without completing discovery first',
+      'Never tied offer to a specific customer need',
+      'Pitch was generic',
+    ];
+    pitchChecks.forEach(label=>{
+      const idx=step4Trends.indexOf(step4Trends.find(t=>t.toLowerCase().startsWith(label.toLowerCase().slice(0,20))));
+      if(idx>=0){
+        const cb=document.getElementById(`tr-4-${idx}`);
+        if(cb&&!cb.checked){cb.checked=true;if(!trendChecked[4]) trendChecked[4]=[];if(!trendChecked[4].includes(idx)) trendChecked[4].push(idx);}
+      }
+    });
+    updateTrendCount(4);
   }
 
   // Apply AI-scored catalyst behaviors — with post-processing corrections applied
@@ -2270,16 +2397,62 @@ function applyResult(result){
     if(ci.notes){notes[ci.id]=ci.notes;const ta=document.getElementById(`notes-ci-${ci.id}`);if(ta) ta.value=ci.notes;}
   });
 
+  // Set outcome — fuzzy match since model returns varied text
   if(result.suggestedOutcome){
     const sel=document.getElementById('f-outcome');
-    if(sel) for(let i=0;i<sel.options.length;i++){if(sel.options[i].text===result.suggestedOutcome){sel.selectedIndex=i;break;}}
+    if(sel){
+      const aiOutcome=(result.suggestedOutcome||'').toLowerCase();
+      // Try exact match first
+      let matched=false;
+      for(let i=0;i<sel.options.length;i++){if(sel.options[i].text===result.suggestedOutcome){sel.selectedIndex=i;matched=true;break;}}
+      if(!matched){
+        // Fuzzy match: "sold" → "Successful sale", "not sold"/"no sale" → best matching "No sale" option
+        if(/\bsold\b/i.test(aiOutcome)&&!/not sold|no sale/i.test(aiOutcome)){
+          for(let i=0;i<sel.options.length;i++){if(sel.options[i].text==='Successful sale'){sel.selectedIndex=i;break;}}
+        } else if(/not interested/i.test(aiOutcome)){
+          for(let i=0;i<sel.options.length;i++){if(/not interested/i.test(sel.options[i].text)){sel.selectedIndex=i;break;}}
+        } else if(/price|expensive|cost|budget/i.test(aiOutcome)){
+          for(let i=0;i<sel.options.length;i++){if(/price/i.test(sel.options[i].text)){sel.selectedIndex=i;break;}}
+        } else if(/consult|spouse|wife|husband|partner|think about/i.test(aiOutcome)){
+          for(let i=0;i<sel.options.length;i++){if(/consult/i.test(sel.options[i].text)){sel.selectedIndex=i;break;}}
+        } else if(/contract/i.test(aiOutcome)){
+          for(let i=0;i<sel.options.length;i++){if(/contract/i.test(sel.options[i].text)){sel.selectedIndex=i;break;}}
+        } else if(/competitor/i.test(aiOutcome)){
+          for(let i=0;i<sel.options.length;i++){if(/competitor/i.test(sel.options[i].text)){sel.selectedIndex=i;break;}}
+        } else if(/no sale|not sold/i.test(aiOutcome)){
+          for(let i=0;i<sel.options.length;i++){if(/other/i.test(sel.options[i].text)){sel.selectedIndex=i;break;}}
+        }
+      }
+    }
   }
   // Set campaign — AI result takes priority, fall back to transcript keyword detection
+  // Also use primarySale product to infer campaign if AI didn't return an exact match
   const campaignField = document.getElementById('f-campaign');
   if(campaignField && !campaignField.value){
     const aiCampaign = result.suggestedCampaign||'';
     const transcript = document.getElementById('ai-transcript').value||'';
-    const detected = aiCampaign || detectCampaignFromTranscript(transcript);
+    let detected = '';
+    // Try exact match to campaign options first
+    const campaignOptions=['Xfinity Mobile Add A Line','XM Likely','Add XMC','Nonsub BAU'];
+    if(campaignOptions.includes(aiCampaign)){
+      detected=aiCampaign;
+    } else {
+      // Infer from primarySale product or transcript context
+      const ps=result.primarySale||{};
+      const product=(ps.product||aiCampaign||'').toLowerCase();
+      const txLower=transcript.toLowerCase();
+      if(/add.*line|additional.*line|another.*line/i.test(product)||/add.*line/i.test(txLower.slice(0,2000))){
+        detected='Xfinity Mobile Add A Line';
+      } else if(/xmc|mobile care|device protection|insurance/i.test(product)){
+        detected='Add XMC';
+      } else if(/mobile|phone|switch.*phone/i.test(product)&&/existing|already have.*internet/i.test(txLower.slice(0,2000))){
+        detected='XM Likely';
+      } else if(/nonsub|new customer|no.*current.*service/i.test(txLower.slice(0,2000))){
+        detected='Nonsub BAU';
+      } else {
+        detected=detectCampaignFromTranscript(transcript);
+      }
+    }
     if(detected) setCampaignField(detected, 'f-campaign');
   }
   // Show detected customer type
@@ -2997,19 +3170,13 @@ function renderBody(){
         <div class="btn-group" onclick="event.stopPropagation()">${btns}</div>
       </div>
       <div class="step-body" id="body-${s.id}">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:200px;">
-            <div class="ev-panel-label">AI Insight</div>
-            <div class="ev-text ev-empty" id="insight-${s.id}" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 12px;background:var(--bg2);border-radius:var(--r-md);border-left:2px solid var(--teal-bd);">Score a transcript to see call-specific insights.</div>
-          </div>
-          <div style="flex:1;min-width:200px;">
-            <div class="ev-panel-label">Transcript Evidence</div>
-            <div class="ev-text ev-empty" id="ev-text-${s.id}" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 12px;background:var(--bg2);border-radius:var(--r-md);border-left:2px solid var(--purple-bd);">Analyze a transcript first.</div>
-          </div>
+        <div id="step-feedback-${s.id}" style="font-size:12.5px;color:var(--text2);line-height:1.65;margin-bottom:8px;padding:8px 12px;background:var(--bg2);border-radius:var(--r-md);border-left:2px solid var(--teal-bd);">
+          <span style="color:var(--text3);font-style:italic;">Score a transcript to see feedback.</span>
         </div>
+        <div id="trend-checked-${s.id}" style="display:none;margin-bottom:6px;"></div>
         <div class="trend-toggle" id="trend-toggle-${s.id}" onclick="toggleTrends(${s.id})" style="font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;padding:4px 0;user-select:none;display:flex;align-items:center;gap:5px;">
           <span style="font-size:9px;" id="trend-arrow-${s.id}">\u25B6</span>
-          <span>Coaching indicators</span>
+          <span>All coaching indicators</span>
           <span id="trend-count-${s.id}" style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;background:var(--bg3);color:var(--text3);display:none;">0</span>
         </div>
         <div class="trend-grid" id="trend-grid-${s.id}" style="display:none;">${chips}</div>
@@ -3186,19 +3353,26 @@ function toggleTrends(id){
   if(arrow) arrow.textContent=showing?'\u25B6':'\u25BC';
 }
 function updateTrendCount(id){
-  const count=(trendChecked[id]||[]).length;
+  const checked=(trendChecked[id]||[]);
+  const count=checked.length;
   const badge=document.getElementById('trend-count-'+id);
   if(badge){
     badge.textContent=count;
     badge.style.display=count>0?'inline-block':'none';
     if(count>0){badge.style.background='var(--red-bg)';badge.style.color='var(--red-tx)';}
   }
-  // Auto-expand if any are checked
-  if(count>0){
-    const grid=document.getElementById('trend-grid-'+id);
-    const arrow=document.getElementById('trend-arrow-'+id);
-    if(grid) grid.style.display='grid';
-    if(arrow) arrow.textContent='\u25BC';
+  // Show checked indicators as visible tags (no need to expand full grid)
+  const checkedContainer=document.getElementById('trend-checked-'+id);
+  if(checkedContainer){
+    if(count>0){
+      const step=STEPS.find(s=>s.id===id);
+      const labels=checked.map(idx=>(step?.trending||[])[idx]).filter(Boolean);
+      checkedContainer.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:5px;">'+labels.map(l=>`<span style="font-size:11px;color:var(--red-tx);padding:3px 10px;background:var(--red-bg);border-radius:20px;border:1px solid var(--red-bd);line-height:1.3;display:inline-block;">${l}</span>`).join('')+'</div>';
+      checkedContainer.style.display='block';
+    } else {
+      checkedContainer.innerHTML='';
+      checkedContainer.style.display='none';
+    }
   }
 }
 function onTrend(id,idx,chk){if(!trendChecked[id]) trendChecked[id]=[];if(chk){if(!trendChecked[id].includes(idx)) trendChecked[id].push(idx);}else trendChecked[id]=trendChecked[id].filter(i=>i!==idx);updateTrendCount(id);}
