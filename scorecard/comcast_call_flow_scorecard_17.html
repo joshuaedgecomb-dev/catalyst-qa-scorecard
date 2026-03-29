@@ -2261,30 +2261,32 @@ function applyResult(result){
 
   // Validate and correct catalyst scores
   (result.catalystBehaviors||[]).forEach(b=>{
+    // Clean up lazy model notes - if the note doesn't match the behavior, clear it
+    if(b.notes&&b.id!=='b4'&&/no discovery|discovery.*absent|no.*questions.*asked/i.test(b.notes)){
+      b.notes=''; // Clear discovery-related note from non-discovery behaviors
+    }
+
     // B4 (Discover Needs): if no discovery questions found, cap at dnd
-    if(b.id==='b4'&&!hasDiscovery&&b.score==='ed'){
+    if(b.id==='b4'&&!hasDiscovery&&(b.score==='ed'||b.score==='pd')){
       b.score='dnd';
-      b.notes='Agent did not ask proactive questions about the customer household, usage, devices, or cost before pitching. Discovery was absent.';
-      console.log('Post-process: B4 corrected to dnd (no discovery questions found)');
+      b.notes='Agent did not ask proactive discovery questions about Users, Usage, Devices, or Cost before pitching.';
+      console.log('Post-process: B4 corrected to dnd');
     }
-    if(b.id==='b4'&&!hasDiscovery&&b.score==='pd'){
-      b.score='dnd';
-      b.notes='Agent did not ask proactive discovery questions. Customer-led questions do not count as discovery.';
-    }
-    // B5 (Be an Ambassador): cap at pd if discovery was absent OR partial
-    // You can't tie products to household needs you never discovered
+    // B5 (Be an Ambassador): cap at pd if discovery was absent
     const b4Score=(result.catalystBehaviors||[]).find(x=>x.id==='b4');
     const b4IsDndOrPd=b4Score&&(b4Score.score==='dnd'||b4Score.score==='pd');
     if(b.id==='b5'&&b4IsDndOrPd&&b.score==='ed'){
       b.score='pd';
-      b.notes=(b.notes||'')+' (Capped at PD: cannot tie products to customer needs when discovery was absent or incomplete.)';
-      console.log('Post-process: B5 capped to pd (B4 is '+b4Score.score+')');
+      if(!b.notes) b.notes='Pitch was not tied to discovered needs because discovery was absent.';
+      else b.notes+=' (Capped at PD: discovery was absent.)';
+      console.log('Post-process: B5 capped to pd');
     }
     // B3 (Make It Effortless): if process friction detected, cap at pd
     if(b.id==='b3'&&hasProcessFriction&&b.score==='ed'){
       b.score='pd';
-      b.notes=(b.notes||'')+' (Capped at PD: process friction detected - customer experienced confusion or repeated attempts.)';
-      console.log('Post-process: B3 capped to pd (process friction detected)');
+      if(!b.notes) b.notes='Process friction detected - customer experienced confusion or repeated attempts.';
+      else b.notes+=' (Capped at PD: process friction detected.)';
+      console.log('Post-process: B3 capped to pd');
     }
   });
 
