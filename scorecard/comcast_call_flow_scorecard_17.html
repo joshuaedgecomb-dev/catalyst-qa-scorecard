@@ -637,6 +637,12 @@
       <!-- Call narrative -->
       <div class="exec-text" id="exec-text"></div>
 
+      <!-- Discovery Pillars -->
+      <div id="exec-discovery-section" style="display:none;margin-top:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--purple-tx);margin-bottom:8px;">Discovery Coverage</div>
+        <div id="exec-discovery-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;"></div>
+      </div>
+
       <!-- What Worked - plain text narrative -->
       <div id="exec-strengths-section" style="margin-top:14px;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--green-tx);margin-bottom:6px;">What Worked</div>
@@ -1641,7 +1647,9 @@ function buildLocalPrompt(transcript){
   return `You are an expert Xfinity outbound telesales quality evaluator. Analyze the transcript and produce a complete JSON scorecard.
 
 SCORING PHILOSOPHY:
-Grade each call in a vacuum — evaluate what worked for this specific customer on this specific call. There is no single formula. An agent who adapts to the customer and achieves the goal of each step effectively has demonstrated that behavior, even if the path looked different from a script. If the agent accomplished the goal of a step — even imperfectly — that is at minimum "pd". Reserve "dnd" ONLY for steps the agent completely skipped or failed to attempt at all.
+Grade each call in a vacuum — evaluate what worked for this specific customer on this specific call. If the agent accomplished the goal of a step — even imperfectly — that is at minimum "pd". Reserve "dnd" for steps the agent completely skipped.
+
+CROSS-CHECK BEFORE FINALIZING: A call where the agent asked zero discovery questions cannot have B4 (Discover Needs) as "ed". A call where the customer was confused for several minutes cannot have B3 (Make It Effortless) as "ed". A pitch that was not connected to any discovered need cannot have B5 (Be an Ambassador) as "ed". Verify your catalyst scores are consistent with what actually happened on the call.
 
 MULTI-SALE CALLS:
 The PRIMARY SALE is the product the agent states in the agenda (first 60 lines). If the agent opens with "we are calling because you can add a mobile line for $20," then the mobile line is the primary sale — NOT a tablet or other product pitched later. Score steps, catalyst behaviors, and executive summary against the PRIMARY sale first. If a secondary upsell happens after the primary sale closes, discuss it briefly in the executive summary but it must NOT overshadow the primary sale evaluation. The suggestedOutcome reflects the primary sale. Check the PRIMARY SALE CONTEXT section before the transcript for what the agent stated as the reason for calling.
@@ -1679,7 +1687,18 @@ PRODUCT KNOWLEDGE — flag anything not listed here in productFlags:
 ${getProductKnowledge()}
 
 CATALYST BEHAVIORS:
-Score each independently across the ENTIRE transcript — not just the steps they map to. A behavior can show up anywhere in the call. Read the full transcript before scoring. Each behavior has ed/pd/dnd criteria below — use them.
+Score each independently across the ENTIRE transcript. Each behavior has ed/pd/dnd criteria below — use them strictly.
+
+CRITICAL SCORING RULES FOR CATALYST:
+- B4 (Discover Needs): If the AGENT did not ask questions about Users, Usage, Devices, or Cost before pitching, score "dnd". Telling the customer about products is NOT discovery. The customer asking questions is NOT discovery. The AGENT must ask probing questions to learn about the customer's household and needs. If no such questions exist in the transcript, B4 is "dnd".
+- B5 (Be an Ambassador): If discovery was absent (B4 = dnd), the pitch cannot be tailored. A generic pitch without tie-backs to discovered needs caps B5 at "pd" maximum.
+- B3 (Make It Effortless): If there were process problems (customer confusion, repeated login attempts, unclear instructions, long holds), B3 cannot be "ed". These friction points directly contradict "effortless."
+- B1 (Engage Actively): Confirming order details or asking clarifying questions during order processing is NOT the same as genuine engagement. Engagement means connecting personally, listening, and responding to what the customer says beyond the transaction.
+
+OPPORTUNITY PRIORITY ORDER (for executiveSummary opportunities):
+Discovery > Linking/Ambassador > Make It Effortless > Own It > Show Appreciation > Engage Actively
+If discovery was absent, it MUST be the #1 opportunity.
+
 ${catalystJSON}
 
 SCORECARD STEPS (the "catalyst" field shows which behaviors apply):
@@ -1688,8 +1707,8 @@ ${stepsJSON}
 STEP DESCRIPTIONS — what to evaluate and WHICH LINE NUMBERS contain the evidence:
 1. Positive greeting [LINES 1-60] — warm tone, natural rapport, recording disclosure. Pick 1-2 line numbers.
 2. Set the agenda [LINES 1-60] — agent states WHY they are calling ("the reason for my call is..." / "you are eligible for..."). Pick 1-2 line numbers.
-3. Discover needs [MIDDLE of call, before pitch] — the AGENT asks proactive questions about Users, Usage, Devices, Cost. Customer questions do NOT count. Pick 2-5 line numbers showing the agent's discovery questions.
-4. Link the need [AFTER DISCOVERY] — pitch tied to discovered needs. Broadband labels required for Internet/Mobile. Pick 2-4 line numbers.
+3. Discover needs [MIDDLE of call, before pitch] — the AGENT asks proactive questions about Users, Usage, Devices, Cost. IMPORTANT: Discovery means the AGENT is asking questions to learn about the customer BEFORE pitching. If the agent went straight from agenda to pitch without asking questions, score "dnd". If the CUSTOMER asked questions (e.g. "how much is the tablet?") but the agent never asked about their household, usage, devices, or budget, that is NOT discovery — score "dnd". The agent must be the one asking. Pick 2-5 line numbers showing the agent's discovery questions. If no discovery occurred, provide evidenceLines from where the agent jumped to pitch.
+4. Link the need [AFTER DISCOVERY] — pitch tied to what was discovered. If discovery was skipped (step 3 = dnd), this step cannot score higher than "pd" because there were no discovered needs to link to. A generic pitch without tie-backs is "pd" at best. Broadband labels required for Internet/Mobile. Pick 2-4 line numbers.
 5. Assume the sale [AFTER PITCH] — confidently ask customer to commit. Pick 1-2 line numbers.
 6. Understand the objection [IF CUSTOMER OBJECTS] — acknowledge and discover the real concern. "na" if no objection. Pick 1-3 line numbers.
 7. Overcome the objection [IF CUSTOMER OBJECTS] — address directly, restate value. "na" if no objection. Pick 1-3 line numbers.
@@ -1748,29 +1767,37 @@ JSON structure:
     {"id":"c3",...}, {"id":"c4",...}, {"id":"c5",...}, {"id":"c6",...},
     {"id":"c7",...}, {"id":"c8",...}, {"id":"c9",...}, {"id":"c10",...}, {"id":"c11",...}
   ],
+  "discoveryPillars": {
+    "users": {"asked":true/false, "evidenceLine":0, "whatWasLearned":"ONLY set asked=true if the AGENT asked a question about who lives in the household. If the customer volunteered info without being asked, set asked=false. The agent explaining products is NOT asking about users."},
+    "usage": {"asked":true/false, "evidenceLine":0, "whatWasLearned":"ONLY set asked=true if the AGENT asked how the customer uses services/devices. The agent describing product features is NOT asking about usage."},
+    "devices": {"asked":true/false, "evidenceLine":0, "whatWasLearned":"ONLY set asked=true if the AGENT asked what devices the customer has/uses. The agent knowing account info is NOT asking about devices."},
+    "cost": {"asked":true/false, "evidenceLine":0, "whatWasLearned":"ONLY set asked=true if the AGENT asked what the customer pays or their budget. The agent quoting prices is NOT asking about cost."}
+  },
   "catalystBehaviors": [
-    {"id":"b1","score":"ed|pd|dnd","notes":"2-3 sentences: what the agent did (or didn't do) for this behavior with specific transcript references (line X). This is the coaching explanation, not just a label."},
-    {"id":"b2","score":"...","notes":"..."}, {"id":"b3",...}, {"id":"b4",...}, {"id":"b5",...}, {"id":"b6",...}
+    {"id":"b1","score":"ed|pd|dnd","notes":"2-3 sentences with (line X) references."},
+    {"id":"b2","score":"...","notes":"..."}, {"id":"b3",...},
+    {"id":"b4","score":"IMPORTANT: If 0-1 discoveryPillars were asked, score dnd. If 2 were asked, score pd. If 3-4 were asked with open-ended questions, score ed.","notes":"..."},
+    {"id":"b5","score":"If b4 is dnd or pd, b5 CANNOT be ed. Cap at pd maximum.","notes":"..."},
+    {"id":"b6",...}
   ],
   "productFlags": [],
   "suggestedOutcome": "Successful sale | No sale – [reason]",
   "suggestedCampaign": "",
   "primarySale": {
-    "product": "Name the product from the AGENDA (first 60 lines). e.g. 'Xfinity Mobile line - Samsung Galaxy A17 5G'. This is what the agent called about.",
-    "outcome": "Did the customer approve/confirm an order for this product? 'Sold' if yes, 'Not sold - reason' if no. Look for order confirmation language in the transcript.",
-    "narrative": "How the agent opened, discovered needs, pitched, and closed THIS product (not a different one). Reference (line X). Include how the order was processed if sold."
+    "product": "Name the product from the AGENDA (first 60 lines).",
+    "outcome": "Sold or Not sold - reason"
   },
   "upsell": {
-    "product": "If agent pitched a DIFFERENT product AFTER the primary sale, name it. 'None' if no upsell.",
-    "outcome": "'Sold', 'Not sold - reason', or 'N/A'",
-    "narrative": "Brief description of the upsell attempt and outcome. 'N/A' if none."
+    "product": "Secondary product pitched after primary, or 'None'",
+    "outcome": "Sold, Not sold - reason, or N/A"
   },
   "executiveSummary": {
-    "topPriority": "5-8 word headline for the #1 coaching focus",
-    "strengths": ["MINIMUM 2 items. At least 1 MUST be from the primary sale (opening/discovery/pitch/close). Each references (line X) and explains WHY it worked through Catalyst behaviors."],
-    "opportunities": ["MINIMUM 2 items. At least 1 MUST be from the primary sale flow. Each references (line X) and explains what SHOULD have happened through Catalyst behaviors."],
+    "topPriority": "5-8 word coaching headline",
+    "summary": "3-5 sentence narrative of the FULL call from opening to close. Walk through what happened chronologically: how the agent opened, what they discovered, how they pitched, how the customer responded, how the close went. Call out the pivotal moment. If there were process issues (confusion, long holds, technical difficulties) note the impact. Reference (line X). Write this for a manager who will share it with the agent.",
+    "strengths": ["MINIMUM 2 sentences. Reference (line X). Explain WHY it worked through Catalyst behaviors."],
+    "opportunities": ["MINIMUM 2 sentences. Reference (line X). Prioritize gaps in this order: Discovery (did the agent ask questions?) > Linking/Ambassador (was the pitch tied to needs?) > Make It Effortless (was the process smooth?) > Own It (did the agent show expertise?) > Show Appreciation > Engage Actively. If discovery was skipped entirely, that MUST be the first opportunity listed."],
     "critical": [],
-    "salesCoaching": [{"compassPhase":"phase","focus":"label","what":"specific guidance referencing this call","evidenceLines":[45,46],"example":"script the agent could say next time","priority":"high|medium"}],
+    "salesCoaching": [{"compassPhase":"phase","focus":"label","what":"guidance","evidenceLines":[45],"example":"script","priority":"high|medium"}],
     "complianceCoaching": []
   }
 }`;
@@ -1809,12 +1836,41 @@ async function analyzeTranscript(){
     if(progressBar) progressBar.style.width=Math.min(progressPct,95)+'%';
     if(elapsedEl) elapsedEl.textContent=Math.round((Date.now()-startTime)/1000)+'s';
   },500);
+  function playChime(success){
+    try{
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      if(success){
+        // Pleasant two-tone chime (C5 + E5)
+        [523.25, 659.25].forEach((freq,i)=>{
+          const osc=ctx.createOscillator();
+          const gain=ctx.createGain();
+          osc.type='sine';
+          osc.frequency.value=freq;
+          gain.gain.setValueAtTime(0.15,ctx.currentTime+i*0.15);
+          gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.15+0.6);
+          osc.connect(gain);gain.connect(ctx.destination);
+          osc.start(ctx.currentTime+i*0.15);
+          osc.stop(ctx.currentTime+i*0.15+0.6);
+        });
+      } else {
+        // Low tone for error
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.type='sine';osc.frequency.value=220;
+        gain.gain.setValueAtTime(0.12,ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+        osc.connect(gain);gain.connect(ctx.destination);
+        osc.start();osc.stop(ctx.currentTime+0.5);
+      }
+    }catch(e){}
+  }
   function stopProgress(success){
     clearInterval(progressTimer);
     if(progressBar) progressBar.style.width=success?'100%':'0%';
     const totalSec=Math.round((Date.now()-startTime)/1000);
     if(elapsedEl) elapsedEl.textContent=success?`${totalSec}s`:'';
     setTimeout(()=>progress.classList.remove('active'),success?800:0);
+    playChime(success);
     // Re-enable the analyze button
     const ab=document.getElementById('analyze-btn');
     if(ab){ab.disabled=false;ab.style.opacity='';ab.style.pointerEvents='';}
@@ -2082,7 +2138,86 @@ function applyResult(result){
       }
     }
   });
-  // Apply AI-scored catalyst behaviors directly — overrides derived rollup
+  // ── Post-process: validate discoveryPillars — check that "asked" evidence is actually a question from the agent ──
+  const dp=result.discoveryPillars||{};
+  const txLinesDP=(document.getElementById('ai-transcript')?.value||'').split(/\r?\n/);
+  ['users','usage','devices','cost'].forEach(key=>{
+    const p=dp[key];
+    if(!p||!p.asked) return;
+    // Validate: the evidence line must be an Agent line containing a question mark
+    const lineNum=p.evidenceLine;
+    if(lineNum){
+      const line=txLinesDP[lineNum-1]||'';
+      const isAgentQuestion=/^Agent:/i.test(line)&&line.includes('?');
+      if(!isAgentQuestion){
+        p.asked=false;
+        p.whatWasLearned='Not asked by agent (information was volunteered by customer or stated by agent, not discovered through a question)';
+        console.log(`Post-process: discoveryPillar ${key} corrected to false (line ${lineNum} is not an agent question)`);
+      }
+    } else {
+      // No evidence line provided — mark as not asked
+      p.asked=false;
+      p.whatWasLearned='Not asked';
+    }
+  });
+  const pillarsAsked=[dp.users,dp.usage,dp.devices,dp.cost].filter(p=>p&&p.asked===true).length;
+  console.log('Discovery pillars asked (after validation):', pillarsAsked, 'of 4');
+  const hasDiscovery=pillarsAsked>=2;
+
+  // Also do JS transcript scan as backup validation
+  const txForValidation=(document.getElementById('ai-transcript')?.value||'').split(/\r?\n/);
+  const agentLines=txForValidation.filter(l=>/^Agent:/i.test(l)).map(l=>l.replace(/^Agent:\s*/i,'').trim().toLowerCase());
+  const agentQuestions=agentLines.filter(l=>l.includes('?'));
+  const transactionalPatterns=/confirm|verify|phone number|address|email|password|sign in|log in|ship|card|payment|approve|order|can you|do you mind|is that|okay\?|right\?|correct\?|one second|hold/i;
+  const serviceCheckPatterns=/how.*services.*been|how.*working|everything.*good|any.*issue|any.*problem/i;
+  const nonTransactionalQs=agentQuestions.filter(l=>!transactionalPatterns.test(l)&&!serviceCheckPatterns.test(l));
+  console.log('JS backup: agent questions=', agentQuestions.length, 'non-transactional=', nonTransactionalQs.length, 'samples:', nonTransactionalQs.slice(0,3));
+
+  // Check for process friction: login issues, repeated attempts, customer confusion
+  const frictionSignals=txForValidation.filter(l=>/please enter a valid|can.t use|try.*(again|it again)|here we go again|i.m lost|what is saying|let me resend/i.test(l.toLowerCase()));
+  const hasProcessFriction=frictionSignals.length>=2;
+
+  // Validate and correct catalyst scores
+  (result.catalystBehaviors||[]).forEach(b=>{
+    // B4 (Discover Needs): if no discovery questions found, cap at dnd
+    if(b.id==='b4'&&!hasDiscovery&&b.score==='ed'){
+      b.score='dnd';
+      b.notes='Agent did not ask proactive questions about the customer household, usage, devices, or cost before pitching. Discovery was absent.';
+      console.log('Post-process: B4 corrected to dnd (no discovery questions found)');
+    }
+    if(b.id==='b4'&&!hasDiscovery&&b.score==='pd'){
+      b.score='dnd';
+      b.notes='Agent did not ask proactive discovery questions. Customer-led questions do not count as discovery.';
+    }
+    // B5 (Be an Ambassador): cap at pd if discovery was absent OR partial
+    // You can't tie products to household needs you never discovered
+    const b4Score=(result.catalystBehaviors||[]).find(x=>x.id==='b4');
+    const b4IsDndOrPd=b4Score&&(b4Score.score==='dnd'||b4Score.score==='pd');
+    if(b.id==='b5'&&b4IsDndOrPd&&b.score==='ed'){
+      b.score='pd';
+      b.notes=(b.notes||'')+' (Capped at PD: cannot tie products to customer needs when discovery was absent or incomplete.)';
+      console.log('Post-process: B5 capped to pd (B4 is '+b4Score.score+')');
+    }
+    // B3 (Make It Effortless): if process friction detected, cap at pd
+    if(b.id==='b3'&&hasProcessFriction&&b.score==='ed'){
+      b.score='pd';
+      b.notes=(b.notes||'')+' (Capped at PD: process friction detected - customer experienced confusion or repeated attempts.)';
+      console.log('Post-process: B3 capped to pd (process friction detected)');
+    }
+  });
+
+  // Also correct step 3 if no discovery
+  if(!hasDiscovery){
+    const step3=result.steps.find(s=>s.id===3);
+    if(step3&&(step3.score==='ed'||step3.score==='pd')){
+      step3.score='dnd';
+      step3.notes='Agent did not ask proactive discovery questions before pitching.';
+      setScore(3,'dnd',true);
+      console.log('Post-process: Step 3 corrected to dnd (no discovery questions)');
+    }
+  }
+
+  // Apply AI-scored catalyst behaviors — with post-processing corrections applied
   (result.catalystBehaviors||[]).forEach(b=>{
     const el=document.getElementById(`cb-${b.id}`);
     if(!el) return;
@@ -2189,13 +2324,13 @@ function applyResult(result){
     const text=document.getElementById('exec-text');
     const pills=document.getElementById('exec-pills');
     if(panel&&priority&&text){
-      // Product info bar - handle both grouped and flat structures
+      // Product info bar
       const ps=result.primarySale||{};
       const us=result.upsell||{};
-      const pp=ps.product||result.primaryProduct||'';
-      const ppo=ps.outcome||result.primaryProductOutcome||'';
-      const sp=us.product||result.secondaryProduct||'';
-      const spo=us.outcome||result.secondaryProductOutcome||'';
+      const pp=ps.product||'';
+      const ppo=ps.outcome||'';
+      const sp=us.product||'';
+      const spo=us.outcome||'';
       if(pp){
         let prodHtml=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;">`;
         const ppoColor=ppo.toLowerCase().startsWith('sold')?'var(--green-tx)':'var(--amber-tx)';
@@ -2227,34 +2362,60 @@ function applyResult(result){
       }
 
       priority.textContent=es.topPriority||es.top_priority||es.priority||'';
-      // Build combined summary from primary + secondary with linkified evidence
-      const pSale=result.primarySale||{};
-      const uSale=result.upsell||{};
-      const primarySum=pSale.narrative||es.primarySaleSummary||es.summary||es.overview||es.analysis||es.description||'';
-      const secondarySum=uSale.narrative||es.secondarySummary||'';
-      let summaryHtml=linkifyEvidence(primarySum);
-      if(secondarySum&&secondarySum!=='N/A'&&secondarySum.length>5){
-        summaryHtml+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'+linkifyEvidence(secondarySum)+'</div>';
-      }
-      text.innerHTML=summaryHtml;
+      // Summary narrative with linkified evidence
+      const summaryText=es.summary||es.primarySaleSummary||es.overview||es.analysis||es.description||'';
+      text.innerHTML=linkifyEvidence(summaryText);
 
-      // Strengths - plain text narrative
+      // Discovery pillars display
+      const dpData=result.discoveryPillars||{};
+      const discSection=document.getElementById('exec-discovery-section');
+      const discGrid=document.getElementById('exec-discovery-grid');
+      if(discSection&&discGrid){
+        const txLinesDisc=(document.getElementById('ai-transcript')?.value||'').split(/\r?\n/);
+        const pillarNames={users:'Users',usage:'Usage',devices:'Devices',cost:'Cost'};
+        let gridHtml='';
+        ['users','usage','devices','cost'].forEach(key=>{
+          const p=dpData[key]||{};
+          const asked=p.asked===true;
+          const bg=asked?'var(--green-bg)':'var(--red-bg)';
+          const border=asked?'var(--green-bd)':'var(--red-bd)';
+          const color=asked?'var(--green-tx)':'var(--red-tx)';
+          const icon=asked?'&#10003;':'&#10007;';
+          const lineRef=asked&&p.evidenceLine?txLinesDisc[p.evidenceLine-1]||'':'';
+          const learned=p.whatWasLearned||'Not asked';
+          gridHtml+=`<div style="background:${bg};border:1px solid ${border};border-radius:var(--r-md);padding:8px 10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:12px;font-weight:700;color:${color};">${pillarNames[key]}</span>
+              <span style="font-size:11px;color:${color};">${icon}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.4;">${asked?learned:'Not explored'}</div>
+          </div>`;
+        });
+        discGrid.innerHTML=gridHtml;
+        discSection.style.display='block';
+      }
+
+      // Strengths - plain text narrative (guard against string instead of array)
       const strengthsList=document.getElementById('exec-strengths-list');
       if(strengthsList){
-        const items=es.strengths||[];
-        if(items.length){
-          strengthsList.innerHTML=items.map(s=>`<p style="margin:0 0 8px 0;">${linkifyEvidence(s)}</p>`).join('');
+        let sItems=es.strengths||[];
+        if(typeof sItems==='string') sItems=[sItems];
+        if(!Array.isArray(sItems)) sItems=[];
+        if(sItems.length){
+          strengthsList.innerHTML=sItems.map(s=>`<p style="margin:0 0 8px 0;">${linkifyEvidence(String(s))}</p>`).join('');
         } else {
           strengthsList.innerHTML='<p style="margin:0;color:var(--text3);font-style:italic;">No specific strengths identified</p>';
         }
       }
 
-      // Opportunities - plain text narrative
+      // Opportunities - plain text narrative (guard against string instead of array)
       const oppsList=document.getElementById('exec-opps-list');
       if(oppsList){
-        const items=es.opportunities||[];
-        if(items.length){
-          oppsList.innerHTML=items.map(s=>`<p style="margin:0 0 8px 0;">${linkifyEvidence(s)}</p>`).join('');
+        let oItems=es.opportunities||[];
+        if(typeof oItems==='string') oItems=[oItems];
+        if(!Array.isArray(oItems)) oItems=[];
+        if(oItems.length){
+          oppsList.innerHTML=oItems.map(s=>`<p style="margin:0 0 8px 0;">${linkifyEvidence(String(s))}</p>`).join('');
         } else {
           oppsList.innerHTML='<p style="margin:0;color:var(--text3);font-style:italic;">No specific opportunities identified</p>';
         }
@@ -2306,8 +2467,10 @@ function applyResult(result){
         };
       }
       // Broad fallback — models use unpredictable key names for coaching
-      const rawSales=es.salesCoaching||es.coachingRecommendations||es.nextSteps||es.coaching||es.recommendations||es.sales||[];
-      const rawCompliance=es.complianceCoaching||es.compliance_coaching||[];
+      const rawSalesRaw=es.salesCoaching||es.coachingRecommendations||es.nextSteps||es.coaching||es.recommendations||[];
+      const rawSales=Array.isArray(rawSalesRaw)?rawSalesRaw:[];
+      const rawComplianceRaw=es.complianceCoaching||es.compliance_coaching||[];
+      const rawCompliance=Array.isArray(rawComplianceRaw)?rawComplianceRaw:[];
       console.log('Raw salesCoaching items:', JSON.stringify(rawSales));
       console.log('Raw complianceCoaching items:', JSON.stringify(rawCompliance));
       const salesRecs=rawSales.map(normalizeCoachingRec);
@@ -3912,10 +4075,7 @@ function buildIndividualCoachingHTML(p){
     out.push('<div style="background:white;border:1.5px solid #0f6e56;border-radius:12px;padding:18px 20px;margin-bottom:14px;">');
     out.push('<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#085041;margin-bottom:8px;">Executive Summary</div>');
     out.push('<div style="font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e5e3df;">'+esc(es.topPriority)+'</div>');
-    var bulkSum=es.primarySaleSummary||es.summary||'';
-    var bulkSec=es.secondarySummary||'';
-    out.push('<div style="font-size:13px;color:#5f5e5a;line-height:1.65;margin-bottom:4px;">'+esc(bulkSum)+'</div>');
-    if(bulkSec&&bulkSec!=='N/A'&&bulkSec.length>5) out.push('<div style="font-size:13px;color:#5f5e5a;line-height:1.65;margin-bottom:4px;padding-top:8px;border-top:1px solid #eee;">'+esc(bulkSec)+'</div>');
+    out.push('<div style="font-size:13px;color:#5f5e5a;line-height:1.65;margin-bottom:4px;">'+esc(es.summary||es.primarySaleSummary||'')+'</div>');
     out.push(strengthsHtml);
     out.push(oppsHtml);
     out.push(critHtml);
