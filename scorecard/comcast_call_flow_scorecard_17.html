@@ -244,22 +244,35 @@
   .ai-disclaimer{font-size:11px;color:var(--text3);padding:8px 12px;background:var(--bg2);border-radius:var(--r-sm);margin-top:10px;line-height:1.5;}
 
   /* ── catalyst rollup ── */
-  .catalyst-panel{background:var(--surface);border:1.5px solid var(--purple-bd);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--card-shadow);}
-  .catalyst-hdr{background:var(--purple-bg);border-bottom:1px solid var(--purple-bd);padding:9px 18px;display:flex;justify-content:space-between;align-items:center;}
-  .catalyst-hdr-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--purple-tx);}
+  .catalyst-panel{background:var(--surface);border:1.5px solid var(--purple-bd);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--card-shadow);margin-bottom:16px;}
+  .catalyst-hdr{background:var(--purple-bg);border-bottom:1px solid var(--purple-bd);padding:10px 18px;display:flex;justify-content:space-between;align-items:center;}
+  .catalyst-hdr-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple-tx);}
   .catalyst-hdr-score{font-size:12px;font-weight:600;color:var(--purple-tx);font-variant-numeric:tabular-nums;}
-  .catalyst-grid{display:grid;grid-template-columns:repeat(3,1fr);}
-  .cb{padding:11px 14px;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);transition:background-color 0.1s ease;}
+  .catalyst-grid{display:grid;grid-template-columns:1fr 1fr;}
+  .cb{padding:14px 18px;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);transition:background-color 0.1s ease;}
   .cb:hover{background:var(--bg2);}
-  .cb:nth-child(3n){border-right:none;}
-  .cb:nth-child(n+4){border-bottom:none;}
-  .cb-num{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:2px;}
-  .cb-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px;}
-  .cb-rating{font-size:11px;padding:2px 8px;border-radius:20px;display:inline-block;font-weight:500;}
+  .cb:nth-child(2n){border-right:none;}
+  .cb:last-child,.cb:nth-last-child(2):nth-child(odd){border-bottom:none;}
+  .cb-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .cb-num{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);}
+  .cb-name{font-size:13px;font-weight:600;color:var(--text);}
+  .cb-intent{font-size:11px;color:var(--text3);margin-bottom:6px;font-style:italic;line-height:1.4;}
+  .cb-rating{font-size:11px;padding:2px 10px;border-radius:20px;display:inline-block;font-weight:600;}
   .cb-rating.ed{background:var(--green-bg);color:var(--green-tx);}
   .cb-rating.pd{background:var(--amber-bg);color:var(--amber-tx);}
   .cb-rating.dnd{background:var(--red-bg);color:var(--red-tx);}
   .cb-rating.none{background:var(--bg2);color:var(--text3);}
+  .cb-notes{font-size:12px;color:var(--text2);margin-top:8px;line-height:1.6;padding:8px 10px;background:var(--bg2);border-radius:var(--r-sm);border-left:2px solid var(--purple-bd);display:none;}
+  .cb-notes.visible{display:block;}
+
+  /* Steps collapsible section */
+  .steps-section{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--card-shadow);margin-bottom:16px;}
+  .steps-hdr{padding:10px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);border-bottom:1px solid var(--border);user-select:none;transition:background .15s ease;}
+  .steps-hdr:hover{background:var(--bg3);}
+  .steps-hdr span:first-child{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);}
+  .steps-hdr-sub{font-size:11px;color:var(--text3);}
+  .steps-chevron{font-size:12px;transition:transform .2s ease;}
+  .steps-body.collapsed{display:none;}
 
   /* ── summary bar ── */
   .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
@@ -286,7 +299,7 @@
 
   /* ── scorecard steps ── */
   .scorecard{background:var(--surface);box-shadow:var(--card-shadow);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
-  .section-hdr{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding:7px 18px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);border-left:3px solid var(--accent);display:flex;justify-content:space-between;align-items:center;}
+  .section-hdr{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text);padding:10px 18px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);border-left:3px solid var(--accent);display:flex;justify-content:space-between;align-items:center;}
   .step{border-bottom:0.5px solid var(--border);transition:background-color 0.1s ease;}
   .step:last-child{border-bottom:none;}
   /* ── transcript evidence panel ── */
@@ -298,7 +311,7 @@
   .step-name-wrap{flex:1;min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
   .step-name{font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
   .step-hint{font-size:11px;color:var(--text3);line-height:1.4;}
-  .cat-tag{font-size:9px;font-weight:500;padding:1px 6px;border-radius:20px;border:0.5px solid;white-space:nowrap;}
+  .cat-tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid;white-space:nowrap;}
   .btn-group{display:flex;gap:4px;flex-shrink:0;margin-left:auto;}
   .ev-toggle{background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);padding:2px 4px;line-height:1;transition:transform .2s,color .1s;flex-shrink:0;}
   .ev-toggle:hover{color:var(--purple-tx);}
@@ -324,11 +337,13 @@
   .sbtn.sel-yes{background:var(--green-bg);border-color:var(--green-bd);color:var(--green-tx);font-weight:600;}
   .sbtn.sel-no{background:var(--red-bg);border-color:var(--red-bd);color:var(--red-tx);font-weight:600;}
   .step-detail{padding:0 16px 12px 44px;}
-  .trend-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:5px;}
-  .trend-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
-  .chip{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);font-size:12px;color:var(--text2);cursor:pointer;user-select:none;transition:all .15s ease;}
-  .chip input{width:12px;height:12px;accent-color:var(--red-bd);flex-shrink:0;cursor:pointer;}
-  .chip:has(input:checked){background:var(--red-bg);border-color:var(--red-bd);color:var(--red-tx);}
+  .trend-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+  .trend-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:10px;}
+  @media(max-width:900px){.trend-grid{grid-template-columns:1fr;}}
+  .chip{display:flex;align-items:flex-start;gap:7px;padding:5px 10px;border-radius:var(--r-sm);border:1px solid transparent;background:transparent;font-size:11.5px;color:var(--text2);cursor:pointer;user-select:none;transition:all .15s ease;line-height:1.4;}
+  .chip:hover{background:var(--bg2);}
+  .chip input{width:13px;height:13px;accent-color:var(--red-bd);flex-shrink:0;cursor:pointer;margin-top:1px;}
+  .chip:has(input:checked){background:var(--red-bg);border-color:var(--red-bd);color:var(--red-tx);border-radius:var(--r-sm);}
   .notes-area{width:100%;padding:6px 9px;font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--text2);resize:none;min-height:34px;transition:border-color .15s ease;}
   .notes-area:focus{outline:none;border-color:var(--accent);}
   .notes-area::placeholder{color:var(--text3);}
@@ -395,13 +410,8 @@
   .exec-hdr{background:var(--teal-bg);border-bottom:0.5px solid var(--teal-bd);padding:9px 18px;display:flex;justify-content:space-between;align-items:center;}
   .exec-hdr-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--teal-tx);}
   .exec-body{padding:16px 20px;}
-  .exec-priority{font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;}
-  .exec-text{font-size:13px;color:var(--text2);line-height:1.65;}
-  .exec-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
-  .exec-pill{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;}
-  .exec-pill.strength{background:var(--green-bg);color:var(--green-tx);}
-  .exec-pill.opportunity{background:var(--amber-bg);color:var(--amber-tx);}
-  .exec-pill.critical{background:var(--red-bg);color:var(--red-tx);}
+  .exec-priority{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .exec-text{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:4px;}
   .coaching-section{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--teal-bd);}
   .coaching-section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--teal-tx);margin-bottom:10px;}
   .coaching-cards{display:flex;flex-direction:column;gap:10px;}
@@ -618,32 +628,36 @@
   <!-- EXECUTIVE SUMMARY -->
   <div class="exec-panel" id="exec-panel">
     <div class="exec-hdr">
-      <span class="exec-hdr-title">Executive Summary — Top Coaching Priority</span>
+      <span class="exec-hdr-title">Executive Summary</span>
       <span style="font-size:11px;color:var(--teal-tx);opacity:.75;">AI generated · review before sharing</span>
     </div>
     <div class="exec-body">
+      <!-- Top priority headline -->
       <div class="exec-priority" id="exec-priority"></div>
+      <!-- Call narrative -->
       <div class="exec-text" id="exec-text"></div>
-      <div class="exec-pills" id="exec-pills"></div>
-    </div>
-  </div>
 
-  <!-- Catalyst rollup -->
-  <div class="catalyst-panel">
-    <div class="catalyst-hdr">
-      <span class="catalyst-hdr-title">Catalyst Quality Behaviors — Summary</span>
-      <span class="catalyst-hdr-score" id="catalyst-summary">0 / 6 Effectively Demonstrated</span>
-    </div>
-    <div class="catalyst-grid" id="catalyst-grid"></div>
-  </div>
+      <!-- What Worked - plain text narrative -->
+      <div id="exec-strengths-section" style="margin-top:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--green-tx);margin-bottom:6px;">What Worked</div>
+        <div id="exec-strengths-list" style="font-size:13px;color:var(--text2);line-height:1.7;"></div>
+      </div>
 
-  <!-- Legend -->
-  <div class="legend">
-    <span class="legend-title">Scale</span>
-    <span class="legend-item"><span class="ldot dot-ed"></span>Effectively Demonstrated — clear, consistent evidence; intent fully met</span>
-    <span class="legend-item"><span class="ldot dot-pd"></span>Partially Demonstrated — attempt present but incomplete</span>
-    <span class="legend-item"><span class="ldot dot-dnd"></span>Did Not Demonstrate — no evidence</span>
-    <span class="legend-item"><span class="ldot dot-na"></span>N/A — not applicable</span>
+      <!-- Areas of Opportunity - plain text narrative -->
+      <div id="exec-opps-section" style="margin-top:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--amber-tx);margin-bottom:6px;">Areas of Opportunity</div>
+        <div id="exec-opps-list" style="font-size:13px;color:var(--text2);line-height:1.7;"></div>
+      </div>
+
+      <!-- Critical (only shown if red flags) -->
+      <div id="exec-critical-box" style="display:none;margin-top:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--red-tx);margin-bottom:6px;">Critical</div>
+        <div id="exec-critical-list" style="font-size:13px;color:var(--red-tx);font-weight:500;line-height:1.7;"></div>
+      </div>
+
+      <!-- Sales coaching section -->
+      <div id="exec-coaching"></div>
+    </div>
   </div>
 
   <!-- Summary bar -->
@@ -657,8 +671,28 @@
 
   <div id="autofail-banner" style="display:none"><span class="af-icon"><svg class="svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span> <span>AUTO-FAIL — This call scores 0 regardless of other results.<div class="af-detail" id="af-detail"></div></span></div>
 
-  <div id="scorecard-body"></div>
+  <!-- CATALYST BEHAVIORS — expanded with AI reasoning -->
+  <div class="catalyst-panel">
+    <div class="catalyst-hdr">
+      <span class="catalyst-hdr-title">Catalyst Quality Behaviors</span>
+      <span class="catalyst-hdr-score" id="catalyst-summary">0 / 6 Effectively Demonstrated</span>
+    </div>
+    <div class="catalyst-grid" id="catalyst-grid"></div>
+  </div>
 
+  <!-- CALL FLOW STEPS — collapsible detail -->
+  <div class="steps-section">
+    <div class="steps-hdr" onclick="toggleStepsSection()">
+      <span style="display:flex;align-items:center;gap:6px;">
+        <span class="steps-chevron" id="steps-chevron">&#9662;</span>
+        Step-by-Step Call Flow Detail
+      </span>
+      <span class="steps-hdr-sub">11 steps · Click to expand/collapse</span>
+    </div>
+    <div id="scorecard-body" class="steps-body"></div>
+  </div>
+
+  <!-- RED FLAGS -->
   <div class="rf-section">
     <div class="rf-hdr">
       <span style="display:flex;align-items:center;gap:6px;"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Red Flags / Auto-Fails</span>
@@ -667,6 +701,7 @@
     <div id="rf-body"></div>
   </div>
 
+  <!-- COMPLIANCE CHECKLIST -->
   <div class="ci-section">
     <div class="ci-hdr">
       <span style="display:flex;align-items:center;gap:6px;"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Compliance Checklist</span>
@@ -1131,7 +1166,7 @@ const CATALYST=[
   {id:'b1',name:'Engage Actively',intent:'Show the customer you care — make a genuine connection, listen first, and respond to what\'s actually being said (and not said).',
    criteria:{
     ed:'The agent treats the call as a real conversation, not a transaction. They absorb what the customer says and respond to it — the customer never has to repeat themselves. The agent breaks from the script naturally (references the customer\'s day, interests, something relatable like a show or hobby) when the moment calls for it. If an objection is raised, the agent identifies whether it\'s specific or nonspecific — if nonspecific, they ask a follow-up question to uncover the real reason before going into a rebuttal. By the end of the call, the agent has a clear picture of the customer\'s usage and, if no sale was made, a clear understanding of why. The overall tone communicates genuine interest in helping, not closing.',
-    pd:'The agent shows moments of real engagement but doesn\'t sustain it. They may have a warm opening but slip into script-reading through the middle of the call. They may acknowledge an objection but move into rebuttal without probing for the specific reason behind it. There may be minor instances of the customer having to restate something. The intent to connect is present but execution is inconsistent.',
+    pd:'The agent shows moments of real engagement but doesn\'t sustain it. They may have a warm opening but slip into script-reading through the middle of the call. They may acknowledge an objection but move into rebuttal without discovering for the specific reason behind it. There may be minor instances of the customer having to restate something. The intent to connect is present but execution is inconsistent.',
     dnd:'The call feels transactional from start to finish. The agent follows the script without deviation, gives no indication they\'re listening beyond surface-level acknowledgment, and the customer has to repeat themselves at least once. Objections are met with a rehearsed rebuttal without any attempt to understand the underlying reason. There is no genuine connection made at any point in the call.'
   }},
   {id:'b2',name:'Own It',intent:'Demonstrate expertise, set clear expectations, and commit to the right solution. Be transparent about what\'s happening and what comes next.',
@@ -1171,12 +1206,12 @@ const STEPS=[
    desc:'The opening sets the tone for the entire interaction. Outbound telesales is an interruption by nature — the agent has seconds to earn the customer\'s willingness to stay on the call. The Compass Navigator opening is scripted: greeting, consent language, asking who they\'re speaking with, and transitioning into the call purpose. The baseline for this step is delivering that script with genuine warmth and a natural pace. What pushes a score to ED is whether the agent finds the small window between getting the customer\'s name and launching into the reason for the call — asking how their day is going, or responding naturally to something the customer says — before moving forward. EXISTING CUSTOMER BONUS: If the customer already has Xfinity services (e.g. Internet) and the agent is calling to add a product (e.g. Xfinity Mobile), using the customer\'s name early in the opening is a strong signal of pre-call prep and Own It — it shows the agent reviewed the account before dialing. Factor this into the score for existing customers. For new subscribers (Nonsub), name usage is not expected. COMPLIANCE REQUIREMENT: The recording disclosure must be delivered in the opening — either right after the greeting or after stating the reason for the call, but before asking discovery questions. Verbatim: "Before I continue, I need to inform you that the call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices please visit Xfinity.com/privacy." State-specific rules apply: IL and KY require a permission-to-continue phrase; CT has a mandatory special script that must be followed exactly. A missing or misplaced recording disclosure is a compliance failure regardless of tone.',
    trending:['Sounded scripted — robotic or memorized delivery','Poor or flat tone; did not convey warmth','Rapid pace; customer had to work to keep up','Delayed engagement — took too long to connect with the customer','Moved directly from \'Nice to meet you\' into the pitch — no pause for personal connection','Customer name not used in opening (existing customer)','Generic greeting with no personalization','Recording/monitoring disclosure was not delivered','Recording disclosure was delivered after discovery questions had already begun','State-specific compliance language (IL/KY permission-to-continue or CT special script) was not followed']},
   {id:2,section:'Opening',name:'Set the agenda',type:'cat',catalyst:['b2','b3'],
-   desc:'Own It means the customer should never be surprised by the direction of the call. Framing the purpose early reduces friction and builds trust. Making It Effortless means giving the customer a clear map of where the conversation is headed. COMPLIANCE REQUIREMENT: For existing customers (Einstein path), authentication is required ONLY IF the agent discusses, confirms, or discloses any customer-sensitive or account-specific information — such as the customer\'s address, phone number, current package, pricing, account history, or any detail that would only exist on their account. If no account-specific information is discussed at any point in the call, authentication is not required and this item is N/A. When authentication IS triggered, it must occur before that sensitive information is shared. Authentication is satisfied by either: (1) a 6-digit verification code collected and confirmed — this alone is full authentication for any campaign, or (2) the full service address AND phone number on the account. ACSR scenarios require address + phone, but this is not determinable from a transcript — do not penalize if a 6-digit code was collected.',
+   desc:'Setting the agenda means telling the customer WHY you are calling and giving the call a clear direction. The customer should never be surprised by where the conversation is heading. This step is scored on whether the agent communicated the purpose of the call, typically with phrases like "The reason for my call today is..." or "We are calling you because you are eligible for..." This usually happens within the first 60 lines of the call, right after the greeting. COMPLIANCE GATE (separate from agenda scoring): Authentication is required before any customer-sensitive information is discussed (address, phone number, current package, pricing, account history). If the agent discusses price, speed, tier, or account details before authenticating, that is a compliance failure. Authentication is satisfied by either: (1) a 6-digit verification code collected and confirmed, or (2) the full service address AND phone number on the account. Asking for "contact info including shipping address" and collecting address + phone counts as authentication. If no account-specific information is discussed on the call, authentication is N/A.',
    trending:['Purpose of the call never established','Customer caught off guard by discovery questions','Jumped straight to pitch without any setup','No transition from greeting to purpose — call felt disjointed','Account-specific information was discussed without authentication being completed first','No 6-digit code collected and neither service address nor phone number verified before account details were shared']},
-  {id:3,section:'Discovery',name:'Discover needs',type:'cat',catalyst:['b4'],
+  {id:3,section:'Discovery',name:'Discover needs',type:'cat',catalyst:['b4','b1'],
    desc:'This step lives entirely inside Discover Needs. Ask proactive, open-ended questions that reveal something genuinely new — not a checklist. Discovery should feel like a real conversation building toward a tailored solution.',
    trending:['No meaningful discovery — moved to pitch without asking questions','Did not uncover how the customer uses their services or devices','Missed discovery on one or more applicable products','Asked surface-level questions; did not dig for actual needs','Discovery sounded like a scripted survey','Questions were illogical or disconnected from the customer\'s responses']},
-  {id:4,section:'Pitch',name:'Be an ambassador — link the need',type:'cat',catalyst:['b5'],
+  {id:4,section:'Pitch',name:'Be an ambassador — link the need',type:'cat',catalyst:['b5','b3','b6'],
    desc:'Be an Ambassador is the heart of this step. The pitch should draw a clear line between what was discovered and what is being offered. The customer should understand not just what they\'re getting, but why it\'s the right fit for their household. COMPLIANCE REQUIREMENT: Broadband Labels must be referenced any time Internet or Mobile is being offered. This must happen between the Explore and Consult phases — ideally woven naturally into the pitch. Required language: "You can also see this information or information about our services at Xfinity.com/labels." This is a federal disclosure requirement and cannot be omitted on Internet or Mobile offers.',
    trending:['Skipped directly to pitch without completing discovery first','Never tied offer to a specific customer need','Pitch was generic — not personalized to this customer','Lacked confidence or enthusiasm when presenting the offer','Offered a product that didn\'t fit the situation','Product description was incomplete or missing key details','Product details presented were factually incorrect','Broadband Labels disclosure omitted on an Internet or Mobile offer','Broadband Labels referenced too late — should appear during or just before the pitch, not at close']},
   {id:5,section:'Close',name:'Assume the sale',type:'cat',catalyst:['b2','b5'],
@@ -1360,8 +1395,13 @@ function repairJSON(s){
   // 3. Missing commas between } and " on next line
   s=s.replace(/\}(\s*)"(?![\s,\]\}:])/g,'},$1"');
   // 4. Remove duplicate top-level keys (weak models repeat blocks like "productKnowledge" multiple times)
-  // JSON.parse keeps the last duplicate, but repeated blocks can cause truncation — strip earlier dupes
   s=s.replace(/,\s*"productKnowledge"\s*:\s*\{[^}]*\}\s*(?=,\s*"productKnowledge")/g,'');
+  // 5. Fix ) used instead of } — common qwen3 glitch
+  s=s.replace(/"\)\s*([,\]])/g,'"} $1');
+  s=s.replace(/"\)\s*$/gm,'"}');
+  // 6. Fix mixed quotes — single quote used where double quote expected (e.g. ...tablet?','priority" → ...tablet?","priority")
+  s=s.replace(/'([,}\]])/g,'"$1');
+  s=s.replace(/([,{\[:])\s*'/g,'$1"');
   return s;
 }
 
@@ -1502,9 +1542,9 @@ Respond ONLY with valid JSON — no explanation, no markdown fences, no commenta
   "suggestedCampaign": "Identify the campaign from these exact options based on transcript evidence — return the exact string or empty string if unclear:\n  Xfinity Mobile Add A Line — agent is calling an existing Xfinity Mobile customer to add a new phone line or wearable (Apple Watch etc.)\n  XM Likely — agent is calling an existing Xfinity Internet customer with no Xfinity Mobile, pitching a mobile line\n  Add XMC — agent is calling an existing Xfinity Mobile customer to sell Xfinity Mobile Care (device protection/insurance)\n  Nonsub BAU — agent is calling a non-subscriber (no current Xfinity service) selling services in this order: Internet first, then Mobile, then Xfinity Home / Xfinity Streamsaver, then Xfinity Home Phone",
   "executiveSummary": {
     "topPriority": "5-8 word headline naming the single most important thing this agent should work on next — must reference a specific behavior from THIS call, not a generic skill",
-    "summary": "2-3 sentences. MUST reference specific moments from the transcript. BAD: 'Agent could improve objection handling.' GOOD: 'When the customer said they needed to think about it, the agent moved on without probing — asking what specifically concerned them would have kept the door open.' Every sentence must cite something the agent actually said or did on this call. Write to a manager who will share this with the agent.",
-    "strengths": ["up to 2 phrases that quote or reference a specific moment — e.g. 'Used customer daughter mention to frame family plan' not 'Good rapport'"],
-    "opportunities": ["up to 2 phrases referencing specific missed moments — e.g. 'Never asked about current carrier spend during discovery' not 'Improve discovery'"],
+    "summary": "2-3 sentences. MUST reference specific moments from the transcript. BAD: 'Agent could improve objection handling.' GOOD: 'When the customer said they needed to think about it, the agent moved on without discovering — asking what specifically concerned them would have kept the door open.' Every sentence must cite something the agent actually said or did on this call. Write to a manager who will share this with the agent.",
+    "strengths": ["MINIMUM 2 items. Each is a plain text sentence explaining what worked through Catalyst behaviors, with (line X) references."],
+    "opportunities": ["MINIMUM 2 items. Each is a plain text sentence explaining a gap through Catalyst behaviors, with (line X) references."],
     "critical": ["only populate if there was a red flag or auto-fail — 1 phrase max, empty array otherwise"],
     "salesCoaching": [
       {
@@ -1588,6 +1628,10 @@ function buildLocalPrompt(transcript){
   const totalLines=txLines.length;
   const numberedTranscript=txLines.map((l,i)=>`[${i+1}] ${l}`).join('\n');
 
+  // ── Detect primary sale from the opening ──
+  const openingAgentLines=txLines.slice(0,60).filter(l=>/^Agent:/i.test(l)).map(l=>l.replace(/^Agent:\s*/i,'').trim());
+  const agendaLine=openingAgentLines.find(l=>/reason.*(call|calling)|calling.*(because|you)|eligible|we see that|we.re reaching out/i.test(l))||'';
+
   // ── Serialize scorecard data ──
   const stepsJSON=JSON.stringify(STEPS.map(s=>({id:s.id,name:s.name,type:s.type,catalyst:s.catalyst,trending:s.trending})));
   const complianceJSON=JSON.stringify(COMPLIANCE_ITEMS.map(c=>({id:c.id,name:c.name,desc:c.desc,na:c.na})));
@@ -1598,6 +1642,9 @@ function buildLocalPrompt(transcript){
 
 SCORING PHILOSOPHY:
 Grade each call in a vacuum — evaluate what worked for this specific customer on this specific call. There is no single formula. An agent who adapts to the customer and achieves the goal of each step effectively has demonstrated that behavior, even if the path looked different from a script. If the agent accomplished the goal of a step — even imperfectly — that is at minimum "pd". Reserve "dnd" ONLY for steps the agent completely skipped or failed to attempt at all.
+
+MULTI-SALE CALLS:
+The PRIMARY SALE is the product the agent states in the agenda (first 60 lines). If the agent opens with "we are calling because you can add a mobile line for $20," then the mobile line is the primary sale — NOT a tablet or other product pitched later. Score steps, catalyst behaviors, and executive summary against the PRIMARY sale first. If a secondary upsell happens after the primary sale closes, discuss it briefly in the executive summary but it must NOT overshadow the primary sale evaluation. The suggestedOutcome reflects the primary sale. Check the PRIMARY SALE CONTEXT section before the transcript for what the agent stated as the reason for calling.
 
 SCORING VALUES — strings only, never numbers:
 - "cat" type steps: "ed" (effectively demonstrated), "pd" (partially demonstrated), "dnd" (did not demonstrate — behavior was ABSENT), "na" (not applicable)
@@ -1644,7 +1691,7 @@ STEP DESCRIPTIONS — what to evaluate and WHICH LINE NUMBERS contain the eviden
 3. Discover needs [MIDDLE of call, before pitch] — the AGENT asks proactive questions about Users, Usage, Devices, Cost. Customer questions do NOT count. Pick 2-5 line numbers showing the agent's discovery questions.
 4. Link the need [AFTER DISCOVERY] — pitch tied to discovered needs. Broadband labels required for Internet/Mobile. Pick 2-4 line numbers.
 5. Assume the sale [AFTER PITCH] — confidently ask customer to commit. Pick 1-2 line numbers.
-6. Understand the objection [IF CUSTOMER OBJECTS] — acknowledge and probe. "na" if no objection. Pick 1-3 line numbers.
+6. Understand the objection [IF CUSTOMER OBJECTS] — acknowledge and discover the real concern. "na" if no objection. Pick 1-3 line numbers.
 7. Overcome the objection [IF CUSTOMER OBJECTS] — address directly, restate value. "na" if no objection. Pick 1-3 line numbers.
 8. Re-close [AFTER OBJECTION] — ask for sale again. "na" if no objection. Pick 1-2 line numbers.
 9. Reaffirm the sale [AFTER ACCEPTANCE] — confirm good choice. "na" if no sale. Pick 1-2 line numbers.
@@ -1665,9 +1712,11 @@ You MUST score ALL 11 steps, ALL 6 red flags, ALL 11 compliance items, and ALL 6
 EVIDENCE FORMAT:
 Instead of quoting the transcript, return LINE NUMBERS. Each line in the transcript below is numbered [1], [2], etc. For each step, return "evidenceLines" as an array of line numbers where the evidence is found. We will extract the actual text from these line numbers — you do NOT need to reproduce any transcript text.
 
-=== NUMBERED TRANSCRIPT (${totalLines} lines) ===
+=== TRANSCRIPT (${totalLines} lines) ===
 ${numberedTranscript}
 === END TRANSCRIPT ===
+
+${agendaLine?'IMPORTANT - PRIMARY SALE: The agent opened this call with: "'+agendaLine.slice(0,150)+'". This is the primary product. Your executive summary, strengths, opportunities, and step scores MUST primarily evaluate THIS sale. Any secondary product pitched later in the call is additional context only.':''}
 
 Respond with valid JSON. You may think first in <think> tags — only the JSON after </think> will be used. Start JSON with {
 
@@ -1685,6 +1734,7 @@ JSON structure:
     {"id":1, "score":"ed|pd|dnd|na", "trending":[], "notes":"coaching note", "evidenceLines":[2,3]},
     {"id":2, "score":"...", "trending":[], "notes":"...", "evidenceLines":[8,9]},
     {"id":3, "score":"...", "notes":"...", "evidenceLines":[25,30,35]},
+    NOTE: evidenceLines must be 1-5 line numbers only. Never more than 5.
     {"id":4, "notes":"...", "evidenceLines":[...]}, {"id":5, ...}, {"id":6, ...},
     {"id":7, ...}, {"id":8, ...}, {"id":9, ...}, {"id":10, ...}, {"id":11, ...}
   ],
@@ -1699,19 +1749,28 @@ JSON structure:
     {"id":"c7",...}, {"id":"c8",...}, {"id":"c9",...}, {"id":"c10",...}, {"id":"c11",...}
   ],
   "catalystBehaviors": [
-    {"id":"b1","score":"ed|pd|dnd","notes":"..."}, {"id":"b2","score":"...","notes":"..."},
-    {"id":"b3",...}, {"id":"b4",...}, {"id":"b5",...}, {"id":"b6",...}
+    {"id":"b1","score":"ed|pd|dnd","notes":"2-3 sentences: what the agent did (or didn't do) for this behavior with specific transcript references (line X). This is the coaching explanation, not just a label."},
+    {"id":"b2","score":"...","notes":"..."}, {"id":"b3",...}, {"id":"b4",...}, {"id":"b5",...}, {"id":"b6",...}
   ],
   "productFlags": [],
   "suggestedOutcome": "Successful sale | No sale – [reason]",
   "suggestedCampaign": "",
+  "primarySale": {
+    "product": "Name the product from the AGENDA (first 60 lines). e.g. 'Xfinity Mobile line - Samsung Galaxy A17 5G'. This is what the agent called about.",
+    "outcome": "Did the customer approve/confirm an order for this product? 'Sold' if yes, 'Not sold - reason' if no. Look for order confirmation language in the transcript.",
+    "narrative": "How the agent opened, discovered needs, pitched, and closed THIS product (not a different one). Reference (line X). Include how the order was processed if sold."
+  },
+  "upsell": {
+    "product": "If agent pitched a DIFFERENT product AFTER the primary sale, name it. 'None' if no upsell.",
+    "outcome": "'Sold', 'Not sold - reason', or 'N/A'",
+    "narrative": "Brief description of the upsell attempt and outcome. 'N/A' if none."
+  },
   "executiveSummary": {
-    "topPriority": "5-8 words",
-    "summary": "2-3 sentences with transcript quotes",
-    "strengths": ["specific moment"],
-    "opportunities": ["specific gap"],
+    "topPriority": "5-8 word headline for the #1 coaching focus",
+    "strengths": ["MINIMUM 2 items. At least 1 MUST be from the primary sale (opening/discovery/pitch/close). Each references (line X) and explains WHY it worked through Catalyst behaviors."],
+    "opportunities": ["MINIMUM 2 items. At least 1 MUST be from the primary sale flow. Each references (line X) and explains what SHOULD have happened through Catalyst behaviors."],
     "critical": [],
-    "salesCoaching": [{"compassPhase":"phase","focus":"label","what":"guidance","evidenceLines":[45,46],"example":"script to say","priority":"high|medium"}],
+    "salesCoaching": [{"compassPhase":"phase","focus":"label","what":"specific guidance referencing this call","evidenceLines":[45,46],"example":"script the agent could say next time","priority":"high|medium"}],
     "complianceCoaching": []
   }
 }`;
@@ -1719,11 +1778,17 @@ JSON structure:
 
 // ─── Analyze transcript ───────────────────────────────────────────────────────
 async function analyzeTranscript(){
+  const analyzeBtn=document.getElementById('analyze-btn');
+  if(analyzeBtn.disabled) return; // Already running
+  analyzeBtn.disabled=true;
+  analyzeBtn.style.opacity='0.5';
+  analyzeBtn.style.pointerEvents='none';
+
   const transcript=(document.getElementById('ai-transcript').value||'').trim();
   const statusEl=document.getElementById('ai-status');
   const progress=document.getElementById('ai-progress');
 
-  if(!transcript){statusEl.style.color='var(--red-tx)';statusEl.textContent='Please paste a transcript first.';return;}
+  if(!transcript){analyzeBtn.disabled=false;analyzeBtn.style.opacity='';analyzeBtn.style.pointerEvents='';statusEl.style.color='var(--red-tx)';statusEl.textContent='Please paste a transcript first.';return;}
 
   statusEl.style.color='var(--text2)';
   progress.classList.add('active');
@@ -1750,6 +1815,9 @@ async function analyzeTranscript(){
     const totalSec=Math.round((Date.now()-startTime)/1000);
     if(elapsedEl) elapsedEl.textContent=success?`${totalSec}s`:'';
     setTimeout(()=>progress.classList.remove('active'),success?800:0);
+    // Re-enable the analyze button
+    const ab=document.getElementById('analyze-btn');
+    if(ab){ab.disabled=false;ab.style.opacity='';ab.style.pointerEvents='';}
   }
 
   // Normalize speaker labels before scoring — replace SPEAKER_XX with Agent/Customer
@@ -1770,6 +1838,13 @@ async function analyzeTranscript(){
       // Write normalized transcript back to textarea so evidence validation and transcript panel use Agent/Customer labels
       document.getElementById('ai-transcript').value=normalizedTranscript;
       console.log('Speaker normalization applied — SPEAKER_XX labels replaced with Agent/Customer');
+    } else {
+      // Speaker detection failed — do NOT proceed with raw SPEAKER_XX labels
+      console.error('Speaker detection failed — cannot identify Agent vs Customer');
+      stopProgress(false);
+      statusEl.style.color='var(--red-tx)';
+      statusEl.textContent='Speaker detection failed — could not identify Agent vs Customer. Check that your speaker detection model is running and try again.';
+      return;
     }
   }
 
@@ -1796,8 +1871,8 @@ async function analyzeTranscript(){
     } else {
       // Ollama — OpenAI-compatible endpoint
       const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
-      const model=(document.getElementById('ollama-model').value||'llama3.2').trim();
-      if(!model){stopProgress(false);statusEl.style.color='var(--red-tx)';statusEl.textContent='Please enter a model name (e.g. llama3.2).';return;}
+      const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
+      if(!model){stopProgress(false);statusEl.style.color='var(--red-tx)';statusEl.textContent='Please enter a scoring model name in AI Settings.';return;}
       console.log('Scoring using model:', model);
       const res=await fetch(`${base}/v1/chat/completions`,{
         method:'POST',
@@ -1971,6 +2046,7 @@ function applyResult(result){
         const cb=document.getElementById(`tr-${s.id}-${idx}`);
         if(cb){cb.checked=true;if(!trendChecked[s.id].includes(idx)) trendChecked[s.id].push(idx);}
       });
+      updateTrendCount(s.id);
     }
     if(s.notes){notes[s.id]=s.notes;const ta=document.getElementById(`notes-${s.id}`);if(ta) ta.value=s.notes;}
     // AI Insight — use notes as insight (insight field dropped from model output)
@@ -2019,8 +2095,12 @@ function applyResult(result){
     if(!label) return;
     el.className=`cb-rating ${b.score}`;
     el.textContent=label;
-    // Store note if present
-    if(b.notes) el.title=b.notes;
+    // Render notes visibly in the expanded catalyst card
+    const notesEl=document.getElementById(`cb-notes-${b.id}`);
+    if(notesEl&&b.notes){
+      notesEl.textContent=b.notes;
+      notesEl.className='cb-notes visible';
+    }
   });
 
   (result.redFlags||[]).forEach(rf=>{
@@ -2108,14 +2188,90 @@ function applyResult(result){
     const priority=document.getElementById('exec-priority');
     const text=document.getElementById('exec-text');
     const pills=document.getElementById('exec-pills');
-    if(panel&&priority&&text&&pills){
+    if(panel&&priority&&text){
+      // Product info bar - handle both grouped and flat structures
+      const ps=result.primarySale||{};
+      const us=result.upsell||{};
+      const pp=ps.product||result.primaryProduct||'';
+      const ppo=ps.outcome||result.primaryProductOutcome||'';
+      const sp=us.product||result.secondaryProduct||'';
+      const spo=us.outcome||result.secondaryProductOutcome||'';
+      if(pp){
+        let prodHtml=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;">`;
+        const ppoColor=ppo.toLowerCase().startsWith('sold')?'var(--green-tx)':'var(--amber-tx)';
+        const ppoBg=ppo.toLowerCase().startsWith('sold')?'var(--green-bg)':'var(--amber-bg)';
+        prodHtml+=`<div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--text2);">Primary:</span><span style="font-weight:600;color:var(--text);">${pp}</span><span style="padding:2px 8px;border-radius:12px;background:${ppoBg};color:${ppoColor};font-weight:600;font-size:11px;">${ppo}</span></div>`;
+        if(sp&&sp!=='None'&&sp!=='N/A'){
+          const spoColor=spo.toLowerCase().startsWith('sold')?'var(--green-tx)':spo==='N/A'?'var(--text3)':'var(--amber-tx)';
+          const spoBg=spo.toLowerCase().startsWith('sold')?'var(--green-bg)':spo==='N/A'?'var(--bg3)':'var(--amber-bg)';
+          prodHtml+=`<div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--text3);">Upsell:</span><span style="color:var(--text2);">${sp}</span><span style="padding:2px 8px;border-radius:12px;background:${spoBg};color:${spoColor};font-weight:600;font-size:11px;">${spo}</span></div>`;
+        }
+        prodHtml+=`</div>`;
+        priority.insertAdjacentHTML('beforebegin',prodHtml);
+      }
+      // Helper: convert text with evidence line references into clickable links
+      const txLinesExec=(document.getElementById('ai-transcript')?.value||'').split(/\r?\n/);
+      function linkifyEvidence(text){
+        if(!text) return '';
+        // Replace "(line X)", "(lines X-Y)", "(line X-Y)" with clickable transcript links
+        return text.replace(/\(line(?:s)?\s+(\d+)(?:\s*[-–]\s*(\d+))?\)/gi, (match, start, end) => {
+          const n=Number(start);
+          const line=txLinesExec[n-1]||'';
+          const cleaned=line.replace(/^(Agent|Customer):\s*/i,'').trim();
+          const snippet=cleaned.slice(0,80);
+          if(!snippet) return match;
+          const display='"'+snippet+(cleaned.length>80?'...':'')+'"';
+          const escaped=cleaned.replace(/'/g,"\\'").slice(0,100);
+          return `<span style="color:var(--teal-tx);cursor:pointer;border-bottom:1.5px solid var(--teal-bd);font-weight:500;" onclick="scrollToTranscriptEvidence('${escaped}')" title="Line ${start}">${display}</span>`;
+        });
+      }
+
       priority.textContent=es.topPriority||es.top_priority||es.priority||'';
-      text.textContent=es.summary||es.overview||es.analysis||es.description||'';
-      let pillHtml='';
-      (es.strengths||[]).forEach(s=>{pillHtml+=`<span class="exec-pill strength">✓ ${s}</span>`;});
-      (es.opportunities||[]).forEach(s=>{pillHtml+=`<span class="exec-pill opportunity">↑ ${s}</span>`;});
-      (es.critical||[]).forEach(s=>{pillHtml+=`<span class="exec-pill critical">⛔ ${s}</span>`;});
-      pills.innerHTML=pillHtml;
+      // Build combined summary from primary + secondary with linkified evidence
+      const pSale=result.primarySale||{};
+      const uSale=result.upsell||{};
+      const primarySum=pSale.narrative||es.primarySaleSummary||es.summary||es.overview||es.analysis||es.description||'';
+      const secondarySum=uSale.narrative||es.secondarySummary||'';
+      let summaryHtml=linkifyEvidence(primarySum);
+      if(secondarySum&&secondarySum!=='N/A'&&secondarySum.length>5){
+        summaryHtml+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'+linkifyEvidence(secondarySum)+'</div>';
+      }
+      text.innerHTML=summaryHtml;
+
+      // Strengths - plain text narrative
+      const strengthsList=document.getElementById('exec-strengths-list');
+      if(strengthsList){
+        const items=es.strengths||[];
+        if(items.length){
+          strengthsList.innerHTML=items.map(s=>`<p style="margin:0 0 8px 0;">${linkifyEvidence(s)}</p>`).join('');
+        } else {
+          strengthsList.innerHTML='<p style="margin:0;color:var(--text3);font-style:italic;">No specific strengths identified</p>';
+        }
+      }
+
+      // Opportunities - plain text narrative
+      const oppsList=document.getElementById('exec-opps-list');
+      if(oppsList){
+        const items=es.opportunities||[];
+        if(items.length){
+          oppsList.innerHTML=items.map(s=>`<p style="margin:0 0 8px 0;">${linkifyEvidence(s)}</p>`).join('');
+        } else {
+          oppsList.innerHTML='<p style="margin:0;color:var(--text3);font-style:italic;">No specific opportunities identified</p>';
+        }
+      }
+
+      // Critical (only if present)
+      const critBox=document.getElementById('exec-critical-box');
+      const critList=document.getElementById('exec-critical-list');
+      if(critBox&&critList){
+        const crits=es.critical||[];
+        if(crits.length){
+          critBox.style.display='block';
+          critList.innerHTML=crits.map(s=>`<p style="margin:0 0 6px 0;">${linkifyEvidence(s)}</p>`).join('');
+        } else {
+          critBox.style.display='none';
+        }
+      }
 
       // Coaching recommendations — split into sales and compliance sections
       // Backward compat: if model returns old coachingRecommendations, use it as salesCoaching
@@ -2160,36 +2316,34 @@ function applyResult(result){
       console.log('Normalized complianceRecs:', JSON.stringify(complianceRecs));
       let coachHtml='';
 
-      function renderCoachingCards(recs){
-        let html='';
+      function renderCoachingCards(recs, label){
+        let html=`<div class="coaching-section">
+          <div class="coaching-section-label">${label}</div>
+          <div class="coaching-cards">`;
         recs.forEach(r=>{
           const p=(r.priority||'medium').toLowerCase();
           const badgeLabel=p==='high'?'High priority':'Medium priority';
           const isObjHandling=(r.focus||'').toLowerCase().includes('objection');
+          const phase=r.compassPhase?`<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:12px;background:var(--bg3);color:var(--text2);margin-left:6px;">${r.compassPhase}</span>`:'';
           html+=`<div class="coaching-card priority-${p}">
             <div class="coaching-card-hdr">
-              <span class="coaching-card-focus">${r.focus||''}${isObjHandling?' <span class="coaching-framework-tag">Understand → Acknowledge → Reinforce → Assume</span>':''}</span>
+              <span class="coaching-card-focus">${r.focus||''}${phase}${isObjHandling?' <span class="coaching-framework-tag">Understand \u2192 Acknowledge \u2192 Reinforce \u2192 Assume</span>':''}</span>
               <span class="coaching-card-badge ${p}">${badgeLabel}</span>
             </div>
             <div class="coaching-card-what">${r.what||''}</div>
-            ${r.transcriptEvidence?`<div class="coaching-card-evidence-label">What happened on this call</div>
-            <div class="coaching-card-evidence" style="cursor:pointer;" onclick="scrollToTranscriptEvidence(this.textContent)" title="Click to find in transcript">${r.transcriptEvidence}</div>`:''}
-            ${r.example?`<div class="coaching-card-example-label">Try saying</div>
-            <div class="coaching-card-example">"${r.example}"</div>`:''}
+            ${r.transcriptEvidence?`<div style="font-size:12px;color:var(--text2);background:var(--bg2);border-radius:var(--r-sm);padding:8px 10px;margin:6px 0;line-height:1.5;border-left:2px solid var(--teal-bd);cursor:pointer;transition:background .15s ease;" onclick="scrollToTranscriptEvidence(this.textContent)" title="Click to find in transcript">${r.transcriptEvidence}</div>`:''}
+            ${r.example?`<div style="font-size:12px;color:var(--text);background:var(--bg2);border-radius:var(--r-sm);padding:8px 10px;margin-top:6px;line-height:1.5;border-left:2px solid var(--green-bd);font-style:italic;">"${r.example}"</div>`:''}
           </div>`;
         });
+        html+=`</div></div>`;
         return html;
       }
 
       if(salesRecs.length){
-        coachHtml+=`<div class="coaching-section">
-          <div class="coaching-section-label">Sales coaching</div>
-          <div class="coaching-cards">${renderCoachingCards(salesRecs)}</div></div>`;
+        coachHtml+=renderCoachingCards(salesRecs, 'Sales Coaching');
       }
       if(complianceRecs.length){
-        coachHtml+=`<div class="coaching-section" style="margin-top:12px;">
-          <div class="coaching-section-label">Compliance coaching</div>
-          <div class="coaching-cards">${renderCoachingCards(complianceRecs)}</div></div>`;
+        coachHtml+=renderCoachingCards(complianceRecs, 'Compliance Coaching');
       }
 
       // Append to exec body
@@ -2328,27 +2482,29 @@ Return ONLY valid JSON, no explanation, no markdown:
       const model=spkModel||scoringModel;
       if(!model) return null;
       console.log('Speaker detection using model:', model);
-      const res=await fetch(`${base}/v1/chat/completions`,{
+      // Use Ollama native /api/chat endpoint — avoids qwen3's reasoning/content split
+      const spkBody={
+        model,
+        messages:[
+          {role:'system',content:'Respond with only valid JSON. No thinking, no markdown, no explanation.'},
+          {role:'user',content:prompt}
+        ],
+        stream:false,
+        options:{temperature:0,num_ctx:32768,num_predict:2048}
+      };
+      console.log('Speaker detection prompt size:', prompt.length, 'chars');
+      const res=await fetch(`${base}/api/chat`,{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model,
-          messages:[
-            {role:'system',content:'/no_think\nRespond with only valid JSON. No thinking, no markdown.'},
-            {role:'user',content:'/no_think\n'+prompt}
-          ],
-          max_tokens:500,
-          stream:false,
-          temperature:0,
-          options:{num_ctx:32768,num_predict:500}
-        })
+        body:JSON.stringify(spkBody)
       });
-      if(!res.ok) return null;
+      if(!res.ok){
+        console.error('Speaker detection HTTP error:', res.status);
+        return null;
+      }
       const d=await res.json();
-      const msg=d?.choices?.[0]?.message||{};
-      // qwen3 on OpenAI endpoint puts output in 'reasoning' when thinking is enabled, 'content' when not
-      raw=msg.content||msg.reasoning||'';
-      console.log('Speaker detection raw response length:', raw.length, 'content:', (msg.content||'').length, 'reasoning:', (msg.reasoning||'').length);
+      raw=d?.message?.content||'';
+      console.log('Speaker detection raw response length:', raw.length, 'done_reason:', d.done_reason, 'preview:', raw.slice(0,300));
     }
 
     let clean=stripToJSON(raw);
@@ -2645,12 +2801,20 @@ const STEP_HINTS={
   11:'Full order recap: products, pricing, promos, roll-to rates, install, next steps.'
 };
 function renderBody(){
+  // Pre-compute all catalyst behaviors per section
+  const sectionCatalysts={};
+  STEPS.forEach(s=>{
+    if(!sectionCatalysts[s.section]) sectionCatalysts[s.section]=new Set();
+    (s.catalyst||[]).forEach(cid=>sectionCatalysts[s.section].add(cid));
+  });
+
   let html='',lastSec='';
   STEPS.forEach(s=>{
     if(s.section!==lastSec){
       if(lastSec) html+='</div>';
-      const catTags=[...new Set(s.catalyst)].map(cid=>catTagHTML(cid)).join(' ');
-      html+=`<div class="scorecard"><div class="section-hdr"><span>${s.section}</span><span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">${catTags}</span></div>`;
+      const allCats=[...sectionCatalysts[s.section]||[]];
+      const catTags=allCats.map(cid=>catTagHTML(cid)).join(' ');
+      html+=`<div class="scorecard"><div class="section-hdr"><span>${s.section}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">${catTags}</span></div>`;
       lastSec=s.section;
     }
     const opts=s.type==='yn'?['yes','no','na']:['ed','pd','dnd','na'];
@@ -2680,8 +2844,12 @@ function renderBody(){
             <div class="ev-text ev-empty" id="ev-text-${s.id}" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 12px;background:var(--bg2);border-radius:var(--r-md);border-left:2px solid var(--purple-bd);">Analyze a transcript first.</div>
           </div>
         </div>
-        <div class="trend-label">Coaching indicators</div>
-        <div class="trend-grid">${chips}</div>
+        <div class="trend-toggle" id="trend-toggle-${s.id}" onclick="toggleTrends(${s.id})" style="font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;padding:4px 0;user-select:none;display:flex;align-items:center;gap:5px;">
+          <span style="font-size:9px;" id="trend-arrow-${s.id}">\u25B6</span>
+          <span>Coaching indicators</span>
+          <span id="trend-count-${s.id}" style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;background:var(--bg3);color:var(--text3);display:none;">0</span>
+        </div>
+        <div class="trend-grid" id="trend-grid-${s.id}" style="display:none;">${chips}</div>
         <textarea class="notes-area" id="notes-${s.id}" placeholder="Notes…" oninput="saveNote(${s.id},this.value)" rows="2"></textarea>
       </div>
       <div class="step-tray" id="tray-${s.id}">
@@ -2723,7 +2891,16 @@ function renderBody(){
 
   let cg='';
   CATALYST.forEach(c=>{
-    cg+=`<div class="cb"><div class="cb-num">${c.id.toUpperCase()}</div><div class="cb-name">${c.name}</div><span class="cb-rating none" id="cb-${c.id}">Not scored</span></div>`;
+    // Map which steps link to this behavior
+    const linkedSteps=STEPS.filter(s=>(s.catalyst||[]).includes(c.id)).map(s=>'Step '+s.id).join(', ');
+    cg+=`<div class="cb">
+      <div class="cb-top">
+        <div><span class="cb-num">${c.id.toUpperCase()}</span> <span class="cb-name">${c.name}</span></div>
+        <span class="cb-rating none" id="cb-${c.id}">Not scored</span>
+      </div>
+      <div class="cb-intent">${c.intent}</div>
+      <div class="cb-notes" id="cb-notes-${c.id}"></div>
+    </div>`;
   });
   document.getElementById('catalyst-grid').innerHTML=cg;
 }
@@ -2823,6 +3000,13 @@ function toggleEvidence(id){
   const isOpen=panel.classList.toggle('open');
   btn.classList.toggle('open',isOpen);
 }
+function toggleStepsSection(){
+  const body=document.getElementById('scorecard-body');
+  const chev=document.getElementById('steps-chevron');
+  if(!body) return;
+  body.classList.toggle('collapsed');
+  if(chev) chev.textContent=body.classList.contains('collapsed')?'\u25B6':'\u25BC';
+}
 function toggleTray(id){
   const tray=document.getElementById(`tray-${id}`);
   const chev=document.getElementById(`chev-${id}`);
@@ -2830,7 +3014,31 @@ function toggleTray(id){
   tray.classList.toggle('open');
   if(chev) chev.classList.toggle('open',tray.classList.contains('open'));
 }
-function onTrend(id,idx,chk){if(!trendChecked[id]) trendChecked[id]=[];if(chk){if(!trendChecked[id].includes(idx)) trendChecked[id].push(idx);}else trendChecked[id]=trendChecked[id].filter(i=>i!==idx);}
+function toggleTrends(id){
+  const grid=document.getElementById('trend-grid-'+id);
+  const arrow=document.getElementById('trend-arrow-'+id);
+  if(!grid) return;
+  const showing=grid.style.display!=='none';
+  grid.style.display=showing?'none':'grid';
+  if(arrow) arrow.textContent=showing?'\u25B6':'\u25BC';
+}
+function updateTrendCount(id){
+  const count=(trendChecked[id]||[]).length;
+  const badge=document.getElementById('trend-count-'+id);
+  if(badge){
+    badge.textContent=count;
+    badge.style.display=count>0?'inline-block':'none';
+    if(count>0){badge.style.background='var(--red-bg)';badge.style.color='var(--red-tx)';}
+  }
+  // Auto-expand if any are checked
+  if(count>0){
+    const grid=document.getElementById('trend-grid-'+id);
+    const arrow=document.getElementById('trend-arrow-'+id);
+    if(grid) grid.style.display='grid';
+    if(arrow) arrow.textContent='\u25BC';
+  }
+}
+function onTrend(id,idx,chk){if(!trendChecked[id]) trendChecked[id]=[];if(chk){if(!trendChecked[id].includes(idx)) trendChecked[id].push(idx);}else trendChecked[id]=trendChecked[id].filter(i=>i!==idx);updateTrendCount(id);}
 function onRfSub(id,idx,chk){if(!rfSubs[id]) rfSubs[id]=[];if(chk){if(!rfSubs[id].includes(idx)) rfSubs[id].push(idx);}else rfSubs[id]=rfSubs[id].filter(i=>i!==idx);const has=rfSubs[id].length>0;rfFlags[id]=has;const b=document.getElementById(`${id}-btn`);b.className='rf-flag-btn'+(has?' active':'');b.textContent=has?'⛔ Flagged':'Flag';updateSummary();}
 function saveNote(id,v){notes[id]=v;}
 
@@ -2865,7 +3073,10 @@ function clearAll(){
   if(!confirm('Clear all scores, flags, and notes?')) return;
   [scores,trendChecked,notes,rfFlags,rfSubs,stepEvidence,complianceScores].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
   const tpRefBody=document.getElementById('tp-ref-body');if(tpRefBody) tpRefBody.innerHTML='<div class="tp-empty" id="tp-ref-empty">Paste a transcript and run analysis to see the annotated call flow here.</div>';
-  CATALYST.forEach(c=>{const el=document.getElementById(`cb-${c.id}`);if(el){el.className='cb-rating none';el.textContent='Not scored';el.title='';}}); speakerSeedMap=null;
+  CATALYST.forEach(c=>{
+    const el=document.getElementById(`cb-${c.id}`);if(el){el.className='cb-rating none';el.textContent='Not scored';}
+    const ne=document.getElementById(`cb-notes-${c.id}`);if(ne){ne.textContent='';ne.className='cb-notes';}
+  }); speakerSeedMap=null;
   document.querySelectorAll('.sbtn').forEach(b=>b.className='sbtn');
   document.querySelectorAll('.score-badge').forEach(b=>b.remove());
   document.querySelectorAll('.chip input').forEach(c=>c.checked=false);
@@ -2994,7 +3205,7 @@ async function runBulk(){
     const key=(document.getElementById('ai-api-key').value||'').trim();
     if(!key){alert('Please enter your Anthropic API key in the AI panel above.');return;}
   } else {
-    const model=(document.getElementById('ollama-model').value||'').trim();
+    const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
     if(!model){alert('Please enter an Ollama model name in the AI panel above.');return;}
   }
 
@@ -3186,7 +3397,7 @@ async function callAI(transcript, attempt=1){
     }
   } else {
     const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
-    const model=(document.getElementById('ollama-model').value||'').trim();
+    const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
     try{
@@ -3627,11 +3838,25 @@ function buildIndividualCoachingHTML(p){
     rfHtml+='</div>';
   }
 
-  // Exec summary pills
-  var pillsHtml='';
-  (es.strengths||[]).forEach(function(s){ pillsHtml+='<span style="font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:#eaf3de;color:#3b6d11;margin:2px;display:inline-block;">✓ '+esc(s)+'</span>'; });
-  (es.opportunities||[]).forEach(function(s){ pillsHtml+='<span style="font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:#faeeda;color:#854f0b;margin:2px;display:inline-block;">↑ '+esc(s)+'</span>'; });
-  (es.critical||[]).forEach(function(s){ pillsHtml+='<span style="font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:#fcebeb;color:#791f1f;margin:2px;display:inline-block;">⛔ '+esc(s)+'</span>'; });
+  // Exec summary sections - plain text narrative format
+  var strengthsHtml='';
+  if((es.strengths||[]).length){
+    strengthsHtml+='<div style="margin-top:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#3b6d11;margin-bottom:6px;">What Worked</div>';
+    (es.strengths||[]).forEach(function(s){ strengthsHtml+='<p style="font-size:13px;color:#5f5e5a;line-height:1.65;margin:0 0 8px 0;">'+esc(s)+'</p>'; });
+    strengthsHtml+='</div>';
+  }
+  var oppsHtml='';
+  if((es.opportunities||[]).length){
+    oppsHtml+='<div style="margin-top:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#854f0b;margin-bottom:6px;">Areas of Opportunity</div>';
+    (es.opportunities||[]).forEach(function(s){ oppsHtml+='<p style="font-size:13px;color:#5f5e5a;line-height:1.65;margin:0 0 8px 0;">'+esc(s)+'</p>'; });
+    oppsHtml+='</div>';
+  }
+  var critHtml='';
+  if((es.critical||[]).length){
+    critHtml+='<div style="margin-top:12px;background:#fcebeb;border:1px solid #a32d2d;border-radius:8px;padding:10px 14px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#791f1f;margin-bottom:4px;">Critical</div>';
+    (es.critical||[]).forEach(function(s){ critHtml+='<p style="font-size:13px;color:#791f1f;font-weight:500;margin:0 0 4px 0;">'+esc(s)+'</p>'; });
+    critHtml+='</div>';
+  }
 
   // Coaching recommendation cards
   var recsHtml='';
@@ -3685,10 +3910,16 @@ function buildIndividualCoachingHTML(p){
   out.push('<div style="display:grid;grid-template-columns:repeat(3,1fr);">'+cgRows.join('')+'</div></div>');
   if(es.topPriority){
     out.push('<div style="background:white;border:1.5px solid #0f6e56;border-radius:12px;padding:18px 20px;margin-bottom:14px;">');
-    out.push('<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#085041;margin-bottom:8px;">Executive Summary — Top Coaching Priority</div>');
-    out.push('<div style="font-size:16px;font-weight:600;color:#1a1a18;margin-bottom:8px;">'+esc(es.topPriority)+'</div>');
-    out.push('<div style="font-size:13px;color:#5f5e5a;line-height:1.65;margin-bottom:12px;">'+esc(es.summary||'')+'</div>');
-    out.push('<div>'+pillsHtml+'</div></div>');
+    out.push('<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#085041;margin-bottom:8px;">Executive Summary</div>');
+    out.push('<div style="font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e5e3df;">'+esc(es.topPriority)+'</div>');
+    var bulkSum=es.primarySaleSummary||es.summary||'';
+    var bulkSec=es.secondarySummary||'';
+    out.push('<div style="font-size:13px;color:#5f5e5a;line-height:1.65;margin-bottom:4px;">'+esc(bulkSum)+'</div>');
+    if(bulkSec&&bulkSec!=='N/A'&&bulkSec.length>5) out.push('<div style="font-size:13px;color:#5f5e5a;line-height:1.65;margin-bottom:4px;padding-top:8px;border-top:1px solid #eee;">'+esc(bulkSec)+'</div>');
+    out.push(strengthsHtml);
+    out.push(oppsHtml);
+    out.push(critHtml);
+    out.push('</div>');
   }
   if(recsHtml){
     out.push('<div style="background:white;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:18px 20px;margin-bottom:14px;">');

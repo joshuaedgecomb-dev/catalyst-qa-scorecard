@@ -9,7 +9,7 @@ const DC = {
   1: { p: '6366F1', l: 'EEF2FF', a: '818CF8' },
   2: { p: '8B5CF6', l: 'F5F3FF', a: 'A78BFA' },
   3: { p: '0891B2', l: 'ECFEFF', a: '22D3EE' },
-  4: { p: 'DC2626', l: 'FEF2F2', a: 'F87171' },
+  4: { p: 'E67E22', l: 'FFF7ED', a: 'F59E0B' },
   5: { p: '059669', l: 'F0FDF4', a: '34D399' },
 };
 
@@ -307,6 +307,6 @@ s.addText('1. Recognition: Call out agents who showed most improvement. Be speci
 tipBox(s, 'Post-Bootcamp: Use the Catalyst QA Scorecard to track behaviors weekly. Share in team huddles. Celebrate ED scores. Coach DND patterns.', 7.0, 0.4);
 ft(s);
 
-pres.writeFile({ fileName: 'C:/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/Catalyst_Bootcamp_Facilitator_Guide.pptx' })
+pres.writeFile({ fileName: 'C:/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/bootcamp/Catalyst_Bootcamp_Facilitator_Guide.pptx' })
   .then(() => console.log('Facilitator guide saved.'))
   .catch(e => console.error('Error:', e));
