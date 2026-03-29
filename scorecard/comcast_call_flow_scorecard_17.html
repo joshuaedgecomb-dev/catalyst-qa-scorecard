@@ -3838,8 +3838,12 @@ function buildBulkPayload(aiResult,meta){
     },
     summary:{scored:(aiResult.steps||[]).filter(s=>s.score).length,autoFail:hasAF,
       catalystED:edCount,catalystSummary:`${edCount}/6 Effectively Demonstrated`},
-    catalystBehaviors:catalystRollup,steps:stepData,redFlags:rfData,
+    catalystBehaviors:aiResult.catalystBehaviors||catalystRollup,
+    steps:stepData,redFlags:rfData,
     compliance:(aiResult.compliance||[]).map(ci=>{const item=COMPLIANCE_ITEMS.find(c=>c.id===ci.id);return{id:ci.id,name:item?item.name:ci.id,score:ci.score||'',notes:ci.notes||''};}),
+    discoveryPillars:aiResult.discoveryPillars||{},
+    primarySale:aiResult.primarySale||{},
+    upsell:aiResult.upsell||{},
     executiveSummary:aiResult.executiveSummary||null
   };
 }
