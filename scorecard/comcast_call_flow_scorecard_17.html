@@ -3862,8 +3862,12 @@ function postProcessAIResult(result, transcript){
     // Clean lazy notes (discovery-related on non-discovery behaviors)
     if(b.notes&&b.id!=='b4'&&/no discovery|discovery.*absent|no.*questions.*asked/i.test(b.notes)) b.notes='';
 
-    // Score corrections
-    if(b.id==='b4'&&!hasDiscovery&&(b.score==='ed'||b.score==='pd')) b.score='dnd';
+    // Score corrections based on discovery pillar count
+    // 0-1 pillars = DND, 2 pillars = PD, 3 pillars = PD, 4 pillars = ED eligible
+    if(b.id==='b4'){
+      if(pillarsAsked<=1&&(b.score==='ed'||b.score==='pd')) b.score='dnd';
+      else if(pillarsAsked<=3&&b.score==='ed') b.score='pd';
+    }
     var b4=(result.catalystBehaviors||[]).find(function(x){return x.id==='b4';});
     if(b.id==='b5'&&b4&&(b4.score==='dnd'||b4.score==='pd')&&b.score==='ed') b.score='pd';
     if(b.id==='b3'&&hasProcessFriction&&b.score==='ed') b.score='pd';
