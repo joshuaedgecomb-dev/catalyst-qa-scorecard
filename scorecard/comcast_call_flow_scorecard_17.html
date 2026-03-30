@@ -2350,7 +2350,6 @@ function applyResult(result){
   (result.catalystBehaviors||[]).forEach(b=>{
     const el=document.getElementById(`cb-${b.id}`);
     if(!el) return;
-    // Normalize score for models that return numeric or non-standard values
     const normalized=normalizeScore(b.score, 'cat');
     if(normalized) b.score=normalized;
     if(!b.score) return;
@@ -2359,6 +2358,16 @@ function applyResult(result){
     if(!label) return;
     el.className=`cb-rating ${b.score}`;
     el.textContent=label;
+
+    // Generate fallback notes from criteria if AI notes are empty
+    if(!b.notes||b.notes.trim().length<10){
+      const cat=CATALYST.find(c=>c.id===b.id);
+      if(cat&&cat.criteria){
+        const criteriaText=cat.criteria[b.score];
+        if(criteriaText) b.notes=criteriaText.split('.').slice(0,2).join('.')+'.';
+      }
+    }
+
     // Render notes visibly in the expanded catalyst card
     const notesEl=document.getElementById(`cb-notes-${b.id}`);
     if(notesEl&&b.notes){
@@ -4247,7 +4256,14 @@ function buildIndividualCoachingHTML(p){
     catHtml+=pill(bg,col,sr);
     catHtml+='</div>';
     if(cat.intent) catHtml+='<div style="font-size:11px;color:#888;font-style:italic;margin-bottom:6px;">'+esc(cat.intent)+'</div>';
-    if(c.notes) catHtml+='<div style="font-size:12px;color:#5f5e5a;line-height:1.5;padding:8px 10px;background:#f7f6f3;border-radius:6px;border-left:2px solid #534ab7;">'+esc(c.notes)+'</div>';
+    // Generate fallback notes from criteria if empty
+    var cNotes=c.notes||'';
+    if((!cNotes||cNotes.length<10)&&cat.criteria){
+      var criteriaKey=score==='Effectively Demonstrated'?'ed':score==='Partially Demonstrated'?'pd':score==='Did Not Demonstrate'?'dnd':score;
+      var criteriaText=cat.criteria[criteriaKey]||'';
+      if(criteriaText) cNotes=criteriaText.split('.').slice(0,2).join('.')+'.';
+    }
+    if(cNotes) catHtml+='<div style="font-size:12px;color:#5f5e5a;line-height:1.5;padding:8px 10px;background:#f7f6f3;border-radius:6px;border-left:2px solid #534ab7;">'+esc(cNotes)+'</div>';
     catHtml+='</div>';
   });
 
