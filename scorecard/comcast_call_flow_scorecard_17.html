@@ -2359,12 +2359,18 @@ function applyResult(result){
     el.className=`cb-rating ${b.score}`;
     el.textContent=label;
 
-    // Generate fallback notes from criteria if AI notes are empty
-    if(!b.notes||b.notes.trim().length<10){
-      const cat=CATALYST.find(c=>c.id===b.id);
-      if(cat&&cat.criteria){
-        const criteriaText=cat.criteria[b.score];
-        if(criteriaText) b.notes=criteriaText.split('.').slice(0,2).join('.')+'.';
+    // Rich notes: criteria definition + AI note if valuable
+    const cat=CATALYST.find(c=>c.id===b.id);
+    if(cat&&cat.criteria){
+      const criteriaText=cat.criteria[b.score]||'';
+      const aiNote=b.notes||'';
+      if(criteriaText){
+        const criteriaSnippet=criteriaText.split('.').slice(0,3).join('.')+'.';
+        if(aiNote.length>30&&!/capped at|no linking|no engagement|no discovery pillar/i.test(aiNote)){
+          b.notes=aiNote+'\n\n'+criteriaSnippet;
+        } else {
+          b.notes=criteriaSnippet;
+        }
       }
     }
 
@@ -3831,32 +3837,31 @@ function postProcessAIResult(result, transcript){
   var openingText=txLines.slice(0,60).join(' ').toLowerCase();
   var hasRecordingDisclosure=/record|monitor|quality.*standard|privacy/i.test(openingText);
 
-  // Validate catalyst scores
+  // Validate catalyst scores and generate rich notes
   (result.catalystBehaviors||[]).forEach(function(b){
-    // Clean lazy notes
+    // Clean lazy notes (discovery-related on non-discovery behaviors)
     if(b.notes&&b.id!=='b4'&&/no discovery|discovery.*absent|no.*questions.*asked/i.test(b.notes)) b.notes='';
-    // B4: force DND if no discovery
-    if(b.id==='b4'&&!hasDiscovery&&(b.score==='ed'||b.score==='pd')){
-      b.score='dnd';
-      b.notes='Agent did not ask proactive discovery questions about Users, Usage, Devices, or Cost before pitching.';
-    }
-    // B5: cap at pd if B4 is dnd/pd
+
+    // Score corrections
+    if(b.id==='b4'&&!hasDiscovery&&(b.score==='ed'||b.score==='pd')) b.score='dnd';
     var b4=(result.catalystBehaviors||[]).find(function(x){return x.id==='b4';});
-    if(b.id==='b5'&&b4&&(b4.score==='dnd'||b4.score==='pd')&&b.score==='ed'){
-      b.score='pd';
-      if(!b.notes) b.notes='Pitch was not tied to discovered needs because discovery was absent.';
-    }
-    // B3: cap at pd if friction
-    if(b.id==='b3'&&hasProcessFriction&&b.score==='ed'){
-      b.score='pd';
-      if(!b.notes) b.notes='Process friction detected - customer experienced confusion.';
-    }
-    // Generate fallback notes from criteria
-    if(!b.notes||b.notes.length<10){
-      var cat=CATALYST.find(function(c){return c.id===b.id;});
-      if(cat&&cat.criteria){
-        var criteriaText=cat.criteria[b.score]||'';
-        if(criteriaText) b.notes=criteriaText.split('.').slice(0,2).join('.')+'.';
+    if(b.id==='b5'&&b4&&(b4.score==='dnd'||b4.score==='pd')&&b.score==='ed') b.score='pd';
+    if(b.id==='b3'&&hasProcessFriction&&b.score==='ed') b.score='pd';
+
+    // Always generate rich notes from criteria - use AI notes as supplement if good
+    var cat=CATALYST.find(function(c){return c.id===b.id;});
+    if(cat&&cat.criteria){
+      var criteriaText=cat.criteria[b.score]||'';
+      var aiNote=b.notes||'';
+      if(criteriaText){
+        // Use first 3 sentences of criteria as the primary explanation
+        var criteriaSnippet=criteriaText.split('.').slice(0,3).join('.')+'.';
+        // If AI wrote a good note (>30 chars, not generic), prepend it
+        if(aiNote.length>30&&!/capped at|no linking|no engagement|no discovery pillar/i.test(aiNote)){
+          b.notes=aiNote+'\n\n'+criteriaSnippet;
+        } else {
+          b.notes=criteriaSnippet;
+        }
       }
     }
   });
