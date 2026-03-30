@@ -3791,7 +3791,106 @@ async function callAI(transcript, attempt=1){
       throw new Error('Could not parse AI JSON response after 2 attempts');
     }
   }
+  // Run the same post-processing as the single form
+  postProcessAIResult(result, normalizedTranscript);
   return result;
+}
+
+// ── Post-process AI result: validate discovery, catalyst scores, compliance ──
+function postProcessAIResult(result, transcript){
+  if(!result||!transcript) return;
+  const txLines=transcript.split(/\r?\n/);
+  const agentLines=txLines.filter(l=>/^Agent:/i.test(l)).map(l=>l.replace(/^Agent:\s*/i,'').trim().toLowerCase());
+
+  // Normalize alternate key names
+  if(!result.catalystBehaviors) result.catalystBehaviors=result.catalyst||result.behaviors||result.catalyst_behaviors;
+  if(!result.redFlags) result.redFlags=result.red_flags||result.flags;
+  if(!result.compliance) result.compliance=result.complianceItems||result.compliance_items;
+
+  // Validate discovery pillars
+  var dp=result.discoveryPillars||{};
+  ['users','usage','devices','cost'].forEach(function(key){
+    var p=dp[key]; if(!p||!p.asked) return;
+    var lineNum=p.evidenceLine;
+    if(lineNum){
+      var line=txLines[lineNum-1]||'';
+      if(!(/^Agent:/i.test(line)&&line.includes('?'))){
+        p.asked=false;
+        p.whatWasLearned='Not asked by agent';
+      }
+    } else { p.asked=false; p.whatWasLearned='Not asked'; }
+  });
+  var pillarsAsked=[dp.users,dp.usage,dp.devices,dp.cost].filter(function(p){return p&&p.asked===true;}).length;
+  var hasDiscovery=pillarsAsked>=2;
+
+  // Check for process friction
+  var frictionSignals=txLines.filter(function(l){return /please enter a valid|can.t use|try.*(again|it again)|here we go again|i.m lost|what is saying|let me resend/i.test(l.toLowerCase());});
+  var hasProcessFriction=frictionSignals.length>=2;
+
+  // Check recording disclosure
+  var openingText=txLines.slice(0,60).join(' ').toLowerCase();
+  var hasRecordingDisclosure=/record|monitor|quality.*standard|privacy/i.test(openingText);
+
+  // Validate catalyst scores
+  (result.catalystBehaviors||[]).forEach(function(b){
+    // Clean lazy notes
+    if(b.notes&&b.id!=='b4'&&/no discovery|discovery.*absent|no.*questions.*asked/i.test(b.notes)) b.notes='';
+    // B4: force DND if no discovery
+    if(b.id==='b4'&&!hasDiscovery&&(b.score==='ed'||b.score==='pd')){
+      b.score='dnd';
+      b.notes='Agent did not ask proactive discovery questions about Users, Usage, Devices, or Cost before pitching.';
+    }
+    // B5: cap at pd if B4 is dnd/pd
+    var b4=(result.catalystBehaviors||[]).find(function(x){return x.id==='b4';});
+    if(b.id==='b5'&&b4&&(b4.score==='dnd'||b4.score==='pd')&&b.score==='ed'){
+      b.score='pd';
+      if(!b.notes) b.notes='Pitch was not tied to discovered needs because discovery was absent.';
+    }
+    // B3: cap at pd if friction
+    if(b.id==='b3'&&hasProcessFriction&&b.score==='ed'){
+      b.score='pd';
+      if(!b.notes) b.notes='Process friction detected - customer experienced confusion.';
+    }
+    // Generate fallback notes from criteria
+    if(!b.notes||b.notes.length<10){
+      var cat=CATALYST.find(function(c){return c.id===b.id;});
+      if(cat&&cat.criteria){
+        var criteriaText=cat.criteria[b.score]||'';
+        if(criteriaText) b.notes=criteriaText.split('.').slice(0,2).join('.')+'.';
+      }
+    }
+  });
+
+  // Validate steps
+  if(!hasDiscovery){
+    var step3=(result.steps||[]).find(function(s){return s.id===3;});
+    if(step3&&(step3.score==='ed'||step3.score==='pd')){
+      step3.score='dnd';
+      step3.notes='Agent did not ask proactive discovery questions.';
+    }
+    var step4=(result.steps||[]).find(function(s){return s.id===4;});
+    if(step4&&step4.score==='ed'){
+      step4.score='pd';
+      step4.notes=(step4.notes||'')+' (Capped at PD: discovery was absent.)';
+    }
+  }
+
+  // Validate recording disclosure
+  if(!hasRecordingDisclosure){
+    var step1=(result.steps||[]).find(function(s){return s.id===1;});
+    if(step1&&step1.score==='ed') step1.score='pd';
+  }
+
+  // Force red flags to false unless actually egregious (model tends to over-flag)
+  (result.redFlags||[]).forEach(function(rf){
+    if(!rf.flagged) return;
+    // If the notes don't indicate actual agent misbehavior, unflag
+    var notes=(rf.notes||'').toLowerCase();
+    if(/no.*flag|no.*issue|customer.*raised|no.*discovery|no.*question|technical|process/i.test(notes)){
+      rf.flagged=false;
+      rf.notes='';
+    }
+  });
 }
 
 // ── Build payload from AI result for bulk (no DOM dependency) ─────────────────
@@ -3812,8 +3911,9 @@ function buildBulkPayload(aiResult,meta){
   let edCount=catalystRollup.filter(c=>c.rating==='Effectively Demonstrated').length;
 
   const stepData=(aiResult.steps||[]).map(s=>{
-    const step=STEPS.find(st=>st.id===s.id);
-    return{step:s.id,name:step?.name||s.id,catalyst:step?.catalyst||[],score:s.score||null,
+    const sid=Number(s.id)||s.id;
+    const step=STEPS.find(st=>st.id===sid);
+    return{id:sid,step:sid,name:step?.name||'Step '+sid,catalyst:step?.catalyst||[],score:s.score||null,
       trending:(s.trending||[]),notes:s.notes||''};
   });
   const rfData=(aiResult.redFlags||[]).map(rf=>{
@@ -4274,7 +4374,7 @@ function buildIndividualCoachingHTML(p){
     var bg=RB[v]||'#fff';
     var col=RC[v]||'#888';
     var sr=RS[v]||v;
-    var stepDef=STEPS.find(function(x){return x.id===s.id;})||{};
+    var stepDef=STEPS.find(function(x){return x.id===Number(s.id)||x.id===s.id;})||{};
     stepHtml+='<div style="padding:10px 16px;border-bottom:1px solid #eee;">';
     stepHtml+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
     stepHtml+='<span style="font-size:12px;font-weight:600;color:#1a1a18;">'+s.id+'. '+esc(stepDef.name||s.name||'')+'</span>';
