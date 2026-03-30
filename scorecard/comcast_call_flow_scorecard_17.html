@@ -3814,18 +3814,37 @@ function postProcessAIResult(result, transcript){
   if(!result.redFlags) result.redFlags=result.red_flags||result.flags;
   if(!result.compliance) result.compliance=result.complianceItems||result.compliance_items;
 
-  // Validate discovery pillars
+  // Validate discovery pillars - check evidence line AND nearby lines (model may point to answer instead of question)
   var dp=result.discoveryPillars||{};
+  // Also do a broad scan: did the agent ask ANY discovery-like questions?
+  var allAgentQs=txLines.filter(function(l){return /^Agent:/i.test(l)&&l.includes('?');}).map(function(l){return l.replace(/^Agent:\s*/i,'').toLowerCase();});
+  var costAsked=allAgentQs.some(function(q){return /how much|what.*(pay|cost|spend|bill)|price|budget/i.test(q);});
+  var devicesAsked=allAgentQs.some(function(q){return /how many.*(line|device|phone)|what.*(phone|device)|iphone|samsung|imei|what do you have/i.test(q);});
+  var usersAsked=allAgentQs.some(function(q){return /who.*(house|home|family)|how many.*(people|person|member)|anyone else/i.test(q);});
+  var usageAsked=allAgentQs.some(function(q){return /how.*(use|stream|watch|game|work)|what.*(do you|use.*for)|tell me about/i.test(q);});
+
   ['users','usage','devices','cost'].forEach(function(key){
-    var p=dp[key]; if(!p||!p.asked) return;
-    var lineNum=p.evidenceLine;
-    if(lineNum){
+    var p=dp[key]; if(!p) dp[key]={asked:false,evidenceLine:0,whatWasLearned:'Not asked'};
+    p=dp[key];
+    // Override with broad scan results if model got it wrong
+    if(key==='cost'&&costAsked&&!p.asked){p.asked=true;p.whatWasLearned='Agent asked about current cost/spend';}
+    if(key==='devices'&&devicesAsked&&!p.asked){p.asked=true;p.whatWasLearned='Agent asked about devices/lines';}
+    if(key==='users'&&usersAsked&&!p.asked){p.asked=true;p.whatWasLearned='Agent asked about household members';}
+    if(key==='usage'&&usageAsked&&!p.asked){p.asked=true;p.whatWasLearned='Agent asked about service usage';}
+    // If model said asked=true, validate the evidence line
+    if(p.asked&&p.evidenceLine){
+      var lineNum=p.evidenceLine;
       var line=txLines[lineNum-1]||'';
-      if(!(/^Agent:/i.test(line)&&line.includes('?'))){
+      // Check the evidence line AND 2 lines before it for an agent question
+      var found=false;
+      for(var i=Math.max(0,lineNum-3);i<Math.min(txLines.length,lineNum+1);i++){
+        if(/^Agent:/i.test(txLines[i])&&txLines[i].includes('?')){found=true;break;}
+      }
+      if(!found&&!costAsked&&!devicesAsked&&!usersAsked&&!usageAsked){
         p.asked=false;
         p.whatWasLearned='Not asked by agent';
       }
-    } else { p.asked=false; p.whatWasLearned='Not asked'; }
+    }
   });
   var pillarsAsked=[dp.users,dp.usage,dp.devices,dp.cost].filter(function(p){return p&&p.asked===true;}).length;
   var hasDiscovery=pillarsAsked>=2;
