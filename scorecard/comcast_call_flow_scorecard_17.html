@@ -3982,6 +3982,7 @@ function buildBulkPayload(aiResult,meta){
     discoveryPillars:aiResult.discoveryPillars||{},
     primarySale:aiResult.primarySale||{},
     upsell:aiResult.upsell||{},
+    transcript:meta.transcriptText||'',
     executiveSummary:aiResult.executiveSummary||null
   };
 }
@@ -4456,6 +4457,27 @@ function buildIndividualCoachingHTML(p){
 
   // 5. Red flags
   out.push(rfHtml);
+
+  // 6. Transcript (collapsible, with anchored lines)
+  var tx=p.transcript||'';
+  if(tx){
+    var txLines=tx.split(/\r?\n/);
+    out.push('<div style="background:white;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;margin-bottom:14px;">');
+    out.push('<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'" style="padding:10px 18px;background:#f7f6f3;border-bottom:1px solid #e0e0e0;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;">');
+    out.push('<span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5f5e5a;">Call Transcript ('+txLines.length+' lines)</span>');
+    out.push('<span style="font-size:11px;color:#888;">Click to expand</span></div>');
+    out.push('<div style="display:none;padding:10px 16px;max-height:600px;overflow-y:auto;font-size:12px;line-height:1.6;">');
+    txLines.forEach(function(line,i){
+      var isAgent=/^Agent:/i.test(line);
+      var isCust=/^Customer:/i.test(line);
+      var color=isAgent?'#1d4ed8':isCust?'#059669':'#888';
+      var bg=isAgent?'#eff6ff':isCust?'#f0fdf4':'transparent';
+      out.push('<div id="tx-'+i+'" style="padding:3px 8px;border-radius:4px;background:'+bg+';margin-bottom:2px;">');
+      out.push('<span style="font-size:10px;color:#888;margin-right:6px;min-width:30px;display:inline-block;">'+String(i+1)+'</span>');
+      out.push('<span style="color:'+color+';">'+esc(line)+'</span></div>');
+    });
+    out.push('</div></div>');
+  }
 
   // Footer
   out.push('<div style="font-size:11px;color:#888;text-align:center;padding-top:8px;">Generated '+new Date().toLocaleDateString()+' - Catalyst Quality - Xfinity Outbound Telesales</div>');
