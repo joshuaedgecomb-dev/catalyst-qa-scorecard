@@ -3866,24 +3866,46 @@ function postProcessAIResult(result, transcript){
     }
   });
 
-  // Validate steps
+  // Validate steps and auto-assign coaching indicators
   if(!hasDiscovery){
-    var step3=(result.steps||[]).find(function(s){return s.id===3;});
+    var step3=(result.steps||[]).find(function(s){return s.id===3||s.id==='3';});
     if(step3&&(step3.score==='ed'||step3.score==='pd')){
       step3.score='dnd';
-      step3.notes='Agent did not ask proactive discovery questions.';
+      step3.notes='Agent did not ask proactive discovery questions about Users, Usage, Devices, or Cost before pitching.';
     }
-    var step4=(result.steps||[]).find(function(s){return s.id===4;});
+    if(step3){
+      if(!step3.trending) step3.trending=[];
+      var s3trends=STEPS.find(function(s){return s.id===3;})?.trending||[];
+      ['No meaningful discovery','Did not uncover how the customer uses'].forEach(function(prefix){
+        var match=s3trends.find(function(t){return t.toLowerCase().startsWith(prefix.toLowerCase().slice(0,20));});
+        if(match&&step3.trending.indexOf(match)<0) step3.trending.push(match);
+      });
+    }
+    var step4=(result.steps||[]).find(function(s){return s.id===4||s.id==='4';});
     if(step4&&step4.score==='ed'){
       step4.score='pd';
       step4.notes=(step4.notes||'')+' (Capped at PD: discovery was absent.)';
+    }
+    if(step4){
+      if(!step4.trending) step4.trending=[];
+      var s4trends=STEPS.find(function(s){return s.id===4;})?.trending||[];
+      ['Skipped directly to pitch','Never tied offer','Pitch was generic'].forEach(function(prefix){
+        var match=s4trends.find(function(t){return t.toLowerCase().startsWith(prefix.toLowerCase().slice(0,20));});
+        if(match&&step4.trending.indexOf(match)<0) step4.trending.push(match);
+      });
     }
   }
 
   // Validate recording disclosure
   if(!hasRecordingDisclosure){
-    var step1=(result.steps||[]).find(function(s){return s.id===1;});
+    var step1=(result.steps||[]).find(function(s){return s.id===1||s.id==='1';});
     if(step1&&step1.score==='ed') step1.score='pd';
+    if(step1){
+      if(!step1.trending) step1.trending=[];
+      var s1trends=STEPS.find(function(s){return s.id===1;})?.trending||[];
+      var discMatch=s1trends.find(function(t){return /recording.*disclosure.*not delivered/i.test(t);});
+      if(discMatch&&step1.trending.indexOf(discMatch)<0) step1.trending.push(discMatch);
+    }
   }
 
   // Force red flags to false unless actually egregious (model tends to over-flag)
