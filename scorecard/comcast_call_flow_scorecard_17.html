@@ -4255,33 +4255,49 @@ async function downloadBulkZip(){
   if(!bulkResults.length){alert('No results to export yet.');return;}
   const btn=document.getElementById('bulk-zip-btn');
   const status=document.getElementById('bulk-footer-status');
-  btn.disabled=true;status.textContent='Building zip…';
+  btn.disabled=true;status.textContent='Building zip (0/'+bulkResults.length+')...';
 
-  const zip=new JSZip();
-  const dateStr=new Date().toISOString().slice(0,10);
-  const folder=zip.folder(`Bulk_Coaching_${dateStr}`);
-  const coachingFolder=folder.folder('Individual_Coaching');
+  try{
+    const zip=new JSZip();
+    const dateStr=new Date().toISOString().slice(0,10);
+    const folder=zip.folder(`Bulk_Coaching_${dateStr}`);
+    const coachingFolder=folder.folder('Individual_Coaching');
 
-  // Individual coaching reports
-  bulkResults.forEach(p=>{
-    const safeName=(p.meta.agent||p.meta.filename||'agent').replace(/[^a-zA-Z0-9_\- ]/g,'_');
-    const html=buildIndividualCoachingHTML(p);
-    coachingFolder.file(`${safeName}.html`,html);
-  });
+    // Individual coaching reports - build in batches to avoid memory pressure
+    for(let i=0;i<bulkResults.length;i++){
+      const p=bulkResults[i];
+      const safeName=(p.meta.agent||p.meta.filename||'agent').replace(/[^a-zA-Z0-9_\- ]/g,'_')+'_'+(i+1);
+      const html=buildIndividualCoachingHTML(p);
+      coachingFolder.file(`${safeName}.html`,html);
+      if(i%10===9) status.textContent='Building zip ('+Math.min(i+1,bulkResults.length)+'/'+bulkResults.length+')...';
+      if(i%10===9) await sleep(10); // yield to UI
+    }
 
-  // Trend report
-  const trendHtml=buildTrendReportHTML(bulkResults);
-  folder.file(`Trend_Report_${dateStr}.html`,trendHtml);
+    status.textContent='Building trend report...';
+    await sleep(10);
 
-  const blob=await zip.generateAsync({type:'blob'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`Bulk_Coaching_${dateStr}.zip`;
-  a.click();
+    // Trend report
+    const trendHtml=buildTrendReportHTML(bulkResults);
+    folder.file(`Trend_Report_${dateStr}.html`,trendHtml);
 
-  btn.disabled=false;
-  status.style.color='var(--green-tx)';
-  status.textContent=`Zip downloaded — ${bulkResults.length} coaching reports + 1 trend report.`;
+    status.textContent='Compressing zip...';
+    await sleep(10);
+
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`Bulk_Coaching_${dateStr}.zip`;
+    a.click();
+
+    btn.disabled=false;
+    status.style.color='var(--green-tx)';
+    status.textContent=`Zip downloaded — ${bulkResults.length} coaching reports + 1 trend report.`;
+  }catch(e){
+    console.error('Zip generation failed:',e);
+    btn.disabled=false;
+    status.style.color='var(--red-tx)';
+    status.textContent='Zip generation failed: '+e.message+'. Try downloading CSV instead.';
+  }
 }
 
 // ── Individual coaching HTML report — mirrors main form layout ──────────────
