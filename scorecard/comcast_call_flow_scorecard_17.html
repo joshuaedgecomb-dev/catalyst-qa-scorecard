@@ -4527,6 +4527,31 @@ function buildTrendReportHTML(results){
   });
 
   // ══════════════════════════════════════════════════════════
+  // HELPER: aggregate coaching indicators from a subset
+  function computeIndicators(subset){
+    var indCount={};
+    subset.forEach(function(r){(r.steps||[]).forEach(function(s){(s.trending||[]).forEach(function(t){indCount[t]=(indCount[t]||0)+1;});});});
+    return Object.entries(indCount).sort(function(a,b){return b[1]-a[1];});
+  }
+
+  function indicatorNarrative(indicators,count){
+    if(!indicators.length) return '';
+    var top=indicators.slice(0,5);
+    var text='<div style="margin-top:8px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#791f1f;margin-bottom:6px;">Top Coaching Indicators</div>';
+    text+='<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+    top.forEach(function(e){
+      text+='<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:#fcebeb;color:#791f1f;border:1px solid #fecaca;">'+esc(e[0])+' <strong>('+e[1]+')</strong></span>';
+    });
+    text+='</div></div>';
+    return text;
+  }
+
+  function indicatorPlainText(indicators,count){
+    if(!indicators.length) return '';
+    var top=indicators.slice(0,3);
+    return ' The most common coaching indicators are: '+top.map(function(e){return '"'+e[0]+'" ('+e[1]+' call'+(e[1]>1?'s':'')+', '+pct(e[1],count)+'%)';}).join(', ')+'.';
+  }
+
   // HELPER: compute behavior stats for a subset
   // ══════════════════════════════════════════════════════════
   function computeBehaviorStats(subset){
@@ -4638,7 +4663,12 @@ function buildTrendReportHTML(results){
   teamNarr+=discoveryNarrative(dpTotals,total);
   if(saleCount>0) teamNarr+=' The sale conversion rate is '+pct(saleCount,total)+'% ('+saleCount+' of '+total+' calls).';
   if(autoFails>0) teamNarr+=' <strong style="color:#a32d2d;">'+autoFails+' call'+(autoFails>1?'s':'')+' auto-failed</strong>, requiring immediate review.';
+  var teamIndicators=computeIndicators(results);
+  teamNarr+=indicatorPlainText(teamIndicators,total);
   html.push('<div style="padding:0 18px 12px;">'+narrative(teamNarr)+'</div>');
+
+  // Coaching indicators visual
+  html.push('<div style="padding:0 18px 4px;">'+indicatorNarrative(teamIndicators,total)+'</div>');
 
   // Behavior table
   html.push('<div style="padding:0 18px 12px;">'+behaviorTable(bStats)+'</div>');
@@ -4687,7 +4717,10 @@ function buildTrendReportHTML(results){
       });
       var needsAtt=supAgents.filter(function(a){return a.ed<=2||a.af;}).sort(function(a,b){return a.ed-b.ed;});
       if(needsAtt.length) supNarr+=' Agents requiring attention: '+needsAtt.slice(0,4).map(function(a){return '<strong>'+esc(a.agent)+'</strong> ('+a.ed+'/6 ED'+(a.af?' - AUTO-FAIL':'')+')';}).join(', ')+'.';
+      var supIndicators=computeIndicators(calls);
+      supNarr+=indicatorPlainText(supIndicators,n);
       html.push(narrative(supNarr));
+      html.push(indicatorNarrative(supIndicators,n));
 
       // Compact behavior + discovery
       html.push(behaviorTable(supBS));
@@ -4749,8 +4782,11 @@ function buildTrendReportHTML(results){
       if(topPri) agNarr+='Most common coaching priority: "'+esc(topPri[0])+'" ('+topPri[1]+' of '+n+' calls).';
     }
 
+    var agIndicators=computeIndicators(ag.calls);
+    agNarr+=indicatorPlainText(agIndicators,n);
     if(!agNarr) agNarr=esc(ag.agent)+' has '+n+' call'+(n>1?'s':'')+' evaluated with an average ED score of '+agAvgED+'/6.';
     html.push(narrative(agNarr));
+    html.push(indicatorNarrative(agIndicators,n));
 
     // Compact call list
     if(n>1){
