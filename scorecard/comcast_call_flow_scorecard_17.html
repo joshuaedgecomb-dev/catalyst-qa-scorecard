@@ -3799,6 +3799,7 @@ async function callAI(transcript, attempt=1){
   }
   // Run the same post-processing as the single form
   postProcessAIResult(result, normalizedTranscript);
+  result._normalizedTranscript=normalizedTranscript;
   return result;
 }
 
@@ -3982,7 +3983,7 @@ function buildBulkPayload(aiResult,meta){
     discoveryPillars:aiResult.discoveryPillars||{},
     primarySale:aiResult.primarySale||{},
     upsell:aiResult.upsell||{},
-    transcript:meta.transcriptText||'',
+    transcript:aiResult._normalizedTranscript||meta.transcriptText||'',
     executiveSummary:aiResult.executiveSummary||null
   };
 }
