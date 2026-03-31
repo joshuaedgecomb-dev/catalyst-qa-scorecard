@@ -2095,6 +2095,30 @@ function validateExtraction(ext, lineCount){
   return {valid:true,extraction:ext};
 }
 
+// ─── Build discovery-pillar map from extraction ────────────────────────────
+function buildDiscoveryPillars(extraction){
+  const pillars={
+    users:{asked:false,evidenceLine:0,whatWasLearned:'Not asked by agent'},
+    usage:{asked:false,evidenceLine:0,whatWasLearned:'Not asked by agent'},
+    devices:{asked:false,evidenceLine:0,whatWasLearned:'Not asked by agent'},
+    cost:{asked:false,evidenceLine:0,whatWasLearned:'Not asked by agent'}
+  };
+  if(!extraction||!extraction.discovery) return pillars;
+  const asked=extraction.discovery.pillarsAsked||[];
+  const questions=extraction.discovery.agentQuestions||[];
+  for(const p of ['users','usage','devices','cost']){
+    if(asked.includes(p)){
+      pillars[p].asked=true;
+      const q=questions.find(q=>q.pillar===p);
+      if(q){
+        pillars[p].evidenceLine=q.line||0;
+        pillars[p].whatWasLearned=q.text||'Asked by agent';
+      }
+    }
+  }
+  return pillars;
+}
+
 // ─── Voicemail / non-call detection ─────────────────────────────────────────
 function detectVoicemail(transcript){
   if(!transcript) return null;
