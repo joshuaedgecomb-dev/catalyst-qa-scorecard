@@ -1835,6 +1835,76 @@ JSON structure:
 }
 
 // ─── Pass 1: Evidence Extraction Prompt ─────────────────────────────────────
+function buildProductTimeline(txLines){
+  const timeline=[];
+  const products={
+    mobileLine:{name:'Xfinity Mobile line',rx:/add.*(line|someone)|another line|second line|new line|\$20.*unlimited|unlimited.*\$20|mobile plan/i},
+    phone:{name:'Phone/Device',rx:/samsung|galaxy|iphone|pixel|phone.*for|device.*for|smartphone|a\d{2}\s*5g/i},
+    tablet:{name:'Tablet',rx:/tablet|ipad/i},
+    internet:{name:'Internet',rx:/internet.*plan|wifi.*plan|300.*meg|500.*meg|1\s*gig|1\.2\s*gig/i},
+    watch:{name:'Smartwatch',rx:/apple watch|samsung watch|smartwatch|watch.*line|wearable/i},
+    xmc:{name:'Xfinity Mobile Care',rx:/xmc|mobile care|device protection|protect.*phone|insurance.*phone/i},
+    streamSaver:{name:'StreamSaver',rx:/streamsaver|stream saver|peacock.*disney|netflix.*apple/i}
+  };
+  const orderEvents={
+    beforeSubmitting:{rx:/before submitting.*order|confirming.*service.*want/i,type:'order_initiated'},
+    textSent:{rx:/send you a text.*link|text message.*confirm|message and data rates/i,type:'text_sent'},
+    approval:{rx:/approval.*received|thank.*approv|confirm.*order|approved it/i,type:'order_approved'},
+    postApproval:{rx:/order summary within.*hours|receive.*confirmation|xfinity\.com.*my\s*account/i,type:'post_approval'},
+    shipping:{rx:/ship.*two business|business day.*ship|working.*prepare.*shipment/i,type:'shipping_confirmed'}
+  };
+
+  txLines.forEach((line,i)=>{
+    const lineNum=i+1;
+    const lower=line.toLowerCase();
+    const isAgent=/^Agent:/i.test(line);
+    // Product mentions (agent only)
+    if(isAgent){
+      for(const [key,prod] of Object.entries(products)){
+        if(prod.rx.test(lower)){
+          const last=timeline.filter(e=>e.product===key);
+          // Avoid duplicate sequential mentions within 10 lines
+          if(!last.length||lineNum-last[last.length-1].line>10){
+            timeline.push({line:lineNum,product:key,name:prod.name,event:'mentioned',speaker:'agent'});
+          }
+        }
+      }
+    }
+    // Order events (either speaker)
+    for(const [key,evt] of Object.entries(orderEvents)){
+      if(evt.rx.test(lower)){
+        timeline.push({line:lineNum,product:'_order',name:key,event:evt.type,speaker:isAgent?'agent':'customer'});
+      }
+    }
+  });
+
+  // Determine primary sale: first product mentioned that has a subsequent order event
+  const orderLines=timeline.filter(e=>e.event==='order_initiated'||e.event==='order_approved');
+  const firstOrderLine=orderLines.length?orderLines[0].line:Infinity;
+  const productMentions=timeline.filter(e=>e.event==='mentioned');
+  // Products mentioned before the first order event
+  const preOrderProducts=[...new Set(productMentions.filter(e=>e.line<firstOrderLine).map(e=>e.product))];
+  // Products mentioned after the first order confirmation
+  const confirmLine=timeline.filter(e=>e.event==='order_approved'||e.event==='post_approval');
+  const lastConfirmLine=confirmLine.length?Math.max(...confirmLine.map(e=>e.line)):0;
+  const postSaleProducts=[...new Set(productMentions.filter(e=>e.line>lastConfirmLine&&!preOrderProducts.includes(e.product)).map(e=>e.product))];
+
+  const primaryKey=preOrderProducts[0]||productMentions[0]?.product||null;
+  const primary=primaryKey?products[primaryKey]?.name:'Unknown';
+  const hasSale=orderLines.length>0;
+  const upsellKeys=postSaleProducts.filter(k=>k!==primaryKey);
+  const upsells=upsellKeys.map(k=>products[k]?.name).filter(Boolean);
+
+  return {
+    timeline,
+    primaryProduct:primary,
+    primaryKey,
+    hasSale,
+    upsells,
+    summary:`PRIMARY PRODUCT: ${primary}${hasSale?' (order confirmed)':' (no order confirmed)'}${upsells.length?'. UPSELL ATTEMPTED: '+upsells.join(', '):''}`
+  };
+}
+
 function buildExtractionPrompt(transcript){
   const txLines=transcript.split(/\r?\n/);
   const totalLines=txLines.length;
@@ -1842,6 +1912,10 @@ function buildExtractionPrompt(transcript){
 
   const openingAgentLines=txLines.slice(0,60).filter(l=>/^Agent:/i.test(l)).map(l=>l.replace(/^Agent:\s*/i,'').trim());
   const agendaLine=openingAgentLines.find(l=>/reason.*(call|calling)|calling.*(because|you)|eligible|we see that|we.re reaching out/i.test(l))||'';
+
+  // Pre-scan: build product timeline from transcript
+  const pt=buildProductTimeline(txLines);
+  console.log('Product timeline:', JSON.stringify(pt,null,2));
 
   return `You are a call transcript analyst. Extract structured facts from this Xfinity outbound telesales call. Report ONLY what you observe — no scores, no judgments, no recommendations.
 
@@ -1880,18 +1954,19 @@ AUTHENTICATION METHODS:
 PRODUCT KNOWLEDGE (for product name matching):
 ${getProductKnowledge()}
 
-${agendaLine?`CRITICAL — PRIMARY SALE IDENTIFICATION:
-The agent stated the reason for calling in the opening: "${agendaLine.slice(0,200)}"
-This is the PRIMARY SALE. All fields in "pitch" and "close" MUST be about THIS product — not any product pitched later in the call.
+CRITICAL — PRIMARY SALE IDENTIFICATION (determined by automated pre-scan):
+${pt.summary}
+${agendaLine?'Agent agenda statement: "'+agendaLine.slice(0,200)+'"':''}
+All fields in "pitch" and "close" MUST be about the PRIMARY PRODUCT (${pt.primaryProduct}) — not any upsell product pitched later.
 If the agent pitches additional products AFTER the primary sale closes, those go in "upsell" — a separate field.
-Do NOT let a later upsell overwrite the primary sale in your extraction.`:''}
+Do NOT let a later upsell overwrite the primary sale in your extraction.
 
 === TRANSCRIPT (${totalLines} lines) ===
 ${numberedTranscript}
 === END TRANSCRIPT ===
 
 Extract the following JSON. Every fact MUST include line numbers. Report only what is observable in the transcript.
-REMINDER: "pitch" and "close" are about the PRIMARY sale from the agenda. Secondary products go in "upsell".
+REMINDER: "pitch" and "close" are about the PRIMARY PRODUCT (${pt.primaryProduct}). Secondary products go in "upsell".
 
 {
   "customerType": "existing|new",
