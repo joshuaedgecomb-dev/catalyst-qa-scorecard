@@ -1846,28 +1846,58 @@ function buildProductTimeline(txLines){
     xmc:{name:'Xfinity Mobile Care',rx:/xmc|mobile care|device protection|protect.*phone|insurance.*phone/i},
     streamSaver:{name:'StreamSaver',rx:/streamsaver|stream saver|peacock.*disney|netflix.*apple/i}
   };
+  // Specific device patterns — match model names from the product knowledge cheatsheet
+  const devicePatterns=[
+    {rx:/iphone\s*17\s*e/i, name:'iPhone 17e'},
+    {rx:/iphone\s*17\s*pro\s*max/i, name:'iPhone 17 Pro Max'},
+    {rx:/iphone\s*17\s*pro/i, name:'iPhone 17 Pro'},
+    {rx:/iphone\s*17/i, name:'iPhone 17'},
+    {rx:/iphone\s*16\s*pro\s*max/i, name:'iPhone 16 Pro Max'},
+    {rx:/iphone\s*16\s*pro/i, name:'iPhone 16 Pro'},
+    {rx:/iphone\s*16/i, name:'iPhone 16'},
+    {rx:/iphone\s*15/i, name:'iPhone 15'},
+    {rx:/iphone\s*14/i, name:'iPhone 14'},
+    {rx:/galaxy\s*s\s*25/i, name:'Samsung Galaxy S25'},
+    {rx:/galaxy\s*s\s*24/i, name:'Samsung Galaxy S24'},
+    {rx:/galaxy\s*a\s*17\s*5g/i, name:'Samsung Galaxy A17 5G'},
+    {rx:/galaxy\s*a\s*16\s*5g/i, name:'Samsung Galaxy A16 5G'},
+    {rx:/galaxy\s*a\s*15/i, name:'Samsung Galaxy A15'},
+    {rx:/galaxy\s*a\s*\d{2}/i, name:'Samsung Galaxy A-series'},
+    {rx:/samsung\s*galaxy/i, name:'Samsung Galaxy'},
+    {rx:/pixel\s*\d/i, name:'Google Pixel'},
+    {rx:/a17\s*5g|a\s*17\s*5g/i, name:'Samsung Galaxy A17 5G'},
+    {rx:/a16\s*5g|a\s*16\s*5g/i, name:'Samsung Galaxy A16 5G'},
+  ];
   const orderEvents={
     beforeSubmitting:{rx:/before submitting.*order|confirming.*service.*want/i,type:'order_initiated'},
     textSent:{rx:/send you a text.*link|text message.*confirm|message and data rates/i,type:'text_sent'},
     approval:{rx:/approval.*received|thank.*approv|confirm.*order|approved it/i,type:'order_approved'},
     postApproval:{rx:/order summary within.*hours|receive.*confirmation|xfinity\.com.*my\s*account/i,type:'post_approval'},
-    shipping:{rx:/ship.*two business|business day.*ship|working.*prepare.*shipment/i,type:'shipping_confirmed'}
+    shipping:{rx:/ship.*two business|business day.*ship|working.*prepare.*shipment|congrats.*upgrading/i,type:'shipping_confirmed'}
   };
+
+  const devicesDetected=new Set();
 
   txLines.forEach((line,i)=>{
     const lineNum=i+1;
     const lower=line.toLowerCase();
     const isAgent=/^Agent:/i.test(line);
-    // Product mentions (agent only)
+    // Product mentions (agent only for categories)
     if(isAgent){
       for(const [key,prod] of Object.entries(products)){
         if(prod.rx.test(lower)){
           const last=timeline.filter(e=>e.product===key);
-          // Avoid duplicate sequential mentions within 10 lines
           if(!last.length||lineNum-last[last.length-1].line>10){
             timeline.push({line:lineNum,product:key,name:prod.name,event:'mentioned',speaker:'agent'});
           }
         }
+      }
+    }
+    // Device model detection (either speaker — customer may name their device)
+    for(const dp of devicePatterns){
+      if(dp.rx.test(lower)){
+        devicesDetected.add(dp.name);
+        break; // first match wins (most specific patterns are first)
       }
     }
     // Order events (either speaker)
@@ -1882,26 +1912,48 @@ function buildProductTimeline(txLines){
   const orderLines=timeline.filter(e=>e.event==='order_initiated'||e.event==='order_approved');
   const firstOrderLine=orderLines.length?orderLines[0].line:Infinity;
   const productMentions=timeline.filter(e=>e.event==='mentioned');
-  // Products mentioned before the first order event
   const preOrderProducts=[...new Set(productMentions.filter(e=>e.line<firstOrderLine).map(e=>e.product))];
-  // Products mentioned after the first order confirmation
   const confirmLine=timeline.filter(e=>e.event==='order_approved'||e.event==='post_approval');
   const lastConfirmLine=confirmLine.length?Math.max(...confirmLine.map(e=>e.line)):0;
   const postSaleProducts=[...new Set(productMentions.filter(e=>e.line>lastConfirmLine&&!preOrderProducts.includes(e.product)).map(e=>e.product))];
 
   const primaryKey=preOrderProducts[0]||productMentions[0]?.product||null;
-  const primary=primaryKey?products[primaryKey]?.name:'Unknown';
+  let primary=primaryKey?products[primaryKey]?.name:'Unknown';
   const hasSale=orderLines.length>0;
   const upsellKeys=postSaleProducts.filter(k=>k!==primaryKey);
   const upsells=upsellKeys.map(k=>products[k]?.name).filter(Boolean);
+
+  // Enrich primary product name with specific device if detected
+  // If primary is a phone/mobileLine category and we detected a specific device, use the device name
+  const devices=[...devicesDetected];
+  let deviceName='';
+  if(devices.length&&(primaryKey==='phone'||primaryKey==='mobileLine')){
+    deviceName=devices[0]; // most specific match
+    primary=deviceName+' (Xfinity Mobile add-a-line)';
+  } else if(devices.length&&primaryKey==='tablet'){
+    deviceName=devices.find(d=>/tablet|ipad/i.test(d))||'';
+    if(deviceName) primary=deviceName;
+  }
+
+  // Enrich upsell names with device names too
+  const enrichedUpsells=upsells.map(u=>{
+    if((u==='Phone/Device'||u==='Tablet')&&devices.length>1){
+      return devices.find(d=>u==='Tablet'?/tablet/i.test(d):!/tablet/i.test(d))||u;
+    }
+    return u;
+  });
+
+  const summary=`PRIMARY PRODUCT: ${primary}${hasSale?' (SOLD — order confirmed)':' (no order confirmed)'}${enrichedUpsells.length?'. UPSELL ATTEMPTED: '+enrichedUpsells.join(', '):'. No upsell.'}`;
 
   return {
     timeline,
     primaryProduct:primary,
     primaryKey,
+    deviceName,
+    devicesDetected:devices,
     hasSale,
-    upsells,
-    summary:`PRIMARY PRODUCT: ${primary}${hasSale?' (order confirmed)':' (no order confirmed)'}${upsells.length?'. UPSELL ATTEMPTED: '+upsells.join(', '):''}`
+    upsells:enrichedUpsells,
+    summary
   };
 }
 
@@ -2039,14 +2091,19 @@ Respond with valid JSON only. Start with {
 \n/no_think`;
 }
 
-function buildScoringPrompt(extraction){
+function buildScoringPrompt(extraction, productTimeline){
   const stepsJSON=JSON.stringify(STEPS.map(s=>({id:s.id,name:s.name,type:s.type,catalyst:s.catalyst,desc:s.desc,trending:s.trending})));
   const catalystJSON=JSON.stringify(CATALYST.map(c=>({id:c.id,name:c.name,intent:c.intent,criteria:c.criteria})));
   const rfJSON=JSON.stringify(RED_FLAGS.map(rf=>({id:rf.id,name:rf.name,desc:rf.desc,subs:rf.subs})));
   const complianceJSON=JSON.stringify(COMPLIANCE_ITEMS.map(c=>({id:c.id,name:c.name,desc:c.desc,na:c.na})));
+  const ptSummary=productTimeline?productTimeline.summary:'';
 
   return `You are an expert Xfinity outbound telesales quality evaluator. Score this call based on the EVIDENCE EXTRACTION below — structured facts extracted from the transcript. You will NOT see the transcript itself.
 
+${ptSummary?`CRITICAL — PRODUCT CONTEXT (determined by automated pre-scan):
+${ptSummary}
+Your executiveSummary, strengths, opportunities, and coaching MUST primarily evaluate the PRIMARY PRODUCT sale — not the upsell. The primarySale field must reflect the primary product and its outcome. If the primary product was SOLD, suggestedOutcome must be "Successful sale".
+`:''}
 SCORING PHILOSOPHY:
 Grade in a vacuum — evaluate what worked for this specific customer on this specific call. If the agent accomplished the goal of a step even imperfectly, that is at minimum "pd". Reserve "dnd" for steps the agent completely skipped or failed entirely.
 
@@ -3945,6 +4002,10 @@ async function callAI(transcript, attempt=1, onStatus){
     let usedFallback=false;
 
     // ── Pass 1: Evidence Extraction ──
+    // Build product timeline once — shared by both passes
+    const productTimeline=buildProductTimeline(normalizedTranscript.split(/\r?\n/));
+    console.log('Product timeline:', JSON.stringify(productTimeline.summary));
+
     status('Extracting evidence…');
     try{
       const sysMsg='Respond with only valid JSON. No thinking, no markdown, no explanation.';
@@ -3964,7 +4025,7 @@ async function callAI(transcript, attempt=1, onStatus){
       status('Scoring call…');
       try{
         const sysMsg='You are a precise JSON-only responder. Output ONLY valid JSON. All scores MUST be strings: "ed", "pd", "dnd", "na", "yes", or "no".';
-        const scoringPrompt=buildScoringPrompt(extraction);
+        const scoringPrompt=buildScoringPrompt(extraction, productTimeline);
         console.log('Pass 2 (scoring) prompt size:', scoringPrompt.length, 'chars (~'+Math.round(scoringPrompt.length/4)+' tokens)');
         const rawScoring=await ollamaChat(sysMsg, scoringPrompt, 16384);
         result=parseAIJSON(rawScoring);
