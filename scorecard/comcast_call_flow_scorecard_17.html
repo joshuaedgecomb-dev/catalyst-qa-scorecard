@@ -4084,142 +4084,122 @@ async function callAI(transcript, attempt=1){
 function postProcessAIResult(result, transcript){
   if(!result||!transcript) return;
   const txLines=transcript.split(/\r?\n/);
-  const agentLines=txLines.filter(l=>/^Agent:/i.test(l)).map(l=>l.replace(/^Agent:\s*/i,'').trim().toLowerCase());
+  const ext=result._extraction;
 
-  // Normalize alternate key names
-  if(!result.catalystBehaviors) result.catalystBehaviors=result.catalyst||result.behaviors||result.catalyst_behaviors;
-  if(!result.redFlags) result.redFlags=result.red_flags||result.flags;
-  if(!result.compliance) result.compliance=result.complianceItems||result.compliance_items;
+  if(!result.catalystBehaviors) result.catalystBehaviors=result.catalyst||result.behaviors||result.catalyst_behaviors||[];
+  if(!result.redFlags) result.redFlags=result.red_flags||result.flags||[];
+  if(!result.compliance) result.compliance=result.complianceItems||result.compliance_items||[];
+  if(!result.steps) result.steps=[];
+  if(!result.executiveSummary) result.executiveSummary=result.executive_summary||{};
 
-  // Validate discovery pillars - check evidence line AND nearby lines (model may point to answer instead of question)
-  var dp=result.discoveryPillars||{};
-  // Also do a broad scan: did the agent ask ANY discovery-like questions?
-  var allAgentQs=txLines.filter(function(l){return /^Agent:/i.test(l)&&l.includes('?');}).map(function(l){return l.replace(/^Agent:\s*/i,'').toLowerCase();});
-  var costAsked=allAgentQs.some(function(q){return /how much|what.*(pay|cost|spend|bill)|price|budget/i.test(q);});
-  var devicesAsked=allAgentQs.some(function(q){return /how many.*(line|device|phone)|what.*(phone|device)|iphone|samsung|imei|what do you have/i.test(q);});
-  var usersAsked=allAgentQs.some(function(q){return /who.*(house|home|family)|how many.*(people|person|member)|anyone else/i.test(q);});
-  var usageAsked=allAgentQs.some(function(q){return /how.*(use|stream|watch|game|work)|what.*(do you|use.*for)|tell me about/i.test(q);});
+  const stepsMap={};
+  (result.steps||[]).forEach(s=>{stepsMap[Number(s.id)||s.id]=s;});
 
-  ['users','usage','devices','cost'].forEach(function(key){
-    var p=dp[key]; if(!p) dp[key]={asked:false,evidenceLine:0,whatWasLearned:'Not asked'};
-    p=dp[key];
-    // Override with broad scan results if model got it wrong
-    if(key==='cost'&&costAsked&&!p.asked){p.asked=true;p.whatWasLearned='Agent asked about current cost/spend';}
-    if(key==='devices'&&devicesAsked&&!p.asked){p.asked=true;p.whatWasLearned='Agent asked about devices/lines';}
-    if(key==='users'&&usersAsked&&!p.asked){p.asked=true;p.whatWasLearned='Agent asked about household members';}
-    if(key==='usage'&&usageAsked&&!p.asked){p.asked=true;p.whatWasLearned='Agent asked about service usage';}
-    // If model said asked=true, validate the evidence line
-    if(p.asked&&p.evidenceLine){
-      var lineNum=p.evidenceLine;
-      var line=txLines[lineNum-1]||'';
-      // Check the evidence line AND 2 lines before it for an agent question
-      var found=false;
-      for(var i=Math.max(0,lineNum-3);i<Math.min(txLines.length,lineNum+1);i++){
-        if(/^Agent:/i.test(txLines[i])&&txLines[i].includes('?')){found=true;break;}
-      }
-      // Only invalidate if the broad scan for THIS specific pillar also found nothing
-      var broadScanForKey={cost:costAsked,devices:devicesAsked,users:usersAsked,usage:usageAsked};
-      if(!found&&!broadScanForKey[key]){
-        p.asked=false;
-        p.whatWasLearned='Not asked by agent';
-      }
-    }
-  });
-  var pillarsAsked=[dp.users,dp.usage,dp.devices,dp.cost].filter(function(p){return p&&p.asked===true;}).length;
-  var hasDiscovery=pillarsAsked>=2;
+  let pillarsAsked=0, hasDiscovery=false;
+  if(ext){
+    pillarsAsked=(ext.discovery.pillarsAsked||[]).length;
+    hasDiscovery=pillarsAsked>=2;
+  } else {
+    const agentQs=txLines.filter(l=>/^Agent:/i.test(l)&&l.includes('?')).map(l=>l.replace(/^Agent:\s*/i,'').trim().toLowerCase());
+    const costAsked=agentQs.some(l=>/how much|what.*(pay|spend|cost|bill|budget|current.*plan|monthly)|price|afford/i.test(l));
+    const devicesAsked=agentQs.some(l=>/what.*(device|phone|tablet|watch|laptop|computer|smart)|how many.*(device|phone)|which.*(phone|device)|do you have.*(iphone|android|samsung|pixel|apple)/i.test(l));
+    const usersAsked=agentQs.some(l=>/who.*(use|live|house|home|family)|how many.*(people|line|user|member|person)|anyone.*else|household|family/i.test(l));
+    const usageAsked=agentQs.some(l=>/how.*(use|stream|watch|game|browse|work)|what.*(use.*for|do.*with|stream|watch)|do you.*(stream|game|work|browse)/i.test(l));
+    pillarsAsked=(costAsked?1:0)+(devicesAsked?1:0)+(usersAsked?1:0)+(usageAsked?1:0);
+    hasDiscovery=pillarsAsked>=2;
+  }
 
-  // Check for process friction
-  var frictionSignals=txLines.filter(function(l){return /please enter a valid|can.t use|try.*(again|it again)|here we go again|i.m lost|what is saying|let me resend/i.test(l.toLowerCase());});
-  var hasProcessFriction=frictionSignals.length>=2;
+  let hasProcessFriction=false;
+  if(ext) hasProcessFriction=(ext.processIssues||[]).length>=2;
+  else { const h=(transcript.match(/please enter a valid|can.t use|try.*again|here we go again|i.m lost|what is saying|let me resend/gi)||[]).length; hasProcessFriction=h>=2; }
 
-  // Check recording disclosure
-  var openingText=txLines.slice(0,60).join(' ').toLowerCase();
-  var hasRecordingDisclosure=/record|monitor|quality.*standard|privacy/i.test(openingText);
+  let hasRecordingDisclosure=false;
+  if(ext) hasRecordingDisclosure=ext.opening?.recordingDisclosure?.present===true;
+  else hasRecordingDisclosure=/record|monitor|quality.*standard|privacy/i.test(txLines.slice(0,60).join(' '));
 
-  // Validate catalyst scores and generate rich notes
-  (result.catalystBehaviors||[]).forEach(function(b){
-    // Clean lazy notes (discovery-related on non-discovery behaviors)
-    if(b.notes&&b.id!=='b4'&&/no discovery|discovery.*absent|no.*questions.*asked/i.test(b.notes)) b.notes='';
+  const cb=result.catalystBehaviors||[];
+  const b3=cb.find(c=>c.id==='b3')||{};
+  const b4=cb.find(c=>c.id==='b4')||{};
+  const b5=cb.find(c=>c.id==='b5')||{};
 
-    // Score corrections based on discovery pillar count
-    // 0-1 pillars = DND, 2 pillars = PD, 3 pillars = PD, 4 pillars = ED eligible
-    if(b.id==='b4'){
-      if(pillarsAsked<=1&&(b.score==='ed'||b.score==='pd')) b.score='dnd';
-      else if(pillarsAsked<=3&&b.score==='ed') b.score='pd';
-    }
-    var b4=(result.catalystBehaviors||[]).find(function(x){return x.id==='b4';});
-    if(b.id==='b5'&&b4&&(b4.score==='dnd'||b4.score==='pd')&&b.score==='ed') b.score='pd';
-    if(b.id==='b3'&&hasProcessFriction&&b.score==='ed') b.score='pd';
+  if(b4.score){ if(pillarsAsked<=1&&(b4.score==='ed'||b4.score==='pd')) b4.score='dnd'; else if(pillarsAsked<=3&&b4.score==='ed') b4.score='pd'; }
+  if(b5.score&&b4.score&&(b4.score==='dnd'||b4.score==='pd')&&b5.score==='ed') b5.score='pd';
+  if(b3.score&&hasProcessFriction&&b3.score==='ed') b3.score='pd';
 
-    // Always generate rich notes from criteria - use AI notes as supplement if good
-    var cat=CATALYST.find(function(c){return c.id===b.id;});
-    if(cat&&cat.criteria){
-      var criteriaText=cat.criteria[b.score]||'';
-      var aiNote=b.notes||'';
-      if(criteriaText){
-        // Use first 3 sentences of criteria as the primary explanation
-        var criteriaSnippet=criteriaText.split('.').slice(0,3).join('.')+'.';
-        // If AI wrote a good note (>30 chars, not generic), prepend it
-        if(aiNote.length>30&&!/capped at|no linking|no engagement|no discovery pillar/i.test(aiNote)){
-          b.notes=aiNote+'\n\n'+criteriaSnippet;
-        } else {
-          b.notes=criteriaSnippet;
-        }
-      }
+  cb.forEach(c=>{
+    if(c.notes&&c.id!=='b4'&&/no discovery|discovery.*absent|no.*questions.*asked/i.test(c.notes)) c.notes='';
+    const def=CATALYST.find(cat=>cat.id===c.id);
+    if(!def||!def.criteria) return;
+    const sc=(c.score||'').toLowerCase();
+    const criteriaText=def.criteria[sc]||'';
+    if(criteriaText){
+      const first3=criteriaText.split(/\.\s+/).slice(0,3).join('. ')+'.';
+      const aiNote=(c.notes||'').trim();
+      const isGeneric=!aiNote||aiNote.length<30||/no linking|no engagement|generic|not applicable|capped at/i.test(aiNote);
+      c.notes=isGeneric?first3:(aiNote+'\n\n'+first3);
     }
   });
 
-  // Validate steps and auto-assign coaching indicators
-  if(!hasDiscovery){
-    var step3=(result.steps||[]).find(function(s){return s.id===3||s.id==='3';});
-    if(step3&&(step3.score==='ed'||step3.score==='pd')){
-      step3.score='dnd';
-      step3.notes='Agent did not ask proactive discovery questions about Users, Usage, Devices, or Cost before pitching.';
-    }
-    if(step3){
-      if(!step3.trending) step3.trending=[];
-      var s3trends=STEPS.find(function(s){return s.id===3;})?.trending||[];
-      ['No meaningful discovery','Did not uncover how the customer uses'].forEach(function(prefix){
-        var match=s3trends.find(function(t){return t.toLowerCase().startsWith(prefix.toLowerCase().slice(0,20));});
-        if(match&&step3.trending.indexOf(match)<0) step3.trending.push(match);
-      });
-    }
-    var step4=(result.steps||[]).find(function(s){return s.id===4||s.id==='4';});
-    if(step4&&step4.score==='ed'){
-      step4.score='pd';
-      step4.notes=(step4.notes||'')+' (Capped at PD: discovery was absent.)';
-    }
-    if(step4){
-      if(!step4.trending) step4.trending=[];
-      var s4trends=STEPS.find(function(s){return s.id===4;})?.trending||[];
-      ['Skipped directly to pitch','Never tied offer','Pitch was generic'].forEach(function(prefix){
-        var match=s4trends.find(function(t){return t.toLowerCase().startsWith(prefix.toLowerCase().slice(0,20));});
-        if(match&&step4.trending.indexOf(match)<0) step4.trending.push(match);
-      });
+  const s1=stepsMap[1];
+  if(s1&&!hasRecordingDisclosure){
+    if(s1.score==='ed') s1.score='pd';
+    s1.notes=(s1.notes||'')+' Recording/monitoring disclosure was not delivered in the opening.';
+    if(!s1.trending) s1.trending=[]; if(!s1.trending.includes('Recording/monitoring disclosure was not delivered')) s1.trending.push('Recording/monitoring disclosure was not delivered');
+  }
+
+  if(ext){ const s2=stepsMap[2]; if(s2&&ext.opening?.agendaStatement?.salesIntent===false){ if(s2.score==='ed') s2.score='pd'; s2.notes=(s2.notes||'')+' Agenda lacked clear sales intent.'; } }
+
+  const s3=stepsMap[3];
+  if(s3&&!hasDiscovery){
+    if(s3.score==='ed'||s3.score==='pd') s3.score='dnd';
+    s3.notes='No meaningful discovery — agent did not ask about enough pillars before pitching.';
+    if(!s3.trending) s3.trending=[];
+    ['No meaningful discovery — moved to pitch without asking questions','Did not uncover how the customer uses their services or devices'].forEach(t=>{if(!s3.trending.includes(t)) s3.trending.push(t);});
+  }
+
+  const s4=stepsMap[4];
+  if(s4&&!hasDiscovery){
+    if(s4.score==='ed') s4.score='pd';
+    s4.notes=(s4.notes||'')+' Pitch capped at PD — discovery was absent.';
+    if(!s4.trending) s4.trending=[];
+    ['Skipped directly to pitch without completing discovery first','Never tied offer to a specific customer need','Pitch was generic — not personalized to this customer'].forEach(t=>{if(!s4.trending.includes(t)) s4.trending.push(t);});
+  }
+
+  if(ext){ const s5=stepsMap[5]; if(s5&&ext.close?.assumptiveAsk?.present===false){ s5.score='dnd'; s5.notes=(s5.notes||'')+' Agent never asked for the sale.'; if(!s5.trending) s5.trending=[]; if(!s5.trending.includes('Never asked for the sale')) s5.trending.push('Never asked for the sale'); } }
+
+  if(ext){
+    const noObj=!ext.objections||ext.objections.length===0;
+    [6,7,8].forEach(id=>{ const s=stepsMap[id]; if(s&&noObj) s.score='na'; });
+    if(!noObj){ const s6=stepsMap[6]; const fo=ext.objections[0]; if(s6&&fo&&!fo.agentAcknowledged&&s6.score==='ed') s6.score='pd'; }
+  }
+
+  if(ext){ const s9=stepsMap[9]; if(s9&&ext.reaffirmAndClose?.reaffirmation?.present===false){ s9.score='dnd'; s9.notes=(s9.notes||'')+' Agent did not reaffirm the sale after customer accepted.'; } }
+
+  if(ext){ const s10=stepsMap[10]; if(s10&&ext.reaffirmAndClose?.closingCompliance?.delivered===false){ if(s10.score==='ed') s10.score='pd'; s10.notes=(s10.notes||'')+' Closing compliance statement (1-800-XFINITY) not delivered.'; } }
+
+  if(ext){
+    const s11=stepsMap[11]; const os=ext.reaffirmAndClose?.orderSummary||{};
+    if(s11&&s11.score!=='na'){
+      const fields=['productsRecapped','pricingStated','promoTerms','rollToRate','installDetails','nextSteps'];
+      const covered=fields.filter(f=>os[f]===true).length;
+      if(covered<=3){ s11.score='no'; s11.notes=(s11.notes||'')+' Order summary was '+(covered===0?'not delivered':'incomplete — only '+covered+' of '+fields.length+' items covered')+'.'; }
+      const compMissing=['beforeSubmitting','textConsent','postApproval'].filter(f=>os[f]===false);
+      if(compMissing.length) s11.notes=(s11.notes||'')+' Missing: '+compMissing.join(', ')+'.';
     }
   }
 
-  // Validate recording disclosure
-  if(!hasRecordingDisclosure){
-    var step1=(result.steps||[]).find(function(s){return s.id===1||s.id==='1';});
-    if(step1&&step1.score==='ed') step1.score='pd';
-    if(step1){
-      if(!step1.trending) step1.trending=[];
-      var s1trends=STEPS.find(function(s){return s.id===1;})?.trending||[];
-      var discMatch=s1trends.find(function(t){return /recording.*disclosure.*not delivered/i.test(t);});
-      if(discMatch&&step1.trending.indexOf(discMatch)<0) step1.trending.push(discMatch);
-    }
+  if(ext){
+    const candidateTypes=new Set((ext.redFlagCandidates||[]).map(c=>c.type));
+    (result.redFlags||[]).forEach(rf=>{ if(rf.flagged&&!candidateTypes.has(rf.id)){ rf.flagged=false; rf.notes=''; rf.subs=[]; } });
+  } else {
+    (result.redFlags||[]).forEach(rf=>{ if(rf.flagged){ const n=(rf.notes||'').toLowerCase(); if(/no.*flag|no.*issue|customer.*raised|no.*discovery|no.*question|technical|process/i.test(n)){ rf.flagged=false; rf.notes=''; } } });
   }
 
-  // Force red flags to false unless actually egregious (model tends to over-flag)
-  (result.redFlags||[]).forEach(function(rf){
-    if(!rf.flagged) return;
-    // If the notes don't indicate actual agent misbehavior, unflag
-    var notes=(rf.notes||'').toLowerCase();
-    if(/no.*flag|no.*issue|customer.*raised|no.*discovery|no.*question|technical|process/i.test(notes)){
-      rf.flagged=false;
-      rf.notes='';
-    }
+  (result.steps||[]).forEach(s=>{
+    const sid=Number(s.id)||s.id;
+    const step=STEPS.find(st=>st.id===sid);
+    if(!step||!s.trending||!s.trending.length) return;
+    s.trending.forEach(t=>{ const idx=step.trending.indexOf(t); if(idx>=0){ if(!trendChecked[sid]) trendChecked[sid]=[]; if(!trendChecked[sid].includes(idx)) trendChecked[sid].push(idx); } });
   });
 }
 
