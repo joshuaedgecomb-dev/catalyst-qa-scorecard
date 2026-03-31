@@ -3921,9 +3921,13 @@ function postProcessAIResult(result, transcript){
   const ext=result._extraction;
 
   if(!result.catalystBehaviors) result.catalystBehaviors=result.catalyst||result.behaviors||result.catalyst_behaviors||[];
+  if(!Array.isArray(result.catalystBehaviors)) result.catalystBehaviors=Object.values(result.catalystBehaviors);
   if(!result.redFlags) result.redFlags=result.red_flags||result.flags||[];
+  if(!Array.isArray(result.redFlags)) result.redFlags=Object.values(result.redFlags);
   if(!result.compliance) result.compliance=result.complianceItems||result.compliance_items||[];
+  if(!Array.isArray(result.compliance)) result.compliance=Object.values(result.compliance);
   if(!result.steps) result.steps=[];
+  if(!Array.isArray(result.steps)) result.steps=Object.values(result.steps);
   if(!result.executiveSummary) result.executiveSummary=result.executive_summary||{};
 
   const stepsMap={};
