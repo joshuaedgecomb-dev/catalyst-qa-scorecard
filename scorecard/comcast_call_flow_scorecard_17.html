@@ -1824,6 +1824,125 @@ JSON structure:
 }`;
 }
 
+// ─── Pass 1: Evidence Extraction Prompt ─────────────────────────────────────
+function buildExtractionPrompt(transcript){
+  const txLines=transcript.split(/\r?\n/);
+  const totalLines=txLines.length;
+  const numberedTranscript=txLines.map((l,i)=>`[${i+1}] ${l}`).join('\n');
+
+  const openingAgentLines=txLines.slice(0,60).filter(l=>/^Agent:/i.test(l)).map(l=>l.replace(/^Agent:\s*/i,'').trim());
+  const agendaLine=openingAgentLines.find(l=>/reason.*(call|calling)|calling.*(because|you)|eligible|we see that|we.re reaching out/i.test(l))||'';
+
+  return `You are a call transcript analyst. Extract structured facts from this Xfinity outbound telesales call. Report ONLY what you observe — no scores, no judgments, no recommendations.
+
+TRANSCRIPTION NOTE: These are auto-generated transcripts with speech-to-text errors. "required to monitor" = "recorded and monitored", "trust privacy" = "Xfinity.com/privacy". Look for intent, not perfect text.
+
+SPEAKER ROLES: Lines starting with "Agent:" are the sales agent. Lines starting with "Customer:" are the customer.
+
+PHASE BOUNDARIES (approximate):
+- Opening: lines 1-60
+- Discovery: after opening, before pitch (agent asks questions)
+- Pitch: agent presents products
+- Close: agent asks customer to commit
+- Objection handling: if customer pushes back (may not exist)
+- Reaffirm & close: lines ${Math.max(1,totalLines-50)}-${totalLines}
+
+DISCOVERY PILLARS — when the AGENT asks a question, classify which pillar it falls under:
+- "users" = who is in the household, who uses services
+- "usage" = how they use services/devices day to day
+- "devices" = what devices they have or connect
+- "cost" = what they currently pay, budget, price sensitivity
+IMPORTANT: Only count questions the AGENT asks. The customer volunteering information is NOT agent discovery. The agent explaining products is NOT discovery.
+
+COMPLIANCE PHRASES TO DETECT:
+- Recording disclosure: "call is being recorded and monitored" / "privacy" / "Xfinity.com/privacy"
+- Broadband labels: "xfinity.com/labels" or "broadband labels"
+- Before submitting: "before submitting your order"
+- Text consent: "message and data rates may apply"
+- Post-approval: "order summary within 6 hours" / "xfinity.com/MyAccount"
+- Closing: "1-800-XFINITY" / "934-6489" / "Xfinity.com"
+
+AUTHENTICATION METHODS:
+- "code" = 6-digit verification code collected
+- "address_phone" = full service address AND phone number collected (including when framed as "contact info")
+- "none" = no authentication performed
+
+PRODUCT KNOWLEDGE (for product name matching):
+${getProductKnowledge()}
+
+${agendaLine?'PRIMARY SALE CONTEXT: The agent opened with: "'+agendaLine.slice(0,150)+'". This is the primary product being sold.':''}
+
+=== TRANSCRIPT (${totalLines} lines) ===
+${numberedTranscript}
+=== END TRANSCRIPT ===
+
+Extract the following JSON. Every fact MUST include line numbers. Report only what is observable in the transcript.
+
+{
+  "customerType": "existing|new",
+  "opening": {
+    "greetingLines": [line numbers of greeting/intro],
+    "recordingDisclosure": {"present": true/false, "lines": [line numbers if present]},
+    "customerNameUsed": true/false,
+    "agendaStatement": {"present": true/false, "lines": [line numbers], "salesIntent": true/false, "summary": "brief reason for call"},
+    "authentication": {"method": "code|address_phone|none", "lines": [line numbers if applicable]},
+    "tone": "warm|neutral|flat|scripted"
+  },
+  "discovery": {
+    "agentQuestions": [{"line": N, "pillar": "users|usage|devices|cost", "openEnded": true/false, "text": "brief paraphrase of question"}],
+    "customerVolunteered": [{"line": N, "topic": "what they shared unprompted"}],
+    "pillarsAsked": ["list of pillars the AGENT asked about"]
+  },
+  "pitch": {
+    "productsPitched": [{"product": "product name", "lines": [N,N], "tiedToDiscovery": true/false, "tieBack": "what discovery point it referenced, or empty"}],
+    "broadbandLabels": {"mentioned": true/false, "line": N or 0},
+    "deliveryStyle": "confident|hesitant|rushed|generic",
+    "primarySale": "product name from agenda"
+  },
+  "close": {
+    "assumptiveAsk": {"present": true/false, "lines": [N], "confident": true/false},
+    "customerResponse": "accepted|objected|hesitated|deferred"
+  },
+  "objections": [
+    {
+      "customerObjection": {"line": N, "summary": "what they said"},
+      "agentAcknowledged": true/false,
+      "agentDiscoveredReason": true/false,
+      "rebuttalLines": [N,N],
+      "rebuttalApproach": "empathy+value|pressure|gave_up|ignored",
+      "reClose": {"present": true/false, "lines": [N], "confident": true/false}
+    }
+  ],
+  "reaffirmAndClose": {
+    "reaffirmation": {"present": true/false, "lines": [N], "genuine": true/false},
+    "positiveClose": {"present": true/false, "lines": [N,N], "checkedForQuestions": true/false},
+    "closingCompliance": {"delivered": true/false, "lines": [N]},
+    "orderSummary": {
+      "productsRecapped": true/false,
+      "pricingStated": true/false,
+      "promoTerms": true/false,
+      "rollToRate": true/false,
+      "installDetails": true/false,
+      "nextSteps": true/false,
+      "beforeSubmitting": true/false,
+      "textConsent": true/false,
+      "postApproval": true/false,
+      "lines": [N,N]
+    }
+  },
+  "processIssues": [{"line": N, "type": "long_hold|confusion|tech_difficulty|repeated_attempt", "summary": "brief"}],
+  "redFlagCandidates": [{"line": N, "type": "rf1|rf2|rf3|rf4|rf5|rf6", "summary": "brief factual description"}],
+  "appreciationInstances": [{"line": N, "what": "brief"}],
+  "xfinityMembershipMentioned": true/false,
+  "personalRapportMoments": [{"line": N, "what": "brief"}],
+  "scriptedMoments": [{"line": N, "what": "brief"}],
+  "customerRepeatedSelf": [{"line": N, "what": "brief"}]
+}
+
+Respond with valid JSON only. Start with {
+\n/no_think`;
+}
+
 // ─── Voicemail / non-call detection ─────────────────────────────────────────
 function detectVoicemail(transcript){
   if(!transcript) return null;
