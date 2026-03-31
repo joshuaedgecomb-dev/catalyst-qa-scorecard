@@ -3603,7 +3603,7 @@ async function runBulk(){
   const evaluator=document.getElementById('bulk-evaluator').value||document.getElementById('f-eval').value||'';
   const campaignOverride=document.getElementById('bulk-campaign').value;
   const total=bulkQueue.length;
-  let done=0,errors=0,afs=0;
+  let done=0,errors=0,afs=0,fallbacks=0;
 
   // Pre-read all file contents up front — avoids File object read issues mid-loop
   document.getElementById('bulk-progress-label').textContent='Reading files…';
@@ -3665,6 +3665,7 @@ async function runBulk(){
       });
       q.status='done';
       q.result=payload;
+      if(aiResult._fallback) fallbacks++;
       bulkResults.push(payload);
       done++;
       if(payload.summary.autoFail) afs++;
@@ -3708,6 +3709,12 @@ async function runBulk(){
   document.getElementById('bulk-progress-label').textContent=`Complete — ${done} scored, ${errors} error${errors!==1?'s':''}`;
   document.getElementById('bulk-footer-status').textContent=`Finished: ${done} scored, ${errors} error${errors!==1?'s':''}, ${afs} auto-fail${afs!==1?'s':''}`;
   document.getElementById('bulk-result-grid').style.display='grid';
+  if(fallbacks>0){
+    const pct=Math.round(fallbacks/total*100);
+    const fEl=document.getElementById('bulk-footer-status');
+    fEl.style.color=pct>25?'var(--red-tx)':'var(--amber-tx)';
+    fEl.textContent=fallbacks+' of '+total+' calls used single-pass fallback (scores may be less accurate).'+(pct>25?' Consider checking Ollama model availability.':'');
+  }
   if(bulkResults.length>0){
     document.getElementById('bulk-csv-btn').style.display='inline-block';
     document.getElementById('bulk-zip-btn').style.display='inline-block';
