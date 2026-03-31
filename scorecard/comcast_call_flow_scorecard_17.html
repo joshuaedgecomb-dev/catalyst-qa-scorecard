@@ -2047,6 +2047,54 @@ Respond with valid JSON only. Start with {
 \n/no_think`;
 }
 
+// ─── Validate & normalise Pass-1 extraction ────────────────────────────────
+function validateExtraction(ext, lineCount){
+  if(!ext||typeof ext!=='object') return {valid:false,reason:'Extraction is not an object'};
+  const required=['customerType','opening','discovery','pitch','close','reaffirmAndClose'];
+  for(const key of required){
+    if(!(key in ext)) return {valid:false,reason:'Missing required field: '+key};
+  }
+  if(!ext.opening.greetingLines&&!ext.opening.recordingDisclosure) return {valid:false,reason:'Opening missing greetingLines and recordingDisclosure'};
+  if(!Array.isArray(ext.discovery.agentQuestions)) return {valid:false,reason:'discovery.agentQuestions must be an array'};
+  if(!Array.isArray(ext.discovery.pillarsAsked)) return {valid:false,reason:'discovery.pillarsAsked must be an array'};
+  if(!Array.isArray(ext.pitch.productsPitched)) return {valid:false,reason:'pitch.productsPitched must be an array'};
+
+  if(!Array.isArray(ext.objections)) ext.objections=[];
+  if(!Array.isArray(ext.processIssues)) ext.processIssues=[];
+  if(!Array.isArray(ext.redFlagCandidates)) ext.redFlagCandidates=[];
+  if(!Array.isArray(ext.appreciationInstances)) ext.appreciationInstances=[];
+  if(!Array.isArray(ext.personalRapportMoments)) ext.personalRapportMoments=[];
+  if(!Array.isArray(ext.scriptedMoments)) ext.scriptedMoments=[];
+  if(!Array.isArray(ext.customerRepeatedSelf)) ext.customerRepeatedSelf=[];
+  if(typeof ext.xfinityMembershipMentioned!=='boolean') ext.xfinityMembershipMentioned=false;
+  if(!ext.opening.authentication) ext.opening.authentication={method:'none',lines:[]};
+  if(!ext.opening.tone) ext.opening.tone='neutral';
+  if(!ext.pitch.broadbandLabels) ext.pitch.broadbandLabels={mentioned:false};
+  if(!ext.pitch.deliveryStyle) ext.pitch.deliveryStyle='generic';
+  if(!ext.reaffirmAndClose.orderSummary){
+    ext.reaffirmAndClose.orderSummary={productsRecapped:false,pricingStated:false,promoTerms:false,rollToRate:false,installDetails:false,nextSteps:false,beforeSubmitting:false,textConsent:false,postApproval:false,lines:[]};
+  }
+
+  function clampLines(obj){
+    if(!obj||typeof obj!=='object') return;
+    for(const key of Object.keys(obj)){
+      const val=obj[key];
+      if(key==='line'&&typeof val==='number'){
+        obj[key]=Math.max(1,Math.min(val,lineCount));
+      } else if((key==='lines'||key==='evidenceLines')&&Array.isArray(val)){
+        obj[key]=val.filter(n=>typeof n==='number').map(n=>Math.max(1,Math.min(n,lineCount)));
+      } else if(Array.isArray(val)){
+        val.forEach(item=>clampLines(item));
+      } else if(typeof val==='object'&&val!==null){
+        clampLines(val);
+      }
+    }
+  }
+  clampLines(ext);
+
+  return {valid:true,extraction:ext};
+}
+
 // ─── Voicemail / non-call detection ─────────────────────────────────────────
 function detectVoicemail(transcript){
   if(!transcript) return null;
