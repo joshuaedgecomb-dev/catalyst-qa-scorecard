@@ -2148,7 +2148,7 @@ function detectVoicemail(transcript){
 // ─── Analyze transcript ───────────────────────────────────────────────────────
 async function analyzeTranscript(){
   const analyzeBtn=document.getElementById('analyze-btn');
-  if(analyzeBtn.disabled) return; // Already running
+  if(analyzeBtn.disabled) return;
   analyzeBtn.disabled=true;
   analyzeBtn.style.opacity='0.5';
   analyzeBtn.style.pointerEvents='none';
@@ -2175,17 +2175,18 @@ async function analyzeTranscript(){
   const progressBar=progress.querySelector('.ai-progress-bar');
   if(progressBar) progressBar.style.width='0%';
 
-  // Timed progress bar + elapsed timer
   let progressPct=0;
   const startTime=Date.now();
   const elapsedEl=document.getElementById('ai-elapsed');
   if(elapsedEl) elapsedEl.textContent='0s';
   const progressTimer=setInterval(()=>{
-    if(progressPct<15) progressPct+=3;        // 0-15%: speaker detection
-    else if(progressPct<40) progressPct+=1.5;  // 15-40%: prompt sent, model thinking
-    else if(progressPct<70) progressPct+=0.8;  // 40-70%: generating steps
-    else if(progressPct<90) progressPct+=0.3;  // 70-90%: generating summary
-    else if(progressPct<95) progressPct+=0.1;  // 90-95%: slow crawl
+    if(progressPct<10) progressPct+=3;
+    else if(progressPct<20) progressPct+=2;
+    else if(progressPct<45) progressPct+=1;
+    else if(progressPct<55) progressPct+=1.5;
+    else if(progressPct<80) progressPct+=0.8;
+    else if(progressPct<90) progressPct+=0.3;
+    else if(progressPct<95) progressPct+=0.1;
     if(progressBar) progressBar.style.width=Math.min(progressPct,95)+'%';
     if(elapsedEl) elapsedEl.textContent=Math.round((Date.now()-startTime)/1000)+'s';
   },500);
@@ -2193,7 +2194,6 @@ async function analyzeTranscript(){
     try{
       const ctx=new (window.AudioContext||window.webkitAudioContext)();
       if(success){
-        // Pleasant two-tone chime (C5 + E5)
         [523.25, 659.25].forEach((freq,i)=>{
           const osc=ctx.createOscillator();
           const gain=ctx.createGain();
@@ -2206,7 +2206,6 @@ async function analyzeTranscript(){
           osc.stop(ctx.currentTime+i*0.15+0.6);
         });
       } else {
-        // Low tone for error
         const osc=ctx.createOscillator();
         const gain=ctx.createGain();
         osc.type='sine';osc.frequency.value=220;
@@ -2221,160 +2220,41 @@ async function analyzeTranscript(){
     clearInterval(progressTimer);
     if(progressBar) progressBar.style.width=success?'100%':'0%';
     const totalSec=Math.round((Date.now()-startTime)/1000);
-    if(elapsedEl) elapsedEl.textContent=success?`${totalSec}s`:'';
+    if(elapsedEl) elapsedEl.textContent=success?totalSec+'s':'';
     setTimeout(()=>progress.classList.remove('active'),success?800:0);
     playChime(success);
-    // Re-enable the analyze button
     const ab=document.getElementById('analyze-btn');
     if(ab){ab.disabled=false;ab.style.opacity='';ab.style.pointerEvents='';}
   }
 
-  // Normalize speaker labels before scoring — replace SPEAKER_XX with Agent/Customer
-  let normalizedTranscript=transcript;
-  const hasSpeakerIds=/^SPEAKER_\d+:/m.test(transcript);
-  if(hasSpeakerIds){
-    statusEl.textContent='Identifying speakers…';
-    if(!speakerSeedMap) speakerSeedMap=await detectSpeakersWithAI(transcript);
-    if(speakerSeedMap&&Object.keys(speakerSeedMap).length){
-      const lines=transcript.split(/\r?\n/);
-      normalizedTranscript=lines.map(line=>{
-        const m=line.match(/^(SPEAKER_\d+):\s*/);
-        if(!m) return line;
-        const role=speakerSeedMap[m[1]];
-        const label=role==='agent'?'Agent':'Customer';
-        return label+': '+line.slice(m[0].length);
-      }).join('\n');
-      // Write normalized transcript back to textarea so evidence validation and transcript panel use Agent/Customer labels
-      document.getElementById('ai-transcript').value=normalizedTranscript;
-      console.log('Speaker normalization applied — SPEAKER_XX labels replaced with Agent/Customer');
-    } else {
-      // Speaker detection failed — do NOT proceed with raw SPEAKER_XX labels
-      console.error('Speaker detection failed — cannot identify Agent vs Customer');
-      stopProgress(false);
-      statusEl.style.color='var(--red-tx)';
-      statusEl.textContent='Speaker detection failed — could not identify Agent vs Customer. Check that your speaker detection model is running and try again.';
-      return;
-    }
-  }
-
-  statusEl.textContent=currentMode==='cloud'?'Sending to Anthropic…':'Sending to local Ollama…';
-
-  const prompt=buildPrompt(normalizedTranscript);
-  console.log('Prompt size:', prompt.length, 'chars (~' + Math.round(prompt.length/4) + ' tokens)');
-  console.log('Transcript preview (first 300 chars):', normalizedTranscript.slice(0,300));
-  let raw='';
+  statusEl.textContent=currentMode==='cloud'?'Sending to Anthropic\u2026':'Extracting evidence\u2026';
 
   try{
-    if(currentMode==='cloud'){
-      const apiKey=(document.getElementById('ai-api-key').value||'').trim();
-      if(!apiKey){stopProgress(false);statusEl.style.color='var(--red-tx)';statusEl.textContent='Please enter your Anthropic API key.';return;}
-      const model=document.getElementById('cloud-model').value;
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model,max_tokens:8192,messages:[{role:'user',content:prompt}]})
-      });
-      if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`API error ${res.status}`);}
-      const d=await res.json();
-      raw=d?.content?.[0]?.text||'';
-    } else {
-      // Ollama — OpenAI-compatible endpoint
-      const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
-      const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
-      if(!model){stopProgress(false);statusEl.style.color='var(--red-tx)';statusEl.textContent='Please enter a scoring model name in AI Settings.';return;}
-      console.log('Scoring using model:', model);
-      const res=await fetch(`${base}/v1/chat/completions`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model,
-          messages:[
-            {role:'system',content:'You are a precise JSON-only responder. After any thinking, output ONLY valid JSON. No markdown fences, no backticks. All scores MUST be strings, NEVER numbers. Step scores: "ed", "pd", "dnd", "na", "yes", or "no". Catalyst scores: "ed", "pd", or "dnd". Compliance scores: "yes", "no", or "na".'},
-            {role:'user',content:prompt}
-          ],
-          max_tokens:16384,
-          stream:false,
-          temperature:0.1,
-          options:{num_ctx:65536,num_predict:16384}
-        })
-      });
-      if(!res.ok){
-        const txt=await res.text().catch(()=>'');
-        throw new Error(`Ollama error ${res.status}${txt?' — '+txt.slice(0,120):''}`);
-      }
-      const d=await res.json();
-      const msg=d?.choices?.[0]?.message||{};
-      // qwen3 splits output: 'content' has the JSON, 'reasoning' has thinking. Read both.
-      raw=msg.content||'';
-      if(!raw||raw.trim().length<10) raw=msg.reasoning||'';
-      // Log finish reason to detect truncation
-      const finish=d?.choices?.[0]?.finish_reason||'unknown';
-      console.log('Ollama finish_reason:', finish, 'content:', (msg.content||'').length, 'reasoning:', (msg.reasoning||'').length, 'total raw:', raw.length);
-      if(finish==='length') console.warn('Response was TRUNCATED by output token limit — increase max_tokens');
+    const result=await callAI(transcript);
+
+    // Write normalized transcript back to textarea for evidence panel
+    if(result._normalizedTranscript){
+      document.getElementById('ai-transcript').value=result._normalizedTranscript;
     }
 
-    // Check for empty/garbage responses (model overwhelmed by prompt size)
-    if(!raw||raw.trim().length<50){
-      console.error('RAW AI RESPONSE (too short):\n',raw);
-      const promptSize=Math.round(prompt.length/4);
-      throw new Error(`Model returned an empty or garbage response (${raw.trim().length} chars). Prompt is ~${promptSize} tokens — the model may be overwhelmed. Try again or use Cloud/Anthropic mode.`);
-    }
-
-    let clean=stripToJSON(raw);
-    let result;
-    try{result=JSON.parse(clean);}
-    catch(pe){
-      // Try repairing common LLM JSON glitches
-      try{result=JSON.parse(repairJSON(clean));}catch(e2){}
-      // Last resort: extract outermost JSON object
-      if(!result){const match=clean.match(/\{[\s\S]*\}/);if(match) try{result=JSON.parse(repairJSON(match[0]));}catch(e3){}}
-      if(!result){console.error('RAW AI RESPONSE:\n',raw);console.error('CLEANED:\n',clean);throw new Error('Could not parse AI response as JSON. Try a larger/smarter model, or try again.');}
-    }
-
-    // Normalize alternate key names BEFORE validation
-    if(!result.catalystBehaviors) result.catalystBehaviors=result.catalyst||result.behaviors||result.catalyst_behaviors||result.catalystScores;
-    if(!result.compliance) result.compliance=result.complianceItems||result.compliance_items||result.complianceScores;
-    if(!result.redFlags) result.redFlags=result.red_flags||result.flags;
-
-    // Debug: log parsed result keys
-    console.log('PARSED AI RESULT keys:', Object.keys(result));
-    console.log('steps count:', (result.steps||[]).length, 'catalyst count:', (result.catalystBehaviors||[]).length, 'compliance count:', (result.compliance||[]).length, 'redFlags count:', (result.redFlags||[]).length);
-
-    // Validate response quality before applying
-    const stepsArr=normalizeArray(result.steps);
-    const hasValidScores=stepsArr.some(s=>{
-      const step=STEPS.find(st=>st.id===s.id);
-      return step && normalizeScore(s.score, step.type);
-    });
-    const hasCatalyst=Array.isArray(result.catalystBehaviors)&&result.catalystBehaviors.length>0;
-    const hasCompliance=Array.isArray(result.compliance)&&result.compliance.length>0;
-    if(!hasValidScores){
-      console.error('RAW AI RESPONSE:\n',raw);
-      throw new Error('The AI response did not contain valid step scores. Your model may be too small for this prompt — try a larger model (qwen3:32b, llama3.3:70b, or use Cloud/Anthropic mode).');
-    }
-    if(!hasCatalyst||!hasCompliance){
-      console.warn('AI response is missing catalyst behaviors or compliance items — results may be incomplete. Consider using a larger model.');
-    }
-
+    clearAll();
     applyResult(result);
     stopProgress(true);
-    const filled=(result.steps||[]).filter(s=>s.score).length;
-    const warnings=[];
-    if(!hasCatalyst) warnings.push('missing catalyst behaviors');
-    if(!hasCompliance) warnings.push('missing compliance items');
-    statusEl.style.color=warnings.length?'var(--amber-tx)':'var(--green-tx)';
-    statusEl.textContent=warnings.length
-      ?`⚠ ${filled} steps scored but ${warnings.join(' and ')}. Try a larger model for complete results.`
-      :`✓ ${filled} steps scored by AI (${currentMode==='cloud'?'Anthropic':'Ollama'}). Review before finalizing.`;
 
+    const totalSec=Math.round((Date.now()-startTime)/1000);
+    if(result._fallback){
+      statusEl.style.color='var(--amber-tx)';
+      statusEl.textContent='Evidence extraction failed \u2014 used single-pass analysis. Scores may be less accurate. ('+totalSec+'s)';
+    } else {
+      const filled=(result.steps||[]).filter(s=>s.score).length;
+      statusEl.style.color='var(--green-tx)';
+      statusEl.textContent='\u2713 '+filled+' steps scored by AI ('+(currentMode==='cloud'?'Anthropic':'Ollama')+', '+(result._extraction?'two-pass':'single-pass')+'). Review before finalizing. ('+totalSec+'s)';
+    }
   } catch(e){
     stopProgress(false);
     statusEl.style.color='var(--red-tx)';
-    if(currentMode==='local'&&e instanceof TypeError&&e.message==='Failed to fetch'){
-      statusEl.textContent='Error: Cannot reach Ollama (CORS blocked). Run: set OLLAMA_ORIGINS=* && ollama serve';
-    } else {
-      statusEl.textContent='Error: '+e.message;
-    }
+    statusEl.textContent='Error: '+e.message;
+    console.error('Analysis failed:', e);
   }
 }
 
