@@ -3489,9 +3489,9 @@ function clearAll(silent){
   document.getElementById('autofail-banner').style.display='none';
   const oldProd=document.getElementById('exec-product-info');if(oldProd) oldProd.remove();
   const ep=document.getElementById('exec-panel');if(ep) ep.classList.remove('visible');
-  document.getElementById('exec-priority').textContent='';
-  document.getElementById('exec-text').textContent='';
-  document.getElementById('exec-pills').innerHTML='';
+  const ePri=document.getElementById('exec-priority');if(ePri) ePri.textContent='';
+  const eTxt=document.getElementById('exec-text');if(eTxt) eTxt.textContent='';
+  const ePills=document.getElementById('exec-pills');if(ePills) ePills.innerHTML='';
   const ec=document.getElementById('exec-coaching');if(ec) ec.innerHTML='';
   document.getElementById('s-scored').textContent='0 / 11';
   document.getElementById('s-ed').textContent='–';document.getElementById('s-pd').textContent='–';
