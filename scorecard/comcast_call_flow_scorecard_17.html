@@ -1880,13 +1880,18 @@ AUTHENTICATION METHODS:
 PRODUCT KNOWLEDGE (for product name matching):
 ${getProductKnowledge()}
 
-${agendaLine?'PRIMARY SALE CONTEXT: The agent opened with: "'+agendaLine.slice(0,150)+'". This is the primary product being sold.':''}
+${agendaLine?`CRITICAL — PRIMARY SALE IDENTIFICATION:
+The agent stated the reason for calling in the opening: "${agendaLine.slice(0,200)}"
+This is the PRIMARY SALE. All fields in "pitch" and "close" MUST be about THIS product — not any product pitched later in the call.
+If the agent pitches additional products AFTER the primary sale closes, those go in "upsell" — a separate field.
+Do NOT let a later upsell overwrite the primary sale in your extraction.`:''}
 
 === TRANSCRIPT (${totalLines} lines) ===
 ${numberedTranscript}
 === END TRANSCRIPT ===
 
 Extract the following JSON. Every fact MUST include line numbers. Report only what is observable in the transcript.
+REMINDER: "pitch" and "close" are about the PRIMARY sale from the agenda. Secondary products go in "upsell".
 
 {
   "customerType": "existing|new",
@@ -1939,6 +1944,12 @@ Extract the following JSON. Every fact MUST include line numbers. Report only wh
       "postApproval": true/false,
       "lines": [N,N]
     }
+  },
+  "upsell": {
+    "attempted": true/false,
+    "product": "secondary product pitched AFTER primary sale closed, or empty",
+    "lines": [N,N],
+    "customerResponse": "accepted|deferred|declined|not_attempted"
   },
   "processIssues": [{"line": N, "type": "long_hold|confusion|tech_difficulty|repeated_attempt", "summary": "brief"}],
   "redFlagCandidates": [{"line": N, "type": "rf1|rf2|rf3|rf4|rf5|rf6", "summary": "brief factual description"}],
