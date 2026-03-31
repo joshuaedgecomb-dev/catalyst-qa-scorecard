@@ -2006,12 +2006,17 @@ AUTHENTICATION METHODS:
 PRODUCT KNOWLEDGE (for product name matching):
 ${getProductKnowledge()}
 
-CRITICAL — PRIMARY SALE IDENTIFICATION (determined by automated pre-scan):
+CRITICAL — THIS CALL HAS ${pt.upsells.length?'TWO':'ONE'} SALES CYCLE${pt.upsells.length?'S':''} (determined by automated pre-scan):
 ${pt.summary}
 ${agendaLine?'Agent agenda statement: "'+agendaLine.slice(0,200)+'"':''}
-All fields in "pitch" and "close" MUST be about the PRIMARY PRODUCT (${pt.primaryProduct}) — not any upsell product pitched later.
-If the agent pitches additional products AFTER the primary sale closes, those go in "upsell" — a separate field.
-Do NOT let a later upsell overwrite the primary sale in your extraction.
+${pt.upsells.length?`
+MULTI-SALE STRUCTURE: This call has TWO distinct sales cycles:
+1. PRIMARY SALE (${pt.primaryProduct}): Discovery → Pitch → Close → Order confirmed
+2. UPSELL (${pt.upsells[0]}): Separate discovery → Separate pitch → Customer response
+The "discovery" and "pitch" sections MUST contain facts about the PRIMARY SALE (${pt.primaryProduct}).
+Questions about the upsell product go in "upsellDiscovery". The upsell pitch goes in "upsell".
+Do NOT mix upsell content into the primary sale sections.
+`:`All fields in "discovery", "pitch", and "close" are about the PRIMARY PRODUCT (${pt.primaryProduct}).`}
 
 === TRANSCRIPT (${totalLines} lines) ===
 ${numberedTranscript}
