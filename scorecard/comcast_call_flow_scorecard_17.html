@@ -4031,6 +4031,7 @@ async function callAI(transcript, attempt=1, onStatus){
         result=parseAIJSON(rawScoring);
         // Attach extraction for post-processing and downstream consumers
         result._extraction=extraction;
+        result._productTimeline=productTimeline;
         // Build discoveryPillars deterministically from extraction
         result.discoveryPillars=buildDiscoveryPillars(extraction);
       } catch(e){
@@ -4188,6 +4189,29 @@ function postProcessAIResult(result, transcript){
     if(!step||!s.trending||!s.trending.length) return;
     s.trending.forEach(t=>{ const idx=step.trending.indexOf(t); if(idx>=0){ if(!trendChecked[sid]) trendChecked[sid]=[]; if(!trendChecked[sid].includes(idx)) trendChecked[sid].push(idx); } });
   });
+
+  // ── Product timeline override: force primary sale from JS detection ──
+  const pt=result._productTimeline;
+  if(pt){
+    // Override primarySale product and outcome
+    if(!result.primarySale) result.primarySale={};
+    if(pt.primaryProduct&&pt.primaryProduct!=='Unknown'){
+      result.primarySale.product=pt.primaryProduct;
+    }
+    if(pt.hasSale){
+      result.primarySale.outcome='Sold';
+      result.suggestedOutcome='Successful sale';
+    }
+    // Override upsell if timeline detected one
+    if(pt.upsells&&pt.upsells.length){
+      if(!result.upsell) result.upsell={};
+      result.upsell.product=pt.upsells[0];
+      // Keep model's upsell outcome if it looks reasonable, otherwise mark from extraction
+      if(!result.upsell.outcome||result.upsell.outcome==='N/A'){
+        result.upsell.outcome='Not sold';
+      }
+    }
+  }
 }
 
 // ── Build payload from AI result for bulk (no DOM dependency) ─────────────────
