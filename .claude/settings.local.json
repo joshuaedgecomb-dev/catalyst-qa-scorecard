@@ -1,24 +1,11 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "The file that was just edited is: $ARGUMENTS. If the file path contains 'xfinity_product_knowledge_base.md', respond with EXACTLY this JSON: {\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"The product knowledge base was just updated. Read the updated xfinity_product_knowledge_base.md and sync any changed pricing, plans, features, or product details into index.html (the cheatsheet). Only update sections that correspond to what changed in the knowledge base. After updating, ask the user if they want to deploy.\"}}. If the file is NOT the knowledge base, respond with: {\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"\"}}"
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(wc:*)",
-      "Read(//c/Users/Joshu/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/**)",
+      "Read(//c/Users/Josh Edgecomb/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/**)",
       "Bash(python3 scripts/search.py \"enterprise QA dashboard tool evaluation scorecard professional dark\" --design-system -p \"Catalyst QA Scorecard\")",
-      "Bash(python \"C:/Users/Joshu/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/scripts/search.py\" \"enterprise QA dashboard tool evaluation scorecard professional\" --design-system -p \"Catalyst QA Scorecard\")",
-      "Bash(python \"C:/Users/Joshu/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/src/ui-ux-pro-max/scripts/search.py\" \"enterprise QA dashboard tool evaluation scorecard professional\" --design-system -p \"Catalyst QA Scorecard\")",
+      "Bash(python \"C:/Users/Josh Edgecomb/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/scripts/search.py\" \"enterprise QA dashboard tool evaluation scorecard professional\" --design-system -p \"Catalyst QA Scorecard\")",
+      "Bash(python \"C:/Users/Josh Edgecomb/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/src/ui-ux-pro-max/scripts/search.py\" \"enterprise QA dashboard tool evaluation scorecard professional\" --design-system -p \"Catalyst QA Scorecard\")",
       "Bash(python:*)",
       "Bash(sed -n '973,3070p' \"comcast_call_flow_scorecard_16 \\(25\\).html\")",
       "Bash(printf '\\\\n</script>\\\\n</body>\\\\n</html>\\\\n')",
@@ -37,7 +24,53 @@
       "Bash(gh api:*)",
       "Skill(update-config)",
       "Bash(mkdir -p \"/c/Users/Josh Edgecomb/.claude/commands\")",
-      "Bash(cp \"/c/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/.claude/commands/Deploy-Cheatsheet.md\" \"/c/Users/Josh Edgecomb/.claude/commands/Deploy-Cheatsheet.md\")"
+      "Bash(cp \"/c/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/.claude/commands/Deploy-Cheatsheet.md\" \"/c/Users/Josh Edgecomb/.claude/commands/Deploy-Cheatsheet.md\")",
+      "Bash(node:*)",
+      "Bash(gh auth:*)",
+      "Bash(node -e \":*)",
+      "Bash(cd:*)",
+      "Bash(mv \"comcast_call_flow_scorecard_17.html\" scorecard/)",
+      "Bash(mv \"comcast_call_flow_scorecard_16 \\(25\\).html\" scorecard/)",
+      "Bash(mv \"scorecard_training \\(2\\).md\" reference/)",
+      "Bash(mv \"xfinity_product_knowledge_base.md\" reference/)",
+      "Bash(mv index.html cheatsheet/)",
+      "Bash(mv Catalyst_Bootcamp_Agent_Deck_v2.pptx bootcamp/)",
+      "Bash(mv Catalyst_Bootcamp_Facilitator_Guide.pptx bootcamp/)",
+      "Bash(mv build_bootcamp_pptx.js bootcamp/)",
+      "Bash(mv build_facilitator_pptx.js bootcamp/)",
+      "Bash(rm -f \"~$Catalyst_Bootcamp_Agent_Deck.pptx\" \"~$Catalyst_Bootcamp_Facilitator_Guide.pptx\")",
+      "Bash(mv Catalyst_Bootcamp_Agent_Deck.pptx bootcamp/)",
+      "Bash(ls \"/c/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/bootcamp/\"*Job*Aid*)",
+      "Bash(ls \"/c/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/bootcamp/\"*RES4435*)",
+      "Bash(ls \"/c/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/bootcamp/\"*Simple*Selling*)",
+      "Bash(curl -s http://localhost:11434/api/chat -d '{\"\"\"\"model\"\"\"\":\"\"\"\"qwen3:8b\"\"\"\",\"\"\"\"messages\"\"\"\":[{\"\"\"\"role\"\"\"\":\"\"\"\"system\"\"\"\",\"\"\"\"content\"\"\"\":\"\"\"\"Respond with only valid JSON.\"\"\"\"},{\"\"\"\"role\"\"\"\":\"\"\"\"user\"\"\"\",\"\"\"\"content\"\"\"\":\"\"\"\"Return this JSON: {\\\\\"\"\"\"speakers\\\\\"\"\"\":{\\\\\"\"\"\"SPEAKER_00\\\\\"\"\"\":\\\\\"\"\"\"agent\\\\\"\"\"\",\\\\\"\"\"\"SPEAKER_01\\\\\"\"\"\":\\\\\"\"\"\"customer\\\\\"\"\"\"}}\"\"\"\"}],\"\"\"\"stream\"\"\"\":false,\"\"\"\"options\"\"\"\":{\"\"\"\"temperature\"\"\"\":0,\"\"\"\"num_ctx\"\"\"\":4096,\"\"\"\"num_predict\"\"\"\":500}}')",
+      "Bash(mkdir -p \"$TEMP\")",
+      "Bash(curl -s http://localhost:11434/api/chat -d \"{\"\"model\"\":\"\"qwen3:8b\"\",\"\"messages\"\":[{\"\"role\"\":\"\"system\"\",\"\"content\"\":\"\"Respond with only valid JSON.\"\"},{\"\"role\"\":\"\"user\"\",\"\"content\"\":\"\"Return this JSON: {\\\\\"\"speakers\\\\\"\":{\\\\\"\"SPEAKER_00\\\\\"\":\\\\\"\"agent\\\\\"\",\\\\\"\"SPEAKER_01\\\\\"\":\\\\\"\"customer\\\\\"\"}}\"\"}],\"\"stream\"\":false,\"\"options\"\":{\"\"temperature\"\":0,\"\"num_ctx\"\":4096,\"\"num_predict\"\":500}}\")",
+      "Bash(\"$TEMP/ollama_test.json\")",
+      "Read(//c/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/$HOME/.claude/**)",
+      "Read(//c/Users/Josh Edgecomb/Documents/Claude/Auto QA Form/$HOME/.claude/plugins/**)",
+      "Bash(echo \"HOME=$HOME\")",
+      "Bash(echo \"USERPROFILE=$USERPROFILE\")",
+      "Read(//c/Users/**)",
+      "Read(//c/Users/Josh Edgecomb/**)",
+      "Bash(echo \"exists: $?\")",
+      "Bash(powershell -Command \"Get-ChildItem C:\\\\Users | Select-Object Name, @{N='ShortName';E={\\(New-Object -ComObject Scripting.FileSystemObject\\).GetFolder\\(\\\\$_.FullName\\).ShortName}}\" 2>/dev/null)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "The file that was just edited is: $ARGUMENTS. If the file path contains 'xfinity_product_knowledge_base.md', respond with EXACTLY this JSON: {\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"The product knowledge base was just updated. Read the updated xfinity_product_knowledge_base.md and sync any changed pricing, plans, features, or product details into index.html (the cheatsheet). Only update sections that correspond to what changed in the knowledge base. After updating, ask the user if they want to deploy.\"}}. If the file is NOT the knowledge base, respond with: {\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"\"}}"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true
   }
 }

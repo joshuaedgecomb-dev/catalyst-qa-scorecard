@@ -2158,8 +2158,7 @@ function applyResult(result){
         if(evidenceQuotes.length){
           html+='<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">';
           evidenceQuotes.forEach(q=>{
-            const escaped=q.full.replace(/'/g,"\\'").slice(0,100);
-            html+=`<div style="font-size:11.5px;padding:5px 10px;background:var(--surface);border-radius:var(--r-sm);border-left:2px solid var(--purple-bd);cursor:pointer;color:var(--text2);line-height:1.5;transition:background .15s ease;" onclick="scrollToTranscriptEvidence('${escaped}')" title="Line ${q.lineNum}">
+            html+=`<div class="ev-click" data-evidence="${esc2(q.full.slice(0,100))}" style="font-size:11.5px;padding:5px 10px;background:var(--surface);border-radius:var(--r-sm);border-left:2px solid var(--purple-bd);cursor:pointer;color:var(--text2);line-height:1.5;transition:background .15s ease;" title="Line ${q.lineNum}">
               <span style="font-size:10px;color:var(--text3);margin-right:6px;">L${q.lineNum}</span>${q.full.replace(/</g,'&lt;')}
             </div>`;
           });
@@ -2522,7 +2521,9 @@ function applyResult(result){
       const sp=us.product||'';
       const spo=us.outcome||'';
       if(pp){
-        let prodHtml=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;">`;
+        // Remove previous product info bar if present
+        const oldProd=document.getElementById('exec-product-info');if(oldProd) oldProd.remove();
+        let prodHtml=`<div id="exec-product-info" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;">`;
         const ppoColor=ppo.toLowerCase().startsWith('sold')?'var(--green-tx)':'var(--amber-tx)';
         const ppoBg=ppo.toLowerCase().startsWith('sold')?'var(--green-bg)':'var(--amber-bg)';
         prodHtml+=`<div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--text2);">Primary:</span><span style="font-weight:600;color:var(--text);">${pp}</span><span style="padding:2px 8px;border-radius:12px;background:${ppoBg};color:${ppoColor};font-weight:600;font-size:11px;">${ppo}</span></div>`;
@@ -2546,15 +2547,14 @@ function applyResult(result){
           const snippet=cleaned.slice(0,80);
           if(!snippet) return match;
           const display='"'+snippet+(cleaned.length>80?'...':'')+'"';
-          const escaped=cleaned.replace(/'/g,"\\'").slice(0,100);
-          return `<span style="color:var(--teal-tx);cursor:pointer;border-bottom:1.5px solid var(--teal-bd);font-weight:500;" onclick="scrollToTranscriptEvidence('${escaped}')" title="Line ${start}">${display}</span>`;
+          return `<span class="ev-click" data-evidence="${esc2(cleaned.slice(0,100))}" style="color:var(--teal-tx);cursor:pointer;border-bottom:1.5px solid var(--teal-bd);font-weight:500;" title="Line ${start}">${display}</span>`;
         });
       }
 
       priority.textContent=es.topPriority||es.top_priority||es.priority||'';
       // Summary narrative with linkified evidence
       const summaryText=es.summary||es.primarySaleSummary||es.overview||es.analysis||es.description||'';
-      text.innerHTML=linkifyEvidence(summaryText);
+      text.innerHTML=linkifyEvidence(esc2(summaryText));
 
       // Discovery pillars display
       const dpData=result.discoveryPillars||{};
@@ -2677,15 +2677,15 @@ function applyResult(result){
           const p=(r.priority||'medium').toLowerCase();
           const badgeLabel=p==='high'?'High priority':'Medium priority';
           const isObjHandling=(r.focus||'').toLowerCase().includes('objection');
-          const phase=r.compassPhase?`<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:12px;background:var(--bg3);color:var(--text2);margin-left:6px;">${r.compassPhase}</span>`:'';
+          const phase=r.compassPhase?`<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:12px;background:var(--bg3);color:var(--text2);margin-left:6px;">${esc2(r.compassPhase)}</span>`:'';
           html+=`<div class="coaching-card priority-${p}">
             <div class="coaching-card-hdr">
-              <span class="coaching-card-focus">${r.focus||''}${phase}${isObjHandling?' <span class="coaching-framework-tag">Understand \u2192 Acknowledge \u2192 Reinforce \u2192 Assume</span>':''}</span>
+              <span class="coaching-card-focus">${esc2(r.focus||'')}${phase}${isObjHandling?' <span class="coaching-framework-tag">Understand \u2192 Acknowledge \u2192 Reinforce \u2192 Assume</span>':''}</span>
               <span class="coaching-card-badge ${p}">${badgeLabel}</span>
             </div>
-            <div class="coaching-card-what">${r.what||''}</div>
-            ${r.transcriptEvidence?`<div style="font-size:12px;color:var(--text2);background:var(--bg2);border-radius:var(--r-sm);padding:8px 10px;margin:6px 0;line-height:1.5;border-left:2px solid var(--teal-bd);cursor:pointer;transition:background .15s ease;" onclick="scrollToTranscriptEvidence(this.textContent)" title="Click to find in transcript">${r.transcriptEvidence}</div>`:''}
-            ${r.example?`<div style="font-size:12px;color:var(--text);background:var(--bg2);border-radius:var(--r-sm);padding:8px 10px;margin-top:6px;line-height:1.5;border-left:2px solid var(--green-bd);font-style:italic;">"${r.example}"</div>`:''}
+            <div class="coaching-card-what">${esc2(r.what||'')}</div>
+            ${r.transcriptEvidence?`<div style="font-size:12px;color:var(--text2);background:var(--bg2);border-radius:var(--r-sm);padding:8px 10px;margin:6px 0;line-height:1.5;border-left:2px solid var(--teal-bd);cursor:pointer;transition:background .15s ease;" onclick="scrollToTranscriptEvidence(this.textContent)" title="Click to find in transcript">${esc2(r.transcriptEvidence)}</div>`:''}
+            ${r.example?`<div style="font-size:12px;color:var(--text);background:var(--bg2);border-radius:var(--r-sm);padding:8px 10px;margin-top:6px;line-height:1.5;border-left:2px solid var(--green-bd);font-style:italic;">"${esc2(r.example)}"</div>`:''}
           </div>`;
         });
         html+=`</div></div>`;
@@ -2840,10 +2840,10 @@ Return ONLY valid JSON, no explanation, no markdown:
         model,
         messages:[
           {role:'system',content:'Respond with only valid JSON. No thinking, no markdown, no explanation.'},
-          {role:'user',content:prompt}
+          {role:'user',content:prompt+'\n/no_think'}
         ],
         stream:false,
-        options:{temperature:0,num_ctx:32768,num_predict:2048}
+        options:{temperature:0,num_ctx:32768,num_predict:4096}
       };
       console.log('Speaker detection prompt size:', prompt.length, 'chars');
       const res=await fetch(`${base}/api/chat`,{
@@ -3443,6 +3443,7 @@ function clearAll(){
   document.querySelectorAll('.ev-toggle').forEach(b=>{b.classList.remove('open');b.style.display='none';});
   document.querySelectorAll('.ev-text').forEach(el=>{el.textContent='';el.className='ev-empty';});
   document.getElementById('autofail-banner').style.display='none';
+  const oldProd=document.getElementById('exec-product-info');if(oldProd) oldProd.remove();
   const ep=document.getElementById('exec-panel');if(ep) ep.classList.remove('visible');
   document.getElementById('exec-priority').textContent='';
   document.getElementById('exec-text').textContent='';
@@ -3477,7 +3478,7 @@ async function sendToSheets(){
   p.steps.forEach(s=>{row[`S${s.step}_${s.name.replace(/[\s\/\-—]+/g,'_').substring(0,28)}`]=s.score||'';if((trendChecked[s.id]||[]).length) row[`S${s.step}_Coaching`]=s.trending.join('; ');if(s.notes) row[`S${s.step}_Notes`]=s.notes;});
   p.redFlags.forEach(rf=>{row[`RF_${rf.name.replace(/[\s\/]+/g,'_').substring(0,28)}`]=rf.flagged?'FLAGGED':'';if(rf.subs.length) row[`RF_${rf.name.replace(/[\s\/]+/g,'_').substring(0,24)}_Detail`]=rf.subs.join('; ');});
   status.style.color='var(--text2)';status.textContent='Sending…';
-  try{await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});status.style.color='var(--green-tx)';status.textContent='Row sent! Check your spreadsheet.';}
+  try{await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});status.style.color='var(--amber-tx)';status.textContent='Request sent — verify row appeared in your spreadsheet.';}
   catch(e){status.style.color='var(--red-tx)';status.textContent='Error: '+e.message;}
 }
 
@@ -3534,7 +3535,7 @@ function renderQueue(){
     const parsedInfo = fp.tsr ? `TSR ${fp.tsr}` + (fp.callDate ? ` · ${fp.callDate}` : '') + (fp.phoneNumber ? ` · ${fp.phoneNumber}` : '') : '';
     const sub=q.status==='done'?`ED: ${q.result?.summary?.catalystED??'–'}/6 · Auto-fail: ${q.result?.summary?.autoFail?'YES':'No'} · ${q.result?.meta?.outcome||''}`:q.status==='error'?q.error:q.status==='processing'?'Analyzing transcript…':(parsedInfo||'Waiting');
     return `<div class="q-item ${statusClass}" id="qi-${i}">
-      <div><div class="q-name">${q.name}</div><div class="q-sub">${sub}</div></div>
+      <div><div class="q-name">${esc2(q.name)}</div><div class="q-sub">${esc2(sub)}</div></div>
       ${badge}
     </div>`;
   }).join('');
@@ -3547,7 +3548,7 @@ function updateQueueItem(i){
   const badge={pending:'<span class="q-badge pending">Pending</span>',processing:'<span class="q-badge processing">Processing…</span>',done:'<span class="q-badge done">Done</span>',error:'<span class="q-badge error">Error</span>',skipped:'<span class="q-badge skipped">Skipped</span>'}[q.status]||'';
   const sub=q.status==='done'?`ED: ${q.result?.summary?.catalystED??'–'}/6 · Auto-fail: ${q.result?.summary?.autoFail?'YES':'No'} · ${q.result?.meta?.outcome||''}`:q.status==='error'?q.error:q.status==='processing'?'Analyzing transcript…':'Waiting';
   el.className=`q-item ${statusClass}`;
-  el.innerHTML=`<div><div class="q-name">${q.name}</div><div class="q-sub">${sub}</div></div>${badge}`;
+  el.innerHTML=`<div><div class="q-name">${esc2(q.name)}</div><div class="q-sub">${esc2(sub)}</div></div>${badge}`;
   el.scrollIntoView({block:'nearest'});
 }
 
@@ -3840,7 +3841,9 @@ function postProcessAIResult(result, transcript){
       for(var i=Math.max(0,lineNum-3);i<Math.min(txLines.length,lineNum+1);i++){
         if(/^Agent:/i.test(txLines[i])&&txLines[i].includes('?')){found=true;break;}
       }
-      if(!found&&!costAsked&&!devicesAsked&&!usersAsked&&!usageAsked){
+      // Only invalidate if the broad scan for THIS specific pillar also found nothing
+      var broadScanForKey={cost:costAsked,devices:devicesAsked,users:usersAsked,usage:usageAsked};
+      if(!found&&!broadScanForKey[key]){
         p.asked=false;
         p.whatWasLearned='Not asked by agent';
       }
@@ -3959,7 +3962,11 @@ function buildBulkPayload(aiResult,meta){
     const labels={ed:'Effectively Demonstrated',pd:'Partially Demonstrated',dnd:'Did Not Demonstrate'};
     return{id:c.id,name:c.name,rating:labels[r]};
   });
-  let edCount=catalystRollup.filter(c=>c.rating==='Effectively Demonstrated').length;
+  // Compute ED count from whichever source the payload will actually use
+  const finalCatalyst=aiResult.catalystBehaviors||catalystRollup;
+  const edCount=finalCatalyst===catalystRollup
+    ? catalystRollup.filter(c=>c.rating==='Effectively Demonstrated').length
+    : finalCatalyst.filter(c=>(c.score||'').toLowerCase()==='ed').length;
 
   const stepData=(aiResult.steps||[]).map(s=>{
     const sid=Number(s.id)||s.id;
@@ -4251,7 +4258,7 @@ async function bulkToSheets(){
   }
   btn.disabled=false;
   status.style.color=errs?'var(--amber-tx)':'var(--green-tx)';
-  status.textContent=`Sent ${sent} rows to Sheets${errs?` (${errs} errors)`:''}. Check your spreadsheet.`;
+  status.textContent=`Sent ${sent} rows to Sheets${errs?` (${errs} errors)`:''} — verify rows appeared in your spreadsheet.`;
 }
 
 // ── Download Zip (individual coaching reports + trend report) ────────────────
@@ -5080,6 +5087,15 @@ document.getElementById('prod-deals').value=load('catalyst_product_deals')||DEFA
 const savedRosterUrl=load('catalyst_roster_url');if(savedRosterUrl){document.getElementById('roster-url').value=savedRosterUrl;if(rosterData.length){document.getElementById('roster-status').textContent=`✓ ${rosterData.length} agents (cached)`;}else{loadRoster();}}
 
 renderBody();
+
+// Event delegation for evidence clicks (safe alternative to inline onclick)
+document.addEventListener('click',function(e){
+  const el=e.target.closest('.ev-click[data-evidence]');
+  if(el) scrollToTranscriptEvidence(el.dataset.evidence);
+});
+
+// Invalidate speaker cache when transcript is manually edited/pasted
+document.getElementById('ai-transcript').addEventListener('input',function(){speakerSeedMap=null;});
 </script>
 </body>
 </html>
