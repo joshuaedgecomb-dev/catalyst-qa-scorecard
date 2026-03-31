@@ -2240,7 +2240,7 @@ async function analyzeTranscript(){
       document.getElementById('ai-transcript').value=result._normalizedTranscript;
     }
 
-    clearAll();
+    clearAll(true);
     applyResult(result);
     stopProgress(true);
 
@@ -3451,8 +3451,8 @@ function exportJSON(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`scorecard_${(p.meta.agent||'agent').replace(/\s+/g,'_')}_${p.meta.date||'nodate'}.json`;a.click();
 }
 
-function clearAll(){
-  if(!confirm('Clear all scores, flags, and notes?')) return;
+function clearAll(silent){
+  if(!silent&&!confirm('Clear all scores, flags, and notes?')) return;
   [scores,trendChecked,notes,rfFlags,rfSubs,stepEvidence,complianceScores].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
   const tpRefBody=document.getElementById('tp-ref-body');if(tpRefBody) tpRefBody.innerHTML='<div class="tp-empty" id="tp-ref-empty">Paste a transcript and run analysis to see the annotated call flow here.</div>';
   CATALYST.forEach(c=>{
