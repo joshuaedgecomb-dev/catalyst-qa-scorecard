@@ -1410,6 +1410,16 @@ function repairJSON(s){
   s=s.replace(/([,{\[:])\s*'/g,'$1"');
   return s;
 }
+function parseAIJSON(raw){
+  const clean=stripToJSON(raw);
+  let result;
+  try{result=JSON.parse(clean);}catch(e){
+    try{result=JSON.parse(repairJSON(clean));}catch(e2){}
+    if(!result){const m=clean.match(/\{[\s\S]*\}/);if(m) try{result=JSON.parse(repairJSON(m[0]));}catch(e3){}}
+  }
+  if(!result) throw new Error('Could not parse AI JSON response');
+  return result;
+}
 
 // ─── Ollama connection check ──────────────────────────────────────────────────
 function ollamaCorsHint(base){
@@ -4039,31 +4049,77 @@ function clearBulkQueue(){
   document.getElementById('bulk-footer-status').textContent='';
 }
 
+// ── Ollama chat helper (reusable for both passes) ───────────────────────────
+async function ollamaChat(systemMsg, userMsg, maxTokens=16384){
+  const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
+  const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
+  const TIMEOUT_MS=5*60*1000;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
+  try{
+    const res=await fetch(`${base}/v1/chat/completions`,{
+      method:'POST',signal:controller.signal,
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model,
+        messages:[
+          {role:'system',content:systemMsg},
+          {role:'user',content:userMsg}
+        ],
+        max_tokens:maxTokens,
+        stream:false,
+        temperature:0.1,
+        options:{num_ctx:65536,num_predict:maxTokens}
+      })
+    });
+    clearTimeout(timer);
+    if(!res.ok){
+      const txt=await res.text().catch(()=>'');
+      throw new Error(`Ollama ${res.status}${txt?' — '+txt.slice(0,80):''}`);
+    }
+    const d=await res.json();
+    const bmsg=d?.choices?.[0]?.message||{};
+    let raw=bmsg.content||'';
+    if(!raw||raw.trim().length<10) raw=bmsg.reasoning||'';
+    return raw;
+  } catch(e){
+    clearTimeout(timer);
+    if(e.name==='AbortError') throw new Error('Request timed out after 5 minutes — try a faster model or shorter transcript');
+    if(e instanceof TypeError&&e.message==='Failed to fetch') throw new Error('Cannot reach Ollama (CORS blocked). Run: set OLLAMA_ORIGINS=* && ollama serve');
+    throw e;
+  }
+}
+
 // ── AI call (returns parsed result object) ────────────────────────────────────
 async function callAI(transcript, attempt=1){
   // Normalize SPEAKER_XX labels to Agent/Customer before scoring
   let normalizedTranscript=transcript;
   const hasSpeakerIds=/^SPEAKER_\d+:/m.test(transcript);
   if(hasSpeakerIds){
-    const spkMap=await detectSpeakersWithAI(transcript);
-    if(spkMap&&Object.keys(spkMap).length){
+    // Use cached speaker map if available
+    if(!speakerSeedMap||!Object.keys(speakerSeedMap).length){
+      speakerSeedMap=await detectSpeakersWithAI(transcript);
+    }
+    if(speakerSeedMap&&Object.keys(speakerSeedMap).length){
       const lines=transcript.split(/\r?\n/);
       normalizedTranscript=lines.map(line=>{
         const m=line.match(/^(SPEAKER_\d+):\s*/);
         if(!m) return line;
-        const role=spkMap[m[1]];
+        const role=speakerSeedMap[m[1]];
         const label=role==='agent'?'Agent':'Customer';
         return label+': '+line.slice(m[0].length);
       }).join('\n');
     }
   }
-  const prompt=buildPrompt(normalizedTranscript);
-  let raw='';
-  const TIMEOUT_MS = 5 * 60 * 1000; // 5 min — enough for any local model on a long transcript
+
+  let result;
 
   if(currentMode==='cloud'){
+    // Cloud mode: single pass (unchanged)
+    const prompt=buildCloudPrompt(normalizedTranscript);
     const apiKey=(document.getElementById('ai-api-key').value||'').trim();
     const model=document.getElementById('cloud-model').value;
+    const TIMEOUT_MS=5*60*1000;
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
     try{
@@ -4074,62 +4130,72 @@ async function callAI(transcript, attempt=1){
       });
       clearTimeout(timer);
       if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`API ${res.status}`);}
-      const d=await res.json();raw=d?.content?.[0]?.text||'';
+      const d=await res.json();
+      const raw=d?.content?.[0]?.text||'';
+      result=parseAIJSON(raw);
     } catch(e){
       clearTimeout(timer);
       if(e.name==='AbortError') throw new Error('Request timed out after 5 minutes');
       throw e;
     }
+    postProcessAIResult(result, normalizedTranscript);
   } else {
-    const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
-    const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
+    // Local mode: two-pass architecture
+    const lineCount=normalizedTranscript.split(/\r?\n/).length;
+    let extraction=null;
+    let usedFallback=false;
+
+    // ── Pass 1: Evidence Extraction ──
     try{
-      const res=await fetch(`${base}/v1/chat/completions`,{
-        method:'POST',signal:controller.signal,
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model,
-          messages:[
-            {role:'system',content:'You are a precise JSON-only responder. After any thinking, output ONLY valid JSON. No markdown fences, no backticks. All scores MUST be strings, NEVER numbers. Step scores: "ed", "pd", "dnd", "na", "yes", or "no". Catalyst scores: "ed", "pd", or "dnd". Compliance scores: "yes", "no", or "na".'},
-            {role:'user',content:prompt}
-          ],
-          max_tokens:16384,
-          stream:false,
-          temperature:0.1,
-          options:{num_ctx:65536,num_predict:16384}})
-      });
-      clearTimeout(timer);
-      if(!res.ok){
-        const txt=await res.text().catch(()=>'');
-        throw new Error(`Ollama ${res.status}${txt?' — '+txt.slice(0,80):''}`);
-      }
-      const d=await res.json();const bmsg=d?.choices?.[0]?.message||{};raw=bmsg.content||'';if(!raw||raw.trim().length<10) raw=bmsg.reasoning||'';
+      const sysMsg='Respond with only valid JSON. No thinking, no markdown, no explanation.';
+      const extractionPrompt=buildExtractionPrompt(normalizedTranscript);
+      console.log('Pass 1 (extraction) prompt size:', extractionPrompt.length, 'chars (~'+Math.round(extractionPrompt.length/4)+' tokens)');
+      const rawExtraction=await ollamaChat(sysMsg, extractionPrompt, 8192);
+      const parsed=parseAIJSON(rawExtraction);
+      const validation=validateExtraction(parsed, lineCount);
+      if(validation.valid) extraction=validation.extraction;
+      else console.warn('Extraction validation failed:', validation.reason);
     } catch(e){
-      clearTimeout(timer);
-      if(e.name==='AbortError') throw new Error('Request timed out after 5 minutes — try a faster model or shorter transcript');
-      if(e instanceof TypeError&&e.message==='Failed to fetch') throw new Error('Cannot reach Ollama (CORS blocked). Run: set OLLAMA_ORIGINS=* && ollama serve');
-      throw e;
+      console.warn('Pass 1 extraction failed:', e.message);
     }
+
+    if(extraction){
+      // ── Pass 2: Scoring Judgment ──
+      try{
+        const sysMsg='You are a precise JSON-only responder. Output ONLY valid JSON. All scores MUST be strings: "ed", "pd", "dnd", "na", "yes", or "no".';
+        const scoringPrompt=buildScoringPrompt(extraction);
+        console.log('Pass 2 (scoring) prompt size:', scoringPrompt.length, 'chars (~'+Math.round(scoringPrompt.length/4)+' tokens)');
+        const rawScoring=await ollamaChat(sysMsg, scoringPrompt, 16384);
+        result=parseAIJSON(rawScoring);
+        // Attach extraction for post-processing and downstream consumers
+        result._extraction=extraction;
+        // Build discoveryPillars deterministically from extraction
+        result.discoveryPillars=buildDiscoveryPillars(extraction);
+      } catch(e){
+        console.warn('Pass 2 scoring failed:', e.message);
+        result=null;
+      }
+    }
+
+    // ── Fallback: single-pass if either pass failed ──
+    if(!result){
+      usedFallback=true;
+      console.warn('Two-pass failed, falling back to single-pass');
+      const prompt=buildLocalPrompt(normalizedTranscript);
+      const sysMsg='You are a precise JSON-only responder. After any thinking, output ONLY valid JSON. No markdown fences, no backticks. All scores MUST be strings, NEVER numbers.';
+      const raw=await ollamaChat(sysMsg, prompt, 16384);
+      try{
+        result=parseAIJSON(raw);
+      } catch(e){
+        if(attempt<2){await sleep(3000);return callAI(transcript,2);}
+        throw new Error('Could not parse AI JSON response after 2 attempts');
+      }
+    }
+
+    postProcessAIResult(result, normalizedTranscript);
+    if(usedFallback) result._fallback=true;
   }
 
-  let clean=stripToJSON(raw);
-  let result;
-  try{result=JSON.parse(clean);}catch(e){
-    try{result=JSON.parse(repairJSON(clean));}catch(e2){}
-    if(!result){const m=clean.match(/\{[\s\S]*\}/);if(m) try{result=JSON.parse(repairJSON(m[0]));}catch(e3){}}
-    if(!result){
-      // Retry once on parse failure — models occasionally produce malformed JSON
-      if(attempt < 2){
-        await sleep(3000);
-        return callAI(transcript, 2);
-      }
-      throw new Error('Could not parse AI JSON response after 2 attempts');
-    }
-  }
-  // Run the same post-processing as the single form
-  postProcessAIResult(result, normalizedTranscript);
   result._normalizedTranscript=normalizedTranscript;
   return result;
 }
