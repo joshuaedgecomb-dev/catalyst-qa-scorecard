@@ -1943,6 +1943,110 @@ Respond with valid JSON only. Start with {
 \n/no_think`;
 }
 
+function buildScoringPrompt(extraction){
+  const stepsJSON=JSON.stringify(STEPS.map(s=>({id:s.id,name:s.name,type:s.type,catalyst:s.catalyst,desc:s.desc,trending:s.trending})));
+  const catalystJSON=JSON.stringify(CATALYST.map(c=>({id:c.id,name:c.name,intent:c.intent,criteria:c.criteria})));
+  const rfJSON=JSON.stringify(RED_FLAGS.map(rf=>({id:rf.id,name:rf.name,desc:rf.desc,subs:rf.subs})));
+  const complianceJSON=JSON.stringify(COMPLIANCE_ITEMS.map(c=>({id:c.id,name:c.name,desc:c.desc,na:c.na})));
+
+  return `You are an expert Xfinity outbound telesales quality evaluator. Score this call based on the EVIDENCE EXTRACTION below — structured facts extracted from the transcript. You will NOT see the transcript itself.
+
+SCORING PHILOSOPHY:
+Grade in a vacuum — evaluate what worked for this specific customer on this specific call. If the agent accomplished the goal of a step even imperfectly, that is at minimum "pd". Reserve "dnd" for steps the agent completely skipped or failed entirely.
+
+SCORING VALUES — strings only:
+- "cat" type steps: "ed", "pd", "dnd", "na"
+- "yn" type steps: "yes", "no", "na"
+- Score "na" only when genuinely not applicable (no objection raised, no sale made, call ended early).
+
+CATALYST BEHAVIORS — score each independently using the criteria below. Each behavior has specific ed/pd/dnd definitions:
+${catalystJSON}
+
+COACHING CONTEXT INSTRUCTIONS:
+Use the extraction data to produce SPECIFIC, ACTIONABLE coaching:
+- Compare discovery.pillarsAsked vs ["users","usage","devices","cost"] — name the missing pillars and suggest specific questions
+- For each product in pitch.productsPitched: if tiedToDiscovery is false, call this out as a generic pitch and explain how a tie-back would have worked using what WAS discovered
+- For each objection: map the agent's approach against the 4-step framework (understand > empathize > restate > add value) — identify where the breakdown occurred
+- Use processIssues, customerRepeatedSelf, and scriptedMoments to assess effortlessness — cite specific line numbers
+- Use appreciationInstances, personalRapportMoments, and xfinityMembershipMentioned to assess engagement quality
+- OPPORTUNITY PRIORITY: Discovery > Linking/Ambassador > Effortless > Own It > Appreciation > Engagement. If discovery was absent, it MUST be the #1 opportunity.
+
+STEP DEFINITIONS AND CRITERIA (score each step):
+${stepsJSON}
+
+RED FLAG DEFINITIONS:
+${rfJSON}
+IMPORTANT: Only confirm red flags that appear in the extraction's redFlagCandidates. Do NOT flag items not present in the extraction.
+
+COMPLIANCE ITEMS (score each yes/no/na):
+${complianceJSON}
+
+PRODUCT KNOWLEDGE:
+${getProductKnowledge()}
+
+CAMPAIGNS: "Xfinity Mobile Add A Line" | "XM Likely" | "Add XMC" | "Nonsub BAU" | ""
+
+=== EVIDENCE EXTRACTION ===
+${JSON.stringify(extraction, null, 2)}
+=== END EXTRACTION ===
+
+Score ALL 11 steps, ALL 6 red flags, ALL 11 compliance items, ALL 6 catalyst behaviors. Produce a complete executiveSummary.
+
+JSON structure:
+{
+  "customerType": "${extraction.customerType||'existing'}",
+  "steps": [
+    {"id":1, "score":"ed|pd|dnd|na", "trending":[], "notes":"coaching note referencing (line X)", "evidenceLines":[N,N]},
+    {"id":2, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":3, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":4, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":5, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":6, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":7, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":8, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":9, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":10, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]},
+    {"id":11, "score":"...", "trending":[], "notes":"...", "evidenceLines":[N,N]}
+  ],
+  "redFlags": [
+    {"id":"rf1","flagged":false,"subs":[],"notes":""}, {"id":"rf2","flagged":false,"subs":[],"notes":""},
+    {"id":"rf3","flagged":false,"subs":[],"notes":""}, {"id":"rf4","flagged":false,"subs":[],"notes":""},
+    {"id":"rf5","flagged":false,"subs":[],"notes":""}, {"id":"rf6","flagged":false,"subs":[],"notes":""}
+  ],
+  "compliance": [
+    {"id":"c1","score":"yes|no|na","notes":"..."}, {"id":"c2","score":"...","notes":"..."},
+    {"id":"c3","score":"...","notes":"..."}, {"id":"c4","score":"...","notes":"..."},
+    {"id":"c5","score":"...","notes":"..."}, {"id":"c6","score":"...","notes":"..."},
+    {"id":"c7","score":"...","notes":"..."}, {"id":"c8","score":"...","notes":"..."},
+    {"id":"c9","score":"...","notes":"..."}, {"id":"c10","score":"...","notes":"..."},
+    {"id":"c11","score":"...","notes":"..."}
+  ],
+  "catalystBehaviors": [
+    {"id":"b1","score":"ed|pd|dnd","notes":"2-3 sentences with (line X) references"},
+    {"id":"b2","score":"...","notes":"..."}, {"id":"b3","score":"...","notes":"..."},
+    {"id":"b4","score":"...","notes":"..."}, {"id":"b5","score":"...","notes":"..."},
+    {"id":"b6","score":"...","notes":"..."}
+  ],
+  "productFlags": [],
+  "suggestedOutcome": "Successful sale | No sale – [reason]",
+  "suggestedCampaign": "",
+  "primarySale": {"product":"from extraction.pitch.primarySale","outcome":"Sold or Not sold - reason"},
+  "upsell": {"product":"secondary product or None","outcome":"..."},
+  "executiveSummary": {
+    "topPriority": "5-8 word coaching headline from THIS call",
+    "summary": "3-5 sentence narrative of the full call. Walk through chronologically: opening, discovery, pitch, close. Call out the pivotal moment. Reference (line X). Write for a manager sharing with the agent.",
+    "strengths": ["MINIMUM 2. Reference (line X). Explain WHY through Catalyst behaviors."],
+    "opportunities": ["MINIMUM 2. Reference (line X). Prioritize: Discovery > Linking > Effortless > Own It > Appreciation > Engagement."],
+    "critical": [],
+    "salesCoaching": [{"compassPhase":"Connect|Explore|Consult|Overcome|Review","focus":"label","what":"specific guidance citing transcript evidence","evidenceLines":[N],"example":"concrete script they could use","priority":"high|medium"}],
+    "complianceCoaching": [{"compassPhase":"Connect|Review","focus":"label","what":"compliance gap description","evidenceLines":[N],"example":"exact verbatim they should deliver","priority":"high|medium"}]
+  }
+}
+
+Respond with valid JSON only. Start with {
+\n/no_think`;
+}
+
 // ─── Voicemail / non-call detection ─────────────────────────────────────────
 function detectVoicemail(transcript){
   if(!transcript) return null;
