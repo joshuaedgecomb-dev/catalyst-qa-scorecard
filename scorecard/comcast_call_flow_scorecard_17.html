@@ -2140,8 +2140,11 @@ function detectVoicemail(transcript){
   const vmPhrases=/leave\s*(a\s*)?message|not\s*available|after\s*the\s*(tone|beep)|mailbox\s*is\s*full|please\s*record\s*your\s*message|no\s*one\s*is\s*available/i;
   if(vmPhrases.test(scanText)) return 'Voicemail detected — transcript contains voicemail/answering machine phrases.';
   const first60=lines.slice(0,60);
+  // Check for customer lines — also recognize SPEAKER_ labels (pre-normalization)
   const customerLines=first60.filter(l=>/^Customer:/i.test(l));
-  if(customerLines.length===0) return 'No customer responses found in the first 60 lines — may be a voicemail or one-sided call.';
+  const speakerIds=new Set(first60.map(l=>(l.match(/^(SPEAKER_\d+):/)||[])[1]).filter(Boolean));
+  // If we have 2+ distinct speakers, it's a real conversation even without Customer: labels
+  if(customerLines.length===0&&speakerIds.size<2) return 'No customer responses found in the first 60 lines — may be a voicemail or one-sided call.';
   return null; // not a voicemail
 }
 
