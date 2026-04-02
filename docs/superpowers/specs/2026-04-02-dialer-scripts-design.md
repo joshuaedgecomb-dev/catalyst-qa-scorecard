@@ -91,7 +91,7 @@ Content block badges:
 These are the required verbatim statements. Each must appear in a yellow compliance callout box in the scripts.
 
 **C1 — Recording Disclosure (every call, Phase 1):**
-> "Before I continue, I need to inform you that this call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices please visit xfinity.com/privacy."
+> "Before I continue, I need to inform you that the call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices please visit xfinity.com/privacy."
 
 **C3 — Broadband Labels (when Internet or Mobile is offered, Phase 3):**
 > "Before I go into plan details, I wanted to let you know that you can now review a breakdown of pricing and features for Internet and mobile plans online, making it easy for you to compare them. For more information please visit xfinity.com/labels."
