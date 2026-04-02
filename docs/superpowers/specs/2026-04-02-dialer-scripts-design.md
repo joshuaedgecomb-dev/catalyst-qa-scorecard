@@ -62,13 +62,13 @@ Content block badges:
 - Agent tip on listening for tie-backs
 
 ### Phase 3 — Consult
-- Broadband Labels compliance (Internet/Mobile scripts)
+- Broadband Labels compliance (required when Internet or Mobile is offered — applies to NonSub, Localizers, XM Likely, and Add a Line; NOT required for XMC since only device protection is pitched)
 - Primary product pitch with tie-back language
 - Pricing table(s) with April 2026 deals
 - Cross-sell pitches (campaign-specific)
 
 ### Phase 4 — Overcome
-- Campaign-specific common objections
+- Campaign-specific common objections (the listed objections per campaign are the complete set — no additional objections should be added)
 - Each follows 4-step Compass framework: Understand → Empathize & Overcome → Restate Tie-backs → Add Value
 
 ### Phase 5 — Review
@@ -83,6 +83,39 @@ Content block badges:
 - Xfinity App & Rewards mention
 - Closing compliance verbatim
 - No-sale close alternative
+
+---
+
+## Compliance Verbatims (exact text for scripts)
+
+These are the required verbatim statements. Each must appear in a yellow compliance callout box in the scripts.
+
+**C1 — Recording Disclosure (every call, Phase 1):**
+> "Before I continue, I need to inform you that this call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices please visit xfinity.com/privacy."
+
+**C3 — Broadband Labels (when Internet or Mobile is offered, Phase 3):**
+> "Before I go into plan details, I wanted to let you know that you can now review a breakdown of pricing and features for Internet and mobile plans online, making it easy for you to compare them. For more information please visit xfinity.com/labels."
+
+**C4 — Before Submitting (every sale, Phase 5):**
+> "Before submitting your order, I want to spend a few minutes confirming with you that I've accurately captured the services you want. I'll ask you to review the order, and then if it's correct, please approve it. What phone number or email address would you like to use to complete this process?"
+
+**C5 — Text Consent (if order link sent via text, Phase 5):**
+> "Thanks. I'll now send you a text message at the number you provided with a link to confirm your order. Message and data rates may apply. Okay?"
+
+**C6 — Verbal Order Summary (if digital option fails, Phase 5):**
+Agent reads entire order summary top to bottom including legal disclaimer, taxes, fees, one-time charges. Then:
+> "DO YOU AGREE TO ORDER AND BE BILLED FOR THE EQUIPMENT AND SERVICES THAT I JUST DESCRIBED?"
+
+**C7 — Post-Approval (every sale after approval, Phase 5):**
+> "Thank you. After we finalize your order, you'll receive a copy of your order summary within 6 hours at the email address listed on your account. You can also find it at xfinity.com/MyAccount."
+
+**C8 — Closing Compliance (every call — sale or no sale, Phase 5):**
+> "Thank you for your time today. If you have any questions about this call or any Xfinity products or services in your area, please feel free to call 1-800-XFINITY (934-6489) or visit xfinity.com. Have a great rest of your day."
+
+**No-Sale Close (all scripts — when customer declines):**
+> "I appreciate you taking the time to chat with me today, [Customer Name]. If anything changes or you want to revisit this down the road, don't hesitate to call us at 1-800-XFINITY or visit xfinity.com. Have a great rest of your day!"
+>
+> TIP: *Even on a no-sale, leave the door open and leave a good impression. This person might call back, get another outbound call, or walk into a store. How you end the call matters.*
 
 ---
 
@@ -116,7 +149,7 @@ Content block badges:
 1. "I'm not interested" (nonspecific — probe first)
 2. "It's too expensive" (total cost comparison)
 3. "I'm happy with my current provider" (competitive comparison)
-4. "I need to think about it" (urgency + 30-day comfort)
+4. "I need to think about it" (urgency + price-lock expiration)
 5. "I'm in a contract" (savings offset ETF)
 6. "Just send me the information" (walk through highlights now, send summary)
 
@@ -127,11 +160,28 @@ Content block badges:
 
 ### 2. Localizers (script-localizers.html)
 
-**Identical to NonSub except:**
-- Connect: Warm opening referencing their website visit: "I noticed you were recently checking out some of our plans on xfinity.com..."
-- Explore: Extra question: "What was it about the plans you were looking at online that caught your eye?"
-- Consult: Warmer frame: "Based on what you were already looking at online, plus what you just told me..."
-- Overcome: One additional objection: "I already looked online and decided not to" (phone-exclusive deals, tailored recommendation, handle everything for them)
+Full standalone file. Contains all NonSub content with the following modifications:
+
+**Connect:**
+- Same greeting as NonSub
+- Recording disclosure
+- Reason for call (DIFFERENT from NonSub): "I noticed you were recently checking out some of our plans on xfinity.com — looks like you were interested in getting set up. I wanted to reach out personally to see if I could answer any questions and help you get the best deal available right now."
+- Rapport: Same as NonSub
+
+**Explore (all 4 pillars — same as NonSub, plus one additional question):**
+- Same Users, Usage, Devices, Cost questions as NonSub
+- Additional question: "What was it about the plans you were looking at online that caught your eye? Was there something specific you were hoping to get?"
+
+**Consult:**
+- Same products and pricing as NonSub
+- Warmer transition frame: "Based on what you were already looking at online, plus what you just told me, here's what I'd put together for you..."
+
+**Overcome (7 objections — all 6 NonSub objections plus one additional):**
+1-6. Same as NonSub
+7. "I already looked online and decided not to" (phone-exclusive deals not available online, tailored recommendation, agent handles everything)
+
+**Review:**
+- Same as NonSub
 
 ### 3. XM Likely (script-xm-likely.html)
 
@@ -180,6 +230,7 @@ Content block badges:
 - Devices: "Do they have a phone to bring over or looking at a new device?"
 
 **Consult:**
+- Broadband Labels compliance (required — Mobile is being offered)
 - Line pricing table (current lines + 1 at Unlimited/Premium)
 - Wearable option ($10/mo smartwatch)
 - Device promos (trade-in deals, BYOD path)
@@ -234,7 +285,7 @@ Content block badges:
 | 1G | $70 | $80 | $60 | $70 |
 | 1.2G | $100 | $110 | $90 | $100 |
 
-1 Gig+ includes Disney+, Hulu, Peacock Premium (36 months).
+1 Gig and 1.2 Gig tiers include Disney+, Hulu, Peacock Premium (36 months).
 
 ### Xfinity Mobile
 | Lines | Unlimited | Premium Unlimited |
@@ -249,9 +300,9 @@ Included line: $0/mo for 12 months on 300 Mbps+ Internet.
 ### XMC
 | Device MSRP | Monthly |
 |-------------|---------|
-| $0–$300 | $9 |
-| $301–$949 | $15 |
-| $950–$1,194 | $17 |
+| $0–$300.99 | $9 |
+| $301–$949.99 | $15 |
+| $950–$1,194.99 | $17 |
 | $1,195+ | $19 |
 
 ### StreamSaver Bundles
@@ -260,11 +311,13 @@ Included line: $0/mo for 12 months on 300 Mbps+ Internet.
 | Peacock + Disney+ + Hulu | $15 |
 | Peacock + Netflix + Apple TV | $18 |
 | Peacock + Netflix + HBO Max | $22 |
+| Peacock + Apple TV + HBO Max | $22 |
 | Peacock + Netflix + Disney+ + Hulu | $22 |
 | Peacock + Netflix + Apple TV + HBO Max | $30 |
 | Peacock + Netflix + Disney+ + Hulu + HBO Max | $30 |
+| Peacock + Netflix + Apple TV + Disney+ + Hulu | $30 |
 
-### Mobile Promos (through April 2026)
+### Mobile Promos (most through 4/21/26)
 - Included Unlimited line $0/mo for 12 months ($480 value)
 - Waived $25 activation fee (through 4/21)
 - iPhone 17e on us with trade-in (Premium Unlimited)
