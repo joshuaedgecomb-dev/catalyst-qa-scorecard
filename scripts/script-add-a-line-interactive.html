@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add a Line: Xfinity Mobile Line Addition - Interactive Script</title>
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  /* Phase colors */
+  --connect:   #6138f5;
+  --connect-bg:#f3eeff;
+  --explore:   #00b894;
+  --explore-bg:#e8f8f5;
+  --consult:   #0984e3;
+  --consult-bg:#e8f4fd;
+  --overcome:  #e67e22;
+  --overcome-bg:#fef5e7;
+  --review:    #00cec9;
+  --review-bg: #e8fffe;
+
+  /* Accent colors */
+  --compliance-bg:  #fef9e7;
+  --compliance-border: #f39c12;
+  --compliance-badge: #e67e22;
+  --tip-bg:     #f9f9f9;
+  --tip-badge:  #95a5a6;
+
+  /* Neutrals */
+  --text:       #2d3436;
+  --text-light: #777;
+  --border:     #e0e0e0;
+  --bg-card:    #ffffff;
+  --bg-body:    #f5f5f7;
+
+  /* Layout */
+  --header-h:   56px;
+  --progress-h: 52px;
+  --radius:     8px;
+  --shadow:     0 2px 8px rgba(0,0,0,0.08);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg-body);
+  line-height: 1.55;
+  font-size: 14px;
+  padding-top: calc(var(--header-h) + var(--progress-h) + 8px);
+  padding-bottom: 80px;
+}
+
+/* ============================================================
+   FIXED TOP HEADER + PROGRESS BAR
+   ============================================================ */
+#top-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: #1e1e2e;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+}
+
+#header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 20px;
+  min-height: var(--header-h);
+}
+#header-text h1 {
+  font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 0.3px;
+}
+#header-text .subtitle {
+  font-size: 11px; color: #b8b8d0; margin-top: 2px;
+}
+
+/* Call timer */
+#call-timer {
+  font-size: 16px; font-weight: 600; color: #a8e6cf;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  padding: 4px 14px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Progress tracker */
+#progress-bar {
+  display: flex; align-items: stretch;
+  background: #16161f;
+  height: var(--progress-h);
+}
+.progress-step {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: #888;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s;
+  border-bottom: 3px solid transparent;
+  position: relative;
+  user-select: none;
+  padding: 0 6px;
+}
+.progress-step:hover { background: rgba(255,255,255,0.04); }
+.progress-step.active { color: #fff; }
+.progress-step.completed { color: #a8e6cf; }
+.progress-step .step-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  background: #333;
+  color: #888;
+  transition: background 0.25s, color 0.25s;
+  flex-shrink: 0;
+}
+.progress-step.active .step-num { color: #fff; }
+.progress-step.completed .step-num { background: #00b894; color: #fff; }
+.progress-step .step-label { white-space: nowrap; }
+/* Arrow between steps */
+.progress-step:not(:last-child)::after {
+  content: '\203A';
+  position: absolute; right: -4px;
+  font-size: 18px; color: #555;
+  z-index: 1;
+}
+
+/* Dynamic border color per step */
+.progress-step[data-phase="connect"].active   { border-bottom-color: var(--connect); }
+.progress-step[data-phase="explore"].active   { border-bottom-color: var(--explore); }
+.progress-step[data-phase="consult"].active   { border-bottom-color: var(--consult); }
+.progress-step[data-phase="overcome"].active  { border-bottom-color: var(--overcome); }
+.progress-step[data-phase="review"].active    { border-bottom-color: var(--review); }
+.progress-step[data-phase="connect"].active .step-num   { background: var(--connect); }
+.progress-step[data-phase="explore"].active .step-num   { background: var(--explore); }
+.progress-step[data-phase="consult"].active .step-num   { background: var(--consult); }
+.progress-step[data-phase="overcome"].active .step-num  { background: var(--overcome); }
+.progress-step[data-phase="review"].active .step-num    { background: var(--review); }
+
+/* ============================================================
+   PHASE SECTIONS
+   ============================================================ */
+.phase-section { margin: 12px 16px; }
+
+.phase-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  cursor: pointer;
+  user-select: none;
+  transition: border-radius 0.3s;
+}
+.phase-header.collapsed {
+  border-radius: var(--radius);
+}
+.phase-header .chevron {
+  font-size: 14px;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+.phase-header .chevron.open { transform: rotate(90deg); }
+.phase-header .phase-title {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.phase-header .pills {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto;
+}
+.phase-header .pill {
+  padding: 2px 8px;
+  font-size: 9px; font-weight: 600; color: #fff;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Phase body */
+.phase-body {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.35s ease, padding 0.35s ease;
+  padding: 0 18px;
+}
+.phase-body.open {
+  max-height: 8000px;
+  opacity: 1;
+  padding: 16px 18px;
+}
+
+/* Phase-specific header colors */
+.phase-section[data-phase="connect"] .phase-header  { background: var(--connect-bg); color: var(--connect); border-bottom: 2px solid var(--connect); }
+.phase-section[data-phase="explore"] .phase-header  { background: var(--explore-bg); color: var(--explore); border-bottom: 2px solid var(--explore); }
+.phase-section[data-phase="consult"] .phase-header  { background: var(--consult-bg); color: var(--consult); border-bottom: 2px solid var(--consult); }
+.phase-section[data-phase="overcome"] .phase-header { background: var(--overcome-bg); color: var(--overcome); border-bottom: 2px solid var(--overcome); }
+.phase-section[data-phase="review"] .phase-header   { background: var(--review-bg); color: var(--review); border-bottom: 2px solid var(--review); }
+
+/* ============================================================
+   CONTENT BLOCKS
+   ============================================================ */
+
+/* Say This blocks */
+.say-this {
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.7;
+  margin: 12px 0;
+  border-radius: 6px;
+}
+.say-this .label {
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  display: block; margin-bottom: 6px;
+}
+.say-this.addline  { background: #e8faf5; border-left: 6px solid var(--explore); }
+.say-this.addline .label { color: var(--explore); }
+.say-this.wearable { background: #e8faf5; border-left: 6px solid var(--explore); }
+.say-this.wearable .label { color: var(--explore); }
+.say-this.device   { background: #e8faf5; border-left: 6px solid var(--explore); }
+.say-this.device .label { color: var(--explore); }
+.say-this.xmc      { background: #e8f4fd; border-left: 6px solid var(--consult); }
+.say-this.xmc .label { color: var(--consult); }
+
+/* Product cards */
+.product-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 12px 0;
+}
+.product-card .card-header {
+  padding: 8px 14px;
+  font-weight: 700; font-size: 12px; color: #fff;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.product-card .card-header .badge {
+  font-size: 9px; background: rgba(255,255,255,0.25);
+  padding: 2px 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  border-radius: 3px;
+}
+.product-card .card-body { padding: 12px 14px; }
+
+/* Color variants */
+.product-card.mobile .card-header   { background: var(--explore); }
+.product-card.mobile { border-color: #b8f0e8; }
+
+/* Tables inside cards */
+.data-table {
+  width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;
+}
+.data-table th {
+  text-align: left; padding: 5px 7px;
+  border-bottom: 1.5px solid var(--border);
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px;
+  background: #f5f5f5;
+}
+.data-table td {
+  padding: 4px 7px; border-bottom: 1px solid #f0f0f0;
+}
+.data-table tr:last-child td { border-bottom: none; }
+
+/* Compliance blocks */
+.compliance-block {
+  background: var(--compliance-bg);
+  border-left: 3px solid var(--compliance-border);
+  padding: 10px 14px;
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: 0 6px 6px 0;
+  position: relative;
+}
+.compliance-block .badge-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.compliance-block .comp-badge {
+  background: var(--compliance-badge); color: #fff;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; border-radius: 3px;
+}
+.compliance-block .comp-label { font-weight: 700; font-size: 13px; }
+.compliance-block .copy-btn {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-size: 10px; font-weight: 600;
+  background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s;
+}
+.compliance-block .copy-btn:hover { background: #f0f0f0; }
+.compliance-block .copy-btn.copied { background: #00b894; color: #fff; border-color: #00b894; }
+
+/* Tip blocks */
+.tip-block {
+  background: var(--tip-bg);
+  padding: 10px 14px;
+  margin: 10px 0;
+  font-size: 12px;
+  color: var(--text-light);
+  font-style: italic;
+  border-radius: 6px;
+}
+.tip-block .tip-badge {
+  background: var(--tip-badge); color: #fff;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; font-style: normal;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+.tip-block strong { font-style: normal; }
+
+/* Content labels (Greeting, etc.) */
+.content-label {
+  display: inline-block;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; color: #fff;
+  border-radius: 3px; margin-bottom: 8px;
+}
+
+/* Discovery questions table */
+.discovery-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.discovery-table td {
+  padding: 8px 0;
+  border-bottom: 1px solid #e8f8f5;
+  line-height: 1.5;
+}
+.discovery-table tr:last-child td { border-bottom: none; }
+.discovery-table .dq-label { font-weight: 700; color: var(--explore); }
+.discovery-table .dq-followup { color: var(--text-light); font-size: 12px; font-style: italic; }
+
+/* Section headers inside phase bodies */
+.section-title {
+  font-size: 13px; font-weight: 700; margin: 16px 0 8px;
+}
+
+/* Order summary list */
+.order-list { list-style: none; font-size: 12px; line-height: 1.8; }
+.order-list li::before { content: '\2022\00a0\00a0'; }
+
+/* Rapport list */
+.rapport-list { list-style: none; font-size: 12px; line-height: 1.6; color: var(--text-light); font-style: italic; }
+.rapport-list li { padding: 2px 0; }
+.rapport-list li::before { content: '\2022\00a0\00a0'; }
+
+/* ============================================================
+   OBJECTION TABS
+   ============================================================ */
+.objection-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 0;
+}
+.objection-tab {
+  padding: 6px 12px;
+  font-size: 12px; font-weight: 600;
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.objection-tab:hover { background: var(--overcome-bg); }
+.objection-tab.active {
+  background: var(--overcome);
+  color: #fff;
+  border-color: var(--overcome);
+}
+.objection-panel {
+  display: none;
+  background: #fff;
+  border: 1.5px solid var(--overcome);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.objection-panel.active { display: block; }
+.objection-panel .step-num-obj {
+  display: inline-block; width: 22px;
+  font-weight: 700; color: var(--overcome);
+}
+
+/* ============================================================
+   TIE-BACK NOTEPAD
+   ============================================================ */
+#notepad {
+  position: fixed;
+  bottom: 16px; right: 16px;
+  width: 260px;
+  background: #fffde7;
+  border: 1.5px solid #f0e68c;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 999;
+  font-size: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+#notepad.minimized .notepad-body { display: none; }
+#notepad .notepad-header {
+  background: #f9e74a;
+  padding: 6px 12px;
+  font-weight: 700; font-size: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: move;
+  user-select: none;
+}
+#notepad .notepad-header .toggle-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; color: #333; line-height: 1;
+}
+#notepad .notepad-body { padding: 8px 12px 12px; }
+#notepad .notepad-body label {
+  display: block; font-weight: 600; color: #888;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px;
+  margin-top: 6px;
+}
+#notepad .notepad-body label:first-child { margin-top: 0; }
+#notepad .notepad-body input {
+  width: 100%; border: 1px solid #e8e0b0;
+  border-radius: 4px; padding: 4px 8px;
+  font-size: 12px; font-family: inherit;
+  background: #fffff0;
+  margin-top: 2px;
+}
+#notepad .notepad-body input:focus {
+  outline: none; border-color: var(--overcome);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 700px) {
+  .progress-step .step-label { font-size: 10px; }
+  #notepad { width: 220px; }
+  .objection-tabs { gap: 2px; }
+  .objection-tab { font-size: 10px; padding: 4px 8px; }
+  body { padding-left: 4px; padding-right: 4px; }
+  .phase-section { margin: 8px 8px; }
+}
+@media (max-width: 480px) {
+  .progress-step .step-label { display: none; }
+  .progress-step .step-num { width: 28px; height: 28px; font-size: 13px; }
+  #header-text h1 { font-size: 15px; }
+}
+
+/* Red text for verbal summary emphasis */
+.red-emphasis { color: #c0392b; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     FIXED TOP BAR: HEADER + PROGRESS
+     ============================================================ -->
+<div id="top-bar">
+  <div id="header">
+    <div id="header-text">
+      <h1>Add a Line: Xfinity Mobile Line Addition</h1>
+      <div class="subtitle">Member Exists in Einstein &bull; Add Line/Wearable &rarr; XMC</div>
+    </div>
+    <div id="call-timer">00:00</div>
+  </div>
+  <div id="progress-bar">
+    <div class="progress-step active" data-phase="connect" onclick="goToPhase('connect')">
+      <span class="step-num">1</span>
+      <span class="step-label">Connect</span>
+    </div>
+    <div class="progress-step" data-phase="explore" onclick="goToPhase('explore')">
+      <span class="step-num">2</span>
+      <span class="step-label">Explore</span>
+    </div>
+    <div class="progress-step" data-phase="consult" onclick="goToPhase('consult')">
+      <span class="step-num">3</span>
+      <span class="step-label">Consult</span>
+    </div>
+    <div class="progress-step" data-phase="overcome" onclick="goToPhase('overcome')">
+      <span class="step-num">4</span>
+      <span class="step-label">Overcome</span>
+    </div>
+    <div class="progress-step" data-phase="review" onclick="goToPhase('review')">
+      <span class="step-num">5</span>
+      <span class="step-label">Review</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 1: CONNECT
+     ============================================================ -->
+<div class="phase-section" data-phase="connect" id="phase-connect">
+  <div class="phase-header" onclick="togglePhase('connect')">
+    <span class="chevron open">&#9654;</span>
+    <span class="phase-title">Phase 1: Connect</span>
+    <div class="pills">
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body open">
+
+    <!-- Greeting -->
+    <span class="content-label" style="background:var(--connect);">GREETING</span>
+    <p style="margin-bottom:12px;">
+      &ldquo;Hi [Member Name], this is [Your Name] with Xfinity, thanks for being a loyal member.&rdquo;
+    </p>
+
+    <!-- Compliance C1 -->
+    <div class="compliance-block" id="c1">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C1: Recording Disclosure</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c1-text')">Copy</button>
+      </div>
+      <div id="c1-text">&ldquo;Before I continue, I need to inform you that the call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices please visit xfinity.com/privacy.&rdquo;</div>
+    </div>
+
+    <!-- Authentication -->
+    <div class="section-title" style="color:var(--connect);">Authentication</div>
+    <p style="margin-bottom:4px;">
+      &ldquo;Just so I can speak more specifically about your account, could you verify your service address and the phone number on the account?&rdquo;
+    </p>
+    <p style="color:var(--text-light); font-style:italic; font-size:13px; margin-bottom:12px;">
+      Or: &ldquo;I&rsquo;ll send a 6-digit verification code to confirm your identity.&rdquo;
+    </p>
+
+    <!-- Reason + Rewards -->
+    <div class="section-title" style="color:var(--connect);">Reason + Rewards</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;I see you&rsquo;ve been a member since [Year], which qualifies you for [Tier] level Xfinity Rewards, and that&rsquo;s awesome. I can see you&rsquo;re already enjoying Xfinity Mobile, and the reason I&rsquo;m reaching out is we&rsquo;ve got some great deals going on right now to add another line to your account, whether it&rsquo;s for someone in the family or even a smartwatch.&rdquo;
+    </p>
+
+    <!-- Tip: Rapport builders -->
+    <div class="tip-block">
+      <span class="tip-badge">TIP</span>
+      <strong>Rapport builders during authentication hold:</strong>
+      <ul class="rapport-list" style="margin-top:6px;">
+        <li>&ldquo;I see you&rsquo;re out in [City]. How do you like it out there?&rdquo;</li>
+        <li>&ldquo;You&rsquo;ve been with us since [Year], and we really appreciate that.&rdquo;</li>
+        <li>&ldquo;Sounds like you&rsquo;ve got a busy household. How many lines are you running right now?&rdquo;</li>
+        <li>&ldquo;Are the kids keeping you on your toes?&rdquo;</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 2: EXPLORE
+     ============================================================ -->
+<div class="phase-section" data-phase="explore" id="phase-explore">
+  <div class="phase-header collapsed" onclick="togglePhase('explore')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 2: Explore</span>
+    <div class="pills">
+      <span class="pill" style="background:#27ae60;">Discover Needs</span>
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Discovery Questions -->
+    <table class="discovery-table">
+      <tr>
+        <td>
+          <span class="dq-label">Users:</span> &ldquo;So I&rsquo;d love to hear what&rsquo;s got you thinking about adding a line. What&rsquo;s going on?&rdquo;<br>
+          <span class="dq-followup">Follow-up: &ldquo;Is this for a phone or more like a smartwatch? How old are they?&rdquo;</span>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <span class="dq-label">Usage:</span> &ldquo;And once they&rsquo;ve got it, what&rsquo;s their day going to look like? Are they going to be glued to it, or is it more of a safety and communication thing?&rdquo;<br>
+          <span class="dq-followup">Follow-up: &ldquo;Heavy streaming and gaming, or mostly calls and texts?&rdquo;</span>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <span class="dq-label">Devices:</span> &ldquo;Do they already have a phone they&rsquo;d bring over, or are we looking at getting them something new?&rdquo;<br>
+          <span class="dq-followup">Follow-up: &ldquo;iPhone or Android? Is it paid off?&rdquo;</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Tip -->
+    <div class="tip-block" style="margin-top:12px;">
+      <span class="tip-badge">TIP</span>
+      If it&rsquo;s for a kid, emphasize parental controls and the savings vs. a separate plan. If BYOD, no device payment = lower total cost. If new device, lead with the trade-in promos.
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 3: CONSULT
+     ============================================================ -->
+<div class="phase-section" data-phase="consult" id="phase-consult">
+  <div class="phase-header collapsed" onclick="togglePhase('consult')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 3: Consult</span>
+    <div class="pills">
+      <span class="pill" style="background:#8e44ad;">Be an Ambassador</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Compliance C3 -->
+    <div class="compliance-block" id="c3">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C3: Broadband Labels</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c3-text')">Copy</button>
+      </div>
+      <div id="c3-text">&ldquo;Before I go into plan details, I wanted to let you know that you can now review a breakdown of pricing and features for Internet and mobile plans online, making it easy for you to compare them. For more information please visit xfinity.com/labels.&rdquo;</div>
+    </div>
+
+    <!-- ======== Add a Line Talk Track ======== -->
+    <div class="say-this addline">
+      <span class="label">Say This: Add a Line</span>
+      &ldquo;Great news. Adding a line to your existing plan is super simple. For your [person/device], we&rsquo;d just add another [Unlimited/Premium Unlimited] line.&rdquo;
+    </div>
+
+    <!-- ======== Add a Line Pricing Card ======== -->
+    <div class="product-card mobile">
+      <div class="card-header">
+        Add a Line: Pricing
+        <span class="badge">XM MEMBERS</span>
+      </div>
+      <div class="card-body">
+        <table class="data-table">
+          <tr>
+            <th style="color:#00b894;">Current Lines</th>
+            <th style="color:#00b894;">+ 1 Unlimited</th>
+            <th style="color:#00b894;">+ 1 Premium</th>
+          </tr>
+          <tr>
+            <td><strong>1 to 2</strong></td>
+            <td style="font-weight:700; color:#00b894;">$60/mo total</td>
+            <td style="font-weight:700; color:#00b894;">$80/mo total</td>
+          </tr>
+          <tr>
+            <td><strong>2 to 3</strong></td>
+            <td style="font-weight:700; color:#00b894;">$80/mo total</td>
+            <td style="font-weight:700; color:#00b894;">$110/mo total</td>
+          </tr>
+          <tr>
+            <td><strong>3 to 4</strong></td>
+            <td style="font-weight:700; color:#00b894;">$100/mo total</td>
+            <td style="font-weight:700; color:#00b894;">$140/mo total</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======== Wearable Talk Track ======== -->
+    <div class="say-this wearable">
+      <span class="label">Say This: Wearable</span>
+      &ldquo;For a smartwatch, it&rsquo;s just $10/mo added to your plan. You get calls, texts, and data right on your wrist even when your phone isn&rsquo;t nearby.&rdquo;
+    </div>
+
+    <!-- ======== Device Promos Talk Track ======== -->
+    <div class="say-this device">
+      <span class="label">Say This: Device Promos</span>
+      &ldquo;If they need a new phone, right now we&rsquo;ve got some incredible deals. iPhone 17e on us with a trade-in on Premium Unlimited, up to $1,100 off Samsung. Plus the $25 activation fee is waived through April 21st.&rdquo;<br>
+      <em style="color:#777; font-size:13px;">BYOD: &ldquo;And if they already have a phone they love, they can bring it right over. No device payment, just the plan cost.&rdquo;</em>
+    </div>
+
+    <!-- ======== XMC Cross-sell Talk Track ======== -->
+    <div class="say-this xmc">
+      <span class="label">Say This: XMC Cross-sell</span>
+      &ldquo;One thing I always recommend when adding a new device. Xfinity Mobile Care. Starting at just $9/mo, it covers cracked screens, loss, theft, and even gives you an early upgrade option. It&rsquo;s way better than AppleCare because it includes loss and theft coverage and you can use it at any Xfinity store.&rdquo;
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 4: OVERCOME
+     ============================================================ -->
+<div class="phase-section" data-phase="overcome" id="phase-overcome">
+  <div class="phase-header collapsed" onclick="togglePhase('overcome')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 4: Overcome</span>
+    <div class="pills">
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#27ae60;">Discover Needs</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#8e44ad;">Be an Ambassador</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Objection tabs -->
+    <div class="objection-tabs" id="objection-tabs">
+      <div class="objection-tab active" data-obj="obj1" onclick="switchObjection('obj1', this)">&ldquo;We don&rsquo;t need another line.&rdquo;</div>
+      <div class="objection-tab" data-obj="obj2" onclick="switchObjection('obj2', this)">&ldquo;My kid doesn&rsquo;t need a phone yet.&rdquo;</div>
+    </div>
+
+    <!-- Objection 1 -->
+    <div class="objection-panel active" id="obj1">
+      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--overcome);">&ldquo;We don&rsquo;t need another line.&rdquo;</p>
+      <p><span class="step-num-obj">1.</span> <strong>Understand:</strong> &ldquo;Totally fair. Just curious, is there anyone in the household who&rsquo;s sharing a phone, or maybe a kid who&rsquo;s getting to that age?&rdquo;</p>
+      <p><span class="step-num-obj">2.</span> <strong>Empathize &amp; Overcome:</strong> &ldquo;The reason I ask is that adding a line on your existing plan is way more affordable than most people think. It&rsquo;s only $20 more for Unlimited. And with the deals we&rsquo;ve got on devices right now, the phone can practically pay for itself with trade-in credit.&rdquo;</p>
+      <p><span class="step-num-obj">3.</span> <strong>Restate Tie-backs:</strong> &ldquo;You mentioned [tie-back about family/devices], and that&rsquo;s exactly the kind of situation where an extra line makes life easier.&rdquo;</p>
+      <p><span class="step-num-obj">4.</span> <strong>Add Value:</strong> &ldquo;Plus I&rsquo;d recommend Xfinity Mobile Care on the new device, starting at just $9/mo for unlimited screen repairs and full loss/theft coverage.&rdquo;</p>
+    </div>
+
+    <!-- Objection 2 -->
+    <div class="objection-panel" id="obj2">
+      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--overcome);">&ldquo;My kid doesn&rsquo;t need a phone yet.&rdquo;</p>
+      <p><span class="step-num-obj">1.</span> <strong>Understand:</strong> &ldquo;I hear that. How old are they, if you don&rsquo;t mind me asking?&rdquo;</p>
+      <p><span class="step-num-obj">2.</span> <strong>Empathize &amp; Overcome:</strong> &ldquo;That makes sense. A lot of parents tell me the same thing, and then they end up getting one for safety reasons, being able to reach them after school, at a friend&rsquo;s house, or in an emergency. And with Xfinity Mobile you&rsquo;ve got parental controls built right in.&rdquo;</p>
+      <p><span class="step-num-obj">3.</span> <strong>Restate Tie-backs:</strong> &ldquo;And at just $20 more on your plan for Unlimited, it&rsquo;s a lot more affordable than a separate plan.&rdquo;</p>
+      <p><span class="step-num-obj">4.</span> <strong>Add Value:</strong> &ldquo;Right now we&rsquo;ve got phones starting at $0 with trade-in, and a smartwatch at $10/mo is another option if you want them reachable without a full phone.&rdquo;</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 5: REVIEW
+     ============================================================ -->
+<div class="phase-section" data-phase="review" id="phase-review">
+  <div class="phase-header collapsed" onclick="togglePhase('review')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 5: Review</span>
+    <div class="pills">
+      <span class="pill" style="background:#00cec9;">Show Appreciation</span>
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Assume the Sale -->
+    <div class="section-title" style="color:var(--review);">Assume the Sale</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;Let&rsquo;s go ahead and get that line added. This is going to be so easy.&rdquo;
+    </p>
+
+    <!-- Reaffirm -->
+    <div class="section-title" style="color:var(--review);">Reaffirm</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;Great call on this. [Person] is going to love having their own line, and at just $[X] more on your plan, it&rsquo;s a no-brainer.&rdquo;
+    </p>
+
+    <!-- Compliance C4 -->
+    <div class="compliance-block" id="c4">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C4: Before Submitting</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c4-text')">Copy</button>
+      </div>
+      <div id="c4-text">&ldquo;Before submitting your order, I want to spend a few minutes confirming with you that I&rsquo;ve accurately captured the services you want. I&rsquo;ll ask you to review the order, and then if it&rsquo;s correct, please approve it. What phone number or email address would you like to use to complete this process?&rdquo;</div>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="section-title" style="color:var(--review);">Order Summary</div>
+    <p style="margin-bottom:6px;">Review the following with the member:</p>
+    <ul class="order-list">
+      <li>Services on the order and monthly price for each</li>
+      <li>Promotional pricing and how long it lasts</li>
+      <li>Roll-to rate after promo ends</li>
+      <li>One-time charges (activation fees, equipment)</li>
+      <li>Applicable taxes and fees</li>
+      <li>APPD discount if enrolled</li>
+    </ul>
+
+    <!-- Compliance C5 -->
+    <div class="compliance-block" id="c5" style="margin-top:14px;">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C5: Text Consent</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c5-text')">Copy</button>
+      </div>
+      <div id="c5-text">&ldquo;Thanks. I&rsquo;ll now send you a text message at the number you provided with a link to confirm your order. Message and data rates may apply. Okay?&rdquo;</div>
+    </div>
+
+    <!-- Compliance C6 -->
+    <div class="compliance-block" id="c6">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C6: Verbal Summary</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c6-text')">Copy</button>
+      </div>
+      <div id="c6-text">If digital option fails, read the entire order summary top to bottom including legal disclaimer, taxes, fees, and one-time charges. Then say:<br><br><span class="red-emphasis">&ldquo;DO YOU AGREE TO ORDER AND BE BILLED FOR THE EQUIPMENT AND SERVICES THAT I JUST DESCRIBED?&rdquo;</span></div>
+    </div>
+
+    <!-- Compliance C7 -->
+    <div class="compliance-block" id="c7">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C7: Post-Approval</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c7-text')">Copy</button>
+      </div>
+      <div id="c7-text">&ldquo;Thank you. After we finalize your order, you&rsquo;ll receive a copy of your order summary within 6 hours at the email address listed on your account. You can also find it at xfinity.com/MyAccount.&rdquo;</div>
+    </div>
+
+    <!-- Activation -->
+    <div class="section-title" style="color:var(--review);">Activation</div>
+    <p style="margin-bottom:8px;">
+      <strong>New device:</strong> &ldquo;We&rsquo;ll ship the [Device] right to your door. Once it arrives, power it on and it&rsquo;ll be ready to go.&rdquo;
+    </p>
+    <p style="margin-bottom:8px;">
+      <strong>BYOD:</strong> &ldquo;We&rsquo;ll get a SIM shipped out, and once it&rsquo;s in, the line activates automatically.&rdquo;
+    </p>
+    <p style="margin-bottom:12px;">
+      <strong>Wearable:</strong> &ldquo;Your [Watch] will ship out and we&rsquo;ll have the line ready. Once you pair it to your phone, you&rsquo;re all set.&rdquo;
+    </p>
+
+    <!-- XMC Reminder -->
+    <div class="section-title" style="color:var(--review);">XMC Reminder</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;And just to confirm, did you want to add Xfinity Mobile Care on that new device? At $[X]/mo it&rsquo;s the best way to keep it protected from day one.&rdquo;
+    </p>
+
+    <!-- Xfinity App & Rewards -->
+    <div class="section-title" style="color:var(--review);">Xfinity App &amp; Rewards</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;One last thing, download the Xfinity App if you haven&rsquo;t already. You can manage your account, check your bill, troubleshoot your WiFi, all from your phone. And as an Xfinity member, you&rsquo;ve got Xfinity Membership, and that means exclusive access to rewards, experiences, and perks just for being with us.&rdquo;
+    </p>
+
+    <!-- Compliance C8 -->
+    <div class="compliance-block" id="c8">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C8: Closing</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c8-text')">Copy</button>
+      </div>
+      <div id="c8-text">&ldquo;Thank you for your time today, [Member Name]. If you have any questions about this call or any Xfinity products or services in your area, please feel free to call 1-800-XFINITY (934-6489) or visit xfinity.com. Have a great rest of your day!&rdquo;</div>
+    </div>
+
+    <!-- No-Sale Close -->
+    <div class="section-title" style="color:var(--review);">No-Sale Close</div>
+    <p style="margin-bottom:8px;">
+      &ldquo;I appreciate you taking the time to chat with me today, [Member Name]. If anything changes or you want to revisit this down the road, don&rsquo;t hesitate to call us at 1-800-XFINITY or visit xfinity.com. Have a great rest of your day!&rdquo;
+    </p>
+
+    <div class="tip-block">
+      <span class="tip-badge">TIP</span>
+      Even on a no-sale, leave the door open and leave a good impression.
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     TIE-BACK NOTEPAD
+     ============================================================ -->
+<div id="notepad">
+  <div class="notepad-header" id="notepad-drag-handle">
+    <span>Tie-Back Notes</span>
+    <button class="toggle-btn" onclick="toggleNotepad()" title="Minimize/Expand">&minus;</button>
+  </div>
+  <div class="notepad-body">
+    <label for="np-users">Users</label>
+    <input type="text" id="np-users" placeholder="Who is the line for?" oninput="saveNotes()">
+    <label for="np-usage">Usage</label>
+    <input type="text" id="np-usage" placeholder="Safety, streaming, calls..." oninput="saveNotes()">
+    <label for="np-devices">Devices</label>
+    <input type="text" id="np-devices" placeholder="BYOD, new phone, watch..." oninput="saveNotes()">
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  /* ----------------------------------------------------------
+     PHASE ORDER & STATE
+     ---------------------------------------------------------- */
+  var phases = ['connect', 'explore', 'consult', 'overcome', 'review'];
+  var activePhase = 'connect';
+  var completedPhases = {};
+
+  /* ----------------------------------------------------------
+     CALL TIMER
+     ---------------------------------------------------------- */
+  var timerStart = Date.now();
+  var timerEl = document.getElementById('call-timer');
+
+  function updateTimer() {
+    var elapsed = Math.floor((Date.now() - timerStart) / 1000);
+    var m = Math.floor(elapsed / 60);
+    var s = elapsed % 60;
+    timerEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  setInterval(updateTimer, 1000);
+
+  /* ----------------------------------------------------------
+     PHASE EXPAND / COLLAPSE
+     ---------------------------------------------------------- */
+  window.togglePhase = function(phase) {
+    if (activePhase === phase) {
+      // Collapse current
+      collapsePhase(phase);
+      activePhase = null;
+      updateProgress();
+      return;
+    }
+    // Collapse old
+    if (activePhase) collapsePhase(activePhase);
+    // Mark previous as completed
+    if (activePhase) completedPhases[activePhase] = true;
+    // Expand new
+    expandPhase(phase);
+    activePhase = phase;
+    updateProgress();
+  };
+
+  window.goToPhase = function(phase) {
+    // Mark all phases before this one as completed
+    for (var i = 0; i < phases.indexOf(phase); i++) {
+      completedPhases[phases[i]] = true;
+    }
+    if (activePhase && activePhase !== phase) collapsePhase(activePhase);
+    expandPhase(phase);
+    activePhase = phase;
+    updateProgress();
+    // Scroll to the phase
+    var el = document.getElementById('phase-' + phase);
+    if (el) {
+      var topBarH = document.getElementById('top-bar').offsetHeight;
+      var y = el.getBoundingClientRect().top + window.pageYOffset - topBarH - 8;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
+  function expandPhase(phase) {
+    var section = document.getElementById('phase-' + phase);
+    if (!section) return;
+    var body = section.querySelector('.phase-body');
+    var chevron = section.querySelector('.chevron');
+    var header = section.querySelector('.phase-header');
+    body.classList.add('open');
+    chevron.classList.add('open');
+    header.classList.remove('collapsed');
+  }
+
+  function collapsePhase(phase) {
+    var section = document.getElementById('phase-' + phase);
+    if (!section) return;
+    var body = section.querySelector('.phase-body');
+    var chevron = section.querySelector('.chevron');
+    var header = section.querySelector('.phase-header');
+    body.classList.remove('open');
+    chevron.classList.remove('open');
+    header.classList.add('collapsed');
+  }
+
+  function updateProgress() {
+    var steps = document.querySelectorAll('.progress-step');
+    steps.forEach(function(step) {
+      var p = step.getAttribute('data-phase');
+      step.classList.remove('active', 'completed');
+      if (p === activePhase) {
+        step.classList.add('active');
+      } else if (completedPhases[p]) {
+        step.classList.add('completed');
+        step.querySelector('.step-num').innerHTML = '&#10003;';
+      }
+    });
+  }
+
+  /* ----------------------------------------------------------
+     OBJECTION TABS
+     ---------------------------------------------------------- */
+  window.switchObjection = function(objId, tabEl) {
+    // Deactivate all tabs + panels
+    document.querySelectorAll('.objection-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.objection-panel').forEach(function(p) { p.classList.remove('active'); });
+    // Activate selected
+    tabEl.classList.add('active');
+    document.getElementById(objId).classList.add('active');
+  };
+
+  /* ----------------------------------------------------------
+     COPY COMPLIANCE VERBATIM
+     ---------------------------------------------------------- */
+  window.copyCompliance = function(btn, textId) {
+    var el = document.getElementById(textId);
+    if (!el) return;
+    // Get the plain text (strip HTML), convert smart quotes for clipboard
+    var text = el.innerText || el.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1500);
+    }).catch(function() {
+      // Fallback
+      btn.textContent = 'Error';
+      setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+    });
+  };
+
+  /* ----------------------------------------------------------
+     TIE-BACK NOTEPAD: localStorage persistence
+     ---------------------------------------------------------- */
+  var noteFields = ['np-users', 'np-usage', 'np-devices'];
+
+  window.saveNotes = function() {
+    var data = {};
+    noteFields.forEach(function(id) {
+      data[id] = document.getElementById(id).value;
+    });
+    try { localStorage.setItem('addaline-tiebacks', JSON.stringify(data)); } catch(e) {}
+  };
+
+  function loadNotes() {
+    try {
+      var raw = localStorage.getItem('addaline-tiebacks');
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      noteFields.forEach(function(id) {
+        if (data[id]) document.getElementById(id).value = data[id];
+      });
+    } catch(e) {}
+  }
+  loadNotes();
+
+  /* ----------------------------------------------------------
+     NOTEPAD: Minimize / Expand toggle
+     ---------------------------------------------------------- */
+  window.toggleNotepad = function() {
+    var np = document.getElementById('notepad');
+    var btn = np.querySelector('.toggle-btn');
+    np.classList.toggle('minimized');
+    btn.innerHTML = np.classList.contains('minimized') ? '+' : '&minus;';
+  };
+
+  /* ----------------------------------------------------------
+     NOTEPAD: Draggable
+     ---------------------------------------------------------- */
+  (function() {
+    var np = document.getElementById('notepad');
+    var handle = document.getElementById('notepad-drag-handle');
+    var isDragging = false;
+    var offsetX = 0, offsetY = 0;
+
+    handle.addEventListener('mousedown', function(e) {
+      if (e.target.tagName === 'BUTTON') return; // don't drag on toggle btn
+      isDragging = true;
+      var rect = np.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      np.style.transition = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      var x = e.clientX - offsetX;
+      var y = e.clientY - offsetY;
+      // Constrain to viewport
+      x = Math.max(0, Math.min(x, window.innerWidth - np.offsetWidth));
+      y = Math.max(0, Math.min(y, window.innerHeight - np.offsetHeight));
+      np.style.left = x + 'px';
+      np.style.top = y + 'px';
+      np.style.right = 'auto';
+      np.style.bottom = 'auto';
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (isDragging) {
+        isDragging = false;
+        np.style.transition = '';
+      }
+    });
+  })();
+
+})();
+</script>
+</body>
+</html>
