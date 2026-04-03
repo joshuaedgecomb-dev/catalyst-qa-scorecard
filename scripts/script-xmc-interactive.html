@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XMC: Xfinity Mobile Care - Interactive Script</title>
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  /* Phase colors */
+  --connect:   #6138f5;
+  --connect-bg:#f3eeff;
+  --explore:   #00b894;
+  --explore-bg:#e8f8f5;
+  --consult:   #0984e3;
+  --consult-bg:#e8f4fd;
+  --overcome:  #e67e22;
+  --overcome-bg:#fef5e7;
+  --review:    #00cec9;
+  --review-bg: #e8fffe;
+
+  /* Accent colors */
+  --compliance-bg:  #fef9e7;
+  --compliance-border: #f39c12;
+  --compliance-badge: #e67e22;
+  --tip-bg:     #f9f9f9;
+  --tip-badge:  #95a5a6;
+
+  /* Neutrals */
+  --text:       #2d3436;
+  --text-light: #777;
+  --border:     #e0e0e0;
+  --bg-card:    #ffffff;
+  --bg-body:    #f5f5f7;
+
+  /* Layout */
+  --header-h:   56px;
+  --progress-h: 52px;
+  --radius:     8px;
+  --shadow:     0 2px 8px rgba(0,0,0,0.08);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg-body);
+  line-height: 1.55;
+  font-size: 14px;
+  padding-top: calc(var(--header-h) + var(--progress-h) + 8px);
+  padding-bottom: 80px;
+}
+
+/* ============================================================
+   FIXED TOP HEADER + PROGRESS BAR
+   ============================================================ */
+#top-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: #1e1e2e;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+}
+
+#header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 20px;
+  min-height: var(--header-h);
+}
+#header-text h1 {
+  font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 0.3px;
+}
+#header-text .subtitle {
+  font-size: 11px; color: #b8b8d0; margin-top: 2px;
+}
+
+/* Call timer */
+#call-timer {
+  font-size: 16px; font-weight: 600; color: #a8e6cf;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  padding: 4px 14px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Progress tracker */
+#progress-bar {
+  display: flex; align-items: stretch;
+  background: #16161f;
+  height: var(--progress-h);
+}
+.progress-step {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: #888;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s;
+  border-bottom: 3px solid transparent;
+  position: relative;
+  user-select: none;
+  padding: 0 6px;
+}
+.progress-step:hover { background: rgba(255,255,255,0.04); }
+.progress-step.active { color: #fff; }
+.progress-step.completed { color: #a8e6cf; }
+.progress-step .step-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  background: #333;
+  color: #888;
+  transition: background 0.25s, color 0.25s;
+  flex-shrink: 0;
+}
+.progress-step.active .step-num { color: #fff; }
+.progress-step.completed .step-num { background: #00b894; color: #fff; }
+.progress-step .step-label { white-space: nowrap; }
+/* Arrow between steps */
+.progress-step:not(:last-child)::after {
+  content: '\203A';
+  position: absolute; right: -4px;
+  font-size: 18px; color: #555;
+  z-index: 1;
+}
+
+/* Dynamic border color per step */
+.progress-step[data-phase="connect"].active   { border-bottom-color: var(--connect); }
+.progress-step[data-phase="explore"].active   { border-bottom-color: var(--explore); }
+.progress-step[data-phase="consult"].active   { border-bottom-color: var(--consult); }
+.progress-step[data-phase="overcome"].active  { border-bottom-color: var(--overcome); }
+.progress-step[data-phase="review"].active    { border-bottom-color: var(--review); }
+.progress-step[data-phase="connect"].active .step-num   { background: var(--connect); }
+.progress-step[data-phase="explore"].active .step-num   { background: var(--explore); }
+.progress-step[data-phase="consult"].active .step-num   { background: var(--consult); }
+.progress-step[data-phase="overcome"].active .step-num  { background: var(--overcome); }
+.progress-step[data-phase="review"].active .step-num    { background: var(--review); }
+
+/* ============================================================
+   PHASE SECTIONS
+   ============================================================ */
+.phase-section { margin: 12px 16px; }
+
+.phase-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  cursor: pointer;
+  user-select: none;
+  transition: border-radius 0.3s;
+}
+.phase-header.collapsed {
+  border-radius: var(--radius);
+}
+.phase-header .chevron {
+  font-size: 14px;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+.phase-header .chevron.open { transform: rotate(90deg); }
+.phase-header .phase-title {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.phase-header .pills {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto;
+}
+.phase-header .pill {
+  padding: 2px 8px;
+  font-size: 9px; font-weight: 600; color: #fff;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Phase body */
+.phase-body {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.35s ease, padding 0.35s ease;
+  padding: 0 18px;
+}
+.phase-body.open {
+  max-height: 8000px;
+  opacity: 1;
+  padding: 16px 18px;
+}
+
+/* Phase-specific header colors */
+.phase-section[data-phase="connect"] .phase-header  { background: var(--connect-bg); color: var(--connect); border-bottom: 2px solid var(--connect); }
+.phase-section[data-phase="explore"] .phase-header  { background: var(--explore-bg); color: var(--explore); border-bottom: 2px solid var(--explore); }
+.phase-section[data-phase="consult"] .phase-header  { background: var(--consult-bg); color: var(--consult); border-bottom: 2px solid var(--consult); }
+.phase-section[data-phase="overcome"] .phase-header { background: var(--overcome-bg); color: var(--overcome); border-bottom: 2px solid var(--overcome); }
+.phase-section[data-phase="review"] .phase-header   { background: var(--review-bg); color: var(--review); border-bottom: 2px solid var(--review); }
+
+/* ============================================================
+   CONTENT BLOCKS
+   ============================================================ */
+
+/* Say This blocks */
+.say-this {
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.7;
+  margin: 12px 0;
+  border-radius: 6px;
+}
+.say-this .label {
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  display: block; margin-bottom: 6px;
+}
+.say-this.xmc  { background: #e8f4fd; border-left: 6px solid var(--consult); }
+.say-this.xmc .label { color: var(--consult); }
+
+/* Product cards */
+.product-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 12px 0;
+}
+.product-card .card-header {
+  padding: 8px 14px;
+  font-weight: 700; font-size: 12px; color: #fff;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.product-card .card-header .badge {
+  font-size: 9px; background: rgba(255,255,255,0.25);
+  padding: 2px 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  border-radius: 3px;
+}
+.product-card .card-body { padding: 12px 14px; }
+
+/* Color variants */
+.product-card.xmc .card-header { background: var(--consult); }
+.product-card.xmc { border-color: #b3d9f2; }
+
+/* Tables inside cards */
+.data-table {
+  width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;
+}
+.data-table th {
+  text-align: left; padding: 5px 7px;
+  border-bottom: 1.5px solid var(--border);
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px;
+  background: #f5f5f5;
+}
+.data-table td {
+  padding: 4px 7px; border-bottom: 1px solid #f0f0f0;
+}
+.data-table tr:last-child td { border-bottom: none; }
+
+/* Compliance blocks */
+.compliance-block {
+  background: var(--compliance-bg);
+  border-left: 3px solid var(--compliance-border);
+  padding: 10px 14px;
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: 0 6px 6px 0;
+  position: relative;
+}
+.compliance-block .badge-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.compliance-block .comp-badge {
+  background: var(--compliance-badge); color: #fff;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; border-radius: 3px;
+}
+.compliance-block .comp-label { font-weight: 700; font-size: 13px; }
+.compliance-block .copy-btn {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-size: 10px; font-weight: 600;
+  background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s;
+}
+.compliance-block .copy-btn:hover { background: #f0f0f0; }
+.compliance-block .copy-btn.copied { background: #00b894; color: #fff; border-color: #00b894; }
+
+/* Tip blocks */
+.tip-block {
+  background: var(--tip-bg);
+  padding: 10px 14px;
+  margin: 10px 0;
+  font-size: 12px;
+  color: var(--text-light);
+  font-style: italic;
+  border-radius: 6px;
+}
+.tip-block .tip-badge {
+  background: var(--tip-badge); color: #fff;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; font-style: normal;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+.tip-block strong { font-style: normal; }
+
+/* Note blocks (same style as tip but with NOTE badge) */
+.note-block {
+  background: var(--tip-bg);
+  padding: 10px 14px;
+  margin: 10px 0;
+  font-size: 12px;
+  color: var(--text-light);
+  font-style: italic;
+  border-radius: 6px;
+}
+.note-block .note-badge {
+  background: var(--tip-badge); color: #fff;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; font-style: normal;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+
+/* Content labels (Greeting, etc.) */
+.content-label {
+  display: inline-block;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; color: #fff;
+  border-radius: 3px; margin-bottom: 8px;
+}
+
+/* Discovery questions table */
+.discovery-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.discovery-table td {
+  padding: 8px 0;
+  border-bottom: 1px solid #e8f8f5;
+  line-height: 1.5;
+}
+.discovery-table tr:last-child td { border-bottom: none; }
+.discovery-table .dq-label { font-weight: 700; color: var(--explore); }
+.discovery-table .dq-followup { color: var(--text-light); font-size: 12px; font-style: italic; }
+
+/* Section headers inside phase bodies */
+.section-title {
+  font-size: 13px; font-weight: 700; margin: 16px 0 8px;
+}
+
+/* Rapport list */
+.rapport-list { list-style: none; font-size: 12px; line-height: 1.6; color: var(--text-light); font-style: italic; }
+.rapport-list li { padding: 2px 0; }
+.rapport-list li::before { content: '\2022\00a0\00a0'; }
+
+/* ============================================================
+   OBJECTION TABS
+   ============================================================ */
+.objection-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 0;
+}
+.objection-tab {
+  padding: 6px 12px;
+  font-size: 12px; font-weight: 600;
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.objection-tab:hover { background: var(--overcome-bg); }
+.objection-tab.active {
+  background: var(--overcome);
+  color: #fff;
+  border-color: var(--overcome);
+}
+.objection-panel {
+  display: none;
+  background: #fff;
+  border: 1.5px solid var(--overcome);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.objection-panel.active { display: block; }
+.objection-panel .step-num-obj {
+  display: inline-block; width: 22px;
+  font-weight: 700; color: var(--overcome);
+}
+
+/* ============================================================
+   TIE-BACK NOTEPAD
+   ============================================================ */
+#notepad {
+  position: fixed;
+  bottom: 16px; right: 16px;
+  width: 260px;
+  background: #fffde7;
+  border: 1.5px solid #f0e68c;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 999;
+  font-size: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+#notepad.minimized .notepad-body { display: none; }
+#notepad .notepad-header {
+  background: #f9e74a;
+  padding: 6px 12px;
+  font-weight: 700; font-size: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: move;
+  user-select: none;
+}
+#notepad .notepad-header .toggle-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; color: #333; line-height: 1;
+}
+#notepad .notepad-body { padding: 8px 12px 12px; }
+#notepad .notepad-body label {
+  display: block; font-weight: 600; color: #888;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px;
+  margin-top: 6px;
+}
+#notepad .notepad-body label:first-child { margin-top: 0; }
+#notepad .notepad-body input {
+  width: 100%; border: 1px solid #e8e0b0;
+  border-radius: 4px; padding: 4px 8px;
+  font-size: 12px; font-family: inherit;
+  background: #fffff0;
+  margin-top: 2px;
+}
+#notepad .notepad-body input:focus {
+  outline: none; border-color: var(--overcome);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 700px) {
+  .progress-step .step-label { font-size: 10px; }
+  #notepad { width: 220px; }
+  .objection-tabs { gap: 2px; }
+  .objection-tab { font-size: 10px; padding: 4px 8px; }
+  body { padding-left: 4px; padding-right: 4px; }
+  .phase-section { margin: 8px 8px; }
+}
+@media (max-width: 480px) {
+  .progress-step .step-label { display: none; }
+  .progress-step .step-num { width: 28px; height: 28px; font-size: 13px; }
+  #header-text h1 { font-size: 15px; }
+}
+
+/* Red text for verbal summary emphasis */
+.red-emphasis { color: #c0392b; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     FIXED TOP BAR: HEADER + PROGRESS
+     ============================================================ -->
+<div id="top-bar">
+  <div id="header">
+    <div id="header-text">
+      <h1>XMC: Xfinity Mobile Care</h1>
+      <div class="subtitle">Member Exists in Einstein &bull; Device Protection</div>
+    </div>
+    <div id="call-timer">00:00</div>
+  </div>
+  <div id="progress-bar">
+    <div class="progress-step active" data-phase="connect" onclick="goToPhase('connect')">
+      <span class="step-num">1</span>
+      <span class="step-label">Connect</span>
+    </div>
+    <div class="progress-step" data-phase="explore" onclick="goToPhase('explore')">
+      <span class="step-num">2</span>
+      <span class="step-label">Explore</span>
+    </div>
+    <div class="progress-step" data-phase="consult" onclick="goToPhase('consult')">
+      <span class="step-num">3</span>
+      <span class="step-label">Consult</span>
+    </div>
+    <div class="progress-step" data-phase="overcome" onclick="goToPhase('overcome')">
+      <span class="step-num">4</span>
+      <span class="step-label">Overcome</span>
+    </div>
+    <div class="progress-step" data-phase="review" onclick="goToPhase('review')">
+      <span class="step-num">5</span>
+      <span class="step-label">Review</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 1: CONNECT
+     ============================================================ -->
+<div class="phase-section" data-phase="connect" id="phase-connect">
+  <div class="phase-header" onclick="togglePhase('connect')">
+    <span class="chevron open">&#9654;</span>
+    <span class="phase-title">Phase 1: Connect</span>
+    <div class="pills">
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body open">
+
+    <!-- Greeting -->
+    <span class="content-label" style="background:var(--connect);">GREETING</span>
+    <p style="margin-bottom:12px;">
+      &ldquo;Hi [Member Name], this is [Your Name] with Xfinity, thanks for being a loyal member.&rdquo;
+    </p>
+
+    <!-- Compliance C1 -->
+    <div class="compliance-block" id="c1">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C1: Recording Disclosure</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c1-text')">Copy</button>
+      </div>
+      <div id="c1-text">&ldquo;Before I continue, I need to inform you that the call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices please visit xfinity.com/privacy.&rdquo;</div>
+    </div>
+
+    <!-- Authentication -->
+    <div class="section-title" style="color:var(--connect);">Authentication</div>
+    <p style="margin-bottom:4px;">
+      &ldquo;Just so I can speak more specifically about your account, could you verify your service address and the phone number on the account?&rdquo;
+    </p>
+    <p style="color:var(--text-light); font-style:italic; font-size:13px; margin-bottom:12px;">
+      Or: &ldquo;I&rsquo;ll send a 6-digit verification code to confirm your identity.&rdquo;
+    </p>
+
+    <!-- Reason + Rewards -->
+    <div class="section-title" style="color:var(--connect);">Reason + Rewards</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;I see you&rsquo;ve been a member since [Year], which qualifies you for [Tier] level Xfinity Rewards, that&rsquo;s awesome. I see you&rsquo;re on Xfinity Mobile, great choice. The reason I&rsquo;m calling is I wanted to make sure your device is fully protected. A lot of our members don&rsquo;t realize how much coverage they can get, and I&rsquo;d hate for you to find out the hard way.&rdquo;
+    </p>
+
+    <!-- Tip: Rapport builders -->
+    <div class="tip-block">
+      <span class="tip-badge">TIP</span>
+      <strong>Rapport builders during authentication hold:</strong>
+      <ul class="rapport-list" style="margin-top:6px;">
+        <li>&ldquo;I see you&rsquo;re out in [City]. How do you like it out there?&rdquo;</li>
+        <li>&ldquo;You&rsquo;ve been with us since [Year], we really appreciate that.&rdquo;</li>
+        <li>&ldquo;What kind of phone are you rocking right now? I&rsquo;m always curious what people are using.&rdquo;</li>
+        <li>&ldquo;Are you a case person or do you live dangerously?&rdquo;</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 2: EXPLORE
+     ============================================================ -->
+<div class="phase-section" data-phase="explore" id="phase-explore">
+  <div class="phase-header collapsed" onclick="togglePhase('explore')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 2: Explore</span>
+    <div class="pills">
+      <span class="pill" style="background:#27ae60;">Discover Needs</span>
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Transition -->
+    <p style="margin-bottom:12px;">
+      &ldquo;Let me ask you a couple quick questions so I can show you exactly what kind of coverage makes sense.&rdquo;
+    </p>
+
+    <!-- Discovery Questions -->
+    <table class="discovery-table">
+      <tr>
+        <td>
+          <span class="dq-label">Device:</span> &ldquo;So I&rsquo;m looking at your account here. What phone are you rocking right now?&rdquo;<br>
+          <span class="dq-followup">Follow-up: &ldquo;How long have you had it? Still making payments?&rdquo;</span>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <span class="dq-label">Risk:</span> &ldquo;And be honest with me, are you someone who keeps it in a case, or are you out there living dangerously?&rdquo;<br>
+          <span class="dq-followup">Follow-up: &ldquo;Ever had a cracked screen or lost a phone? What did that end up running you?&rdquo;</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Tip -->
+    <div class="tip-block" style="margin-top:12px;">
+      <span class="tip-badge">TIP</span>
+      The goal is to make them think about the cost of NOT having protection. Get them to name a dollar amount they&rsquo;ve paid for a repair or replacement, then you compare that to $9-$19/mo.
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 3: CONSULT
+     ============================================================ -->
+<div class="phase-section" data-phase="consult" id="phase-consult">
+  <div class="phase-header collapsed" onclick="togglePhase('consult')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 3: Consult</span>
+    <div class="pills">
+      <span class="pill" style="background:#8e44ad;">Be an Ambassador</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Note: No Broadband Labels -->
+    <div class="note-block">
+      <span class="note-badge">NOTE</span>
+      No Broadband Labels required for this campaign (not offering Internet or Mobile service).
+    </div>
+
+    <!-- ======== XMC Pitch Talk Track ======== -->
+    <div class="say-this xmc">
+      <span class="label">Say This: XMC Pitch</span>
+      &ldquo;So [Member Name], with your [Phone Model], here&rsquo;s what Xfinity Mobile Care gets you: unlimited screen repairs, front and back glass, at no extra charge. If your phone is lost, stolen, or damaged beyond repair, you&rsquo;re covered for up to 3 claims in 12 months. And here&rsquo;s something most people don&rsquo;t know. You also get early upgrade eligibility once you&rsquo;ve paid off 50% of your device.&rdquo;
+    </div>
+
+    <!-- ======== XMC Pricing Card ======== -->
+    <div class="product-card xmc">
+      <div class="card-header">
+        Xfinity Mobile Care
+        <span class="badge">DEVICE PROTECTION</span>
+      </div>
+      <div class="card-body">
+        <!-- Pricing Table -->
+        <table class="data-table">
+          <tr>
+            <th style="color:#0984e3;">Device Value</th>
+            <th style="color:#0984e3;">Monthly</th>
+          </tr>
+          <tr>
+            <td>$0 to $300.99</td>
+            <td style="font-weight:700; color:#0984e3; font-size:13px;">$9<span style="font-size:9px; color:#777; font-weight:normal;">/mo</span></td>
+          </tr>
+          <tr>
+            <td>$301 to $949.99</td>
+            <td style="font-weight:700; color:#0984e3; font-size:13px;">$15<span style="font-size:9px; color:#777; font-weight:normal;">/mo</span></td>
+          </tr>
+          <tr>
+            <td>$950 to $1,194.99</td>
+            <td style="font-weight:700; color:#0984e3; font-size:13px;">$17<span style="font-size:9px; color:#777; font-weight:normal;">/mo</span></td>
+          </tr>
+          <tr>
+            <td>$1,195+</td>
+            <td style="font-weight:700; color:#0984e3; font-size:13px;">$19<span style="font-size:9px; color:#777; font-weight:normal;">/mo</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======== AppleCare Comparison Talk Track ======== -->
+    <div class="say-this xmc">
+      <span class="label">Say This: AppleCare Comparison</span>
+      &ldquo;A lot of people think AppleCare has them covered, but here&rsquo;s the difference. AppleCare doesn&rsquo;t cover loss or theft unless you pay extra, charges you a deductible for every screen repair, and you can only go to Apple. With XMC, screen repairs are included at no extra cost, loss and theft is built in, and you can walk into any Xfinity store or thousands of repair locations. Plus it works even if you brought your own device.&rdquo;
+    </div>
+
+    <!-- ======== XMC vs AppleCare Comparison Card ======== -->
+    <div class="product-card xmc">
+      <div class="card-header">
+        XMC vs AppleCare+
+        <span class="badge">COMPARISON</span>
+      </div>
+      <div class="card-body">
+        <!-- Comparison Table -->
+        <table class="data-table">
+          <tr>
+            <th style="color:#0984e3;">Feature</th>
+            <th style="color:#0984e3;">XMC</th>
+            <th style="color:#777;">AppleCare+</th>
+          </tr>
+          <tr>
+            <td>Screen repair</td>
+            <td style="color:#0984e3; font-weight:bold;">Included (unlimited)</td>
+            <td>$29-$99 deductible</td>
+          </tr>
+          <tr>
+            <td>Loss/Theft</td>
+            <td style="color:#0984e3; font-weight:bold;">Included</td>
+            <td>Extra cost add-on</td>
+          </tr>
+          <tr>
+            <td>Repair locations</td>
+            <td style="color:#0984e3; font-weight:bold;">Xfinity stores + thousands</td>
+            <td>Apple stores only</td>
+          </tr>
+          <tr>
+            <td>BYOD eligible</td>
+            <td style="color:#0984e3; font-weight:bold;">Yes</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>Early upgrade</td>
+            <td style="color:#0984e3; font-weight:bold;">At 50% paid off</td>
+            <td>Not available</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======== Cost Anchoring Talk Track ======== -->
+    <div class="say-this xmc">
+      <span class="label">Say This: Cost Anchoring</span>
+      &ldquo;Think about it this way. A single screen repair at a third-party shop runs $200 to $350. Replacing a lost phone out of pocket? $800 to $1,200. For $[X]/mo, you&rsquo;re covered for all of it.&rdquo;
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 4: OVERCOME
+     ============================================================ -->
+<div class="phase-section" data-phase="overcome" id="phase-overcome">
+  <div class="phase-header collapsed" onclick="togglePhase('overcome')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 4: Overcome</span>
+    <div class="pills">
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#27ae60;">Discover Needs</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#8e44ad;">Be an Ambassador</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Objection tabs -->
+    <div class="objection-tabs" id="objection-tabs">
+      <div class="objection-tab active" data-obj="obj1" onclick="switchObjection('obj1', this)">&ldquo;I already have AppleCare.&rdquo;</div>
+      <div class="objection-tab" data-obj="obj2" onclick="switchObjection('obj2', this)">&ldquo;I don&rsquo;t need insurance, I&rsquo;m careful.&rdquo;</div>
+      <div class="objection-tab" data-obj="obj3" onclick="switchObjection('obj3', this)">&ldquo;It&rsquo;s too expensive for insurance.&rdquo;</div>
+    </div>
+
+    <!-- Objection 1: AppleCare -->
+    <div class="objection-panel active" id="obj1">
+      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--overcome);">&ldquo;I already have AppleCare.&rdquo;</p>
+      <p><span class="step-num-obj">1.</span> <strong>Understand:</strong> &ldquo;Good, so you&rsquo;re already thinking about protection, which is smart. Let me ask, do you have the basic AppleCare or AppleCare+ with theft and loss?&rdquo;</p>
+      <p><span class="step-num-obj">2.</span> <strong>Empathize &amp; Overcome:</strong> &ldquo;Here&rsquo;s where XMC really stands apart. With AppleCare, every screen repair has a deductible. With XMC, screen repairs are included at no extra cost, unlimited, front and back. Plus XMC includes loss and theft automatically. With Apple, that&rsquo;s an upgrade you have to pay extra for. And you&rsquo;re not limited to Apple stores, you can use any Xfinity store or thousands of repair locations.&rdquo;</p>
+      <p><span class="step-num-obj">3.</span> <strong>Restate Tie-backs:</strong> &ldquo;You mentioned you [don&rsquo;t use a case / have cracked a screen before / are still paying the phone off], and XMC makes sure that never costs you out of pocket.&rdquo;</p>
+      <p><span class="step-num-obj">4.</span> <strong>Add Value:</strong> &ldquo;Plus you get early upgrade eligibility at 50% paid off. AppleCare doesn&rsquo;t offer that.&rdquo;</p>
+    </div>
+
+    <!-- Objection 2: I'm careful -->
+    <div class="objection-panel" id="obj2">
+      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--overcome);">&ldquo;I don&rsquo;t need insurance. I&rsquo;m careful.&rdquo;</p>
+      <p><span class="step-num-obj">1.</span> <strong>Understand:</strong> &ldquo;I respect that, you clearly take care of your stuff.&rdquo;</p>
+      <p><span class="step-num-obj">2.</span> <strong>Empathize &amp; Overcome:</strong> &ldquo;Here&rsquo;s the thing though, most claims aren&rsquo;t from being careless. It&rsquo;s a phone slipping off a counter, getting knocked out of your hand, or just plain bad luck. And if it&rsquo;s lost or stolen, careful doesn&rsquo;t matter. A single incident without coverage on a [Phone Model] could cost you $[estimate].&rdquo;</p>
+      <p><span class="step-num-obj">3.</span> <strong>Restate Tie-backs:</strong> &ldquo;For just $[X]/mo, that&rsquo;s less than a dollar a day to make sure you never have to pay that.&rdquo;</p>
+      <p><span class="step-num-obj">4.</span> <strong>Add Value:</strong> &ldquo;And don&rsquo;t forget the early upgrade perk. Once you&rsquo;ve paid off half your device, you can upgrade with no fee. That alone can save you hundreds.&rdquo;</p>
+    </div>
+
+    <!-- Objection 3: Too expensive -->
+    <div class="objection-panel" id="obj3">
+      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--overcome);">&ldquo;It&rsquo;s too expensive for insurance.&rdquo;</p>
+      <p><span class="step-num-obj">1.</span> <strong>Understand:</strong> &ldquo;I get it, nobody wants another monthly charge. What&rsquo;s your biggest concern, the monthly cost or the value of what you&rsquo;re getting?&rdquo;</p>
+      <p><span class="step-num-obj">2.</span> <strong>Empathize &amp; Overcome:</strong> &ldquo;Here&rsquo;s how I think about it. Your [Phone Model] costs $[MSRP]. A screen repair runs $200-$350. Losing it? You&rsquo;re looking at replacing it at full price. XMC at $[X]/mo means in a year you&rsquo;ve paid $[annual], and one single claim saves you more than that.&rdquo;</p>
+      <p><span class="step-num-obj">3.</span> <strong>Restate Tie-backs:</strong> &ldquo;And with unlimited screen repairs included, you could crack it tomorrow and it wouldn&rsquo;t cost you a thing extra.&rdquo;</p>
+      <p><span class="step-num-obj">4.</span> <strong>Add Value:</strong> &ldquo;Plus the early upgrade eligibility, you don&rsquo;t have to pay your phone all the way off before getting the next one.&rdquo;</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 5: REVIEW
+     ============================================================ -->
+<div class="phase-section" data-phase="review" id="phase-review">
+  <div class="phase-header collapsed" onclick="togglePhase('review')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 5: Review</span>
+    <div class="pills">
+      <span class="pill" style="background:#00cec9;">Show Appreciation</span>
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Note -->
+    <div class="note-block">
+      <span class="note-badge">NOTE</span>
+      XMC is an enrollment, not a full service order. Simplified review, no C4/C5/C6/C7 needed.
+    </div>
+
+    <!-- Assume the Sale -->
+    <div class="section-title" style="color:var(--review);">Assume the Sale</div>
+    <p style="margin-bottom:8px;">
+      &ldquo;Let&rsquo;s go ahead and get your [Phone Model] protected right now, takes about two minutes.&rdquo;
+    </p>
+
+    <div class="tip-block">
+      <span class="tip-badge">TIP</span>
+      Don&rsquo;t ask &ldquo;Would you like to move forward?&rdquo; Assume. &ldquo;Let me get this set up for you&rdquo; is the move.
+    </div>
+
+    <!-- Reaffirm -->
+    <div class="section-title" style="color:var(--review);">Reaffirm</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;Smart move, [Member Name]. For just $[X]/mo you&rsquo;ve got unlimited screen repairs, loss and theft coverage, and that early upgrade perk. You won&rsquo;t have to worry about a thing.&rdquo;
+    </p>
+
+    <!-- Enrollment Confirmation -->
+    <div class="section-title" style="color:var(--review);">Enrollment Confirmation</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;Your Xfinity Mobile Care coverage starts today. If anything ever happens to your device, just walk into any Xfinity store, call us, or file a claim through the Xfinity app. You&rsquo;ve got 3 claims per 12 months, and remember, screen repairs are unlimited and included.&rdquo;
+    </p>
+
+    <!-- Compliance C8 -->
+    <div class="compliance-block" id="c8">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C8: Closing</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c8-text')">Copy</button>
+      </div>
+      <div id="c8-text">&ldquo;Thank you for your time today, [Member Name]. If you have any questions about this call or any Xfinity products or services in your area, please feel free to call 1-800-XFINITY (934-6489) or visit xfinity.com. Have a great rest of your day!&rdquo;</div>
+    </div>
+
+    <!-- No-Sale Close -->
+    <div class="section-title" style="color:var(--review);">No-Sale Close</div>
+    <p style="margin-bottom:8px;">
+      &ldquo;I appreciate you taking the time to chat with me today, [Member Name]. If anything changes or you want to revisit this down the road, don&rsquo;t hesitate to call us at 1-800-XFINITY or visit xfinity.com. Have a great rest of your day!&rdquo;
+    </p>
+
+    <div class="tip-block">
+      <span class="tip-badge">TIP</span>
+      Even on a no-sale, leave the door open and leave a good impression.
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     TIE-BACK NOTEPAD
+     ============================================================ -->
+<div id="notepad">
+  <div class="notepad-header" id="notepad-drag-handle">
+    <span>Tie-Back Notes</span>
+    <button class="toggle-btn" onclick="toggleNotepad()" title="Minimize/Expand">&minus;</button>
+  </div>
+  <div class="notepad-body">
+    <label for="np-device">Device</label>
+    <input type="text" id="np-device" placeholder="Phone model, age, payments..." oninput="saveNotes()">
+    <label for="np-risk">Risk</label>
+    <input type="text" id="np-risk" placeholder="Case? Cracked before? Cost?" oninput="saveNotes()">
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  /* ----------------------------------------------------------
+     PHASE ORDER & STATE
+     ---------------------------------------------------------- */
+  var phases = ['connect', 'explore', 'consult', 'overcome', 'review'];
+  var activePhase = 'connect';
+  var completedPhases = {};
+
+  /* ----------------------------------------------------------
+     CALL TIMER
+     ---------------------------------------------------------- */
+  var timerStart = Date.now();
+  var timerEl = document.getElementById('call-timer');
+
+  function updateTimer() {
+    var elapsed = Math.floor((Date.now() - timerStart) / 1000);
+    var m = Math.floor(elapsed / 60);
+    var s = elapsed % 60;
+    timerEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  setInterval(updateTimer, 1000);
+
+  /* ----------------------------------------------------------
+     PHASE EXPAND / COLLAPSE
+     ---------------------------------------------------------- */
+  window.togglePhase = function(phase) {
+    if (activePhase === phase) {
+      // Collapse current
+      collapsePhase(phase);
+      activePhase = null;
+      updateProgress();
+      return;
+    }
+    // Collapse old
+    if (activePhase) collapsePhase(activePhase);
+    // Mark previous as completed
+    if (activePhase) completedPhases[activePhase] = true;
+    // Expand new
+    expandPhase(phase);
+    activePhase = phase;
+    updateProgress();
+  };
+
+  window.goToPhase = function(phase) {
+    // Mark all phases before this one as completed
+    for (var i = 0; i < phases.indexOf(phase); i++) {
+      completedPhases[phases[i]] = true;
+    }
+    if (activePhase && activePhase !== phase) collapsePhase(activePhase);
+    expandPhase(phase);
+    activePhase = phase;
+    updateProgress();
+    // Scroll to the phase
+    var el = document.getElementById('phase-' + phase);
+    if (el) {
+      var topBarH = document.getElementById('top-bar').offsetHeight;
+      var y = el.getBoundingClientRect().top + window.pageYOffset - topBarH - 8;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
+  function expandPhase(phase) {
+    var section = document.getElementById('phase-' + phase);
+    if (!section) return;
+    var body = section.querySelector('.phase-body');
+    var chevron = section.querySelector('.chevron');
+    var header = section.querySelector('.phase-header');
+    body.classList.add('open');
+    chevron.classList.add('open');
+    header.classList.remove('collapsed');
+  }
+
+  function collapsePhase(phase) {
+    var section = document.getElementById('phase-' + phase);
+    if (!section) return;
+    var body = section.querySelector('.phase-body');
+    var chevron = section.querySelector('.chevron');
+    var header = section.querySelector('.phase-header');
+    body.classList.remove('open');
+    chevron.classList.remove('open');
+    header.classList.add('collapsed');
+  }
+
+  function updateProgress() {
+    var steps = document.querySelectorAll('.progress-step');
+    steps.forEach(function(step) {
+      var p = step.getAttribute('data-phase');
+      step.classList.remove('active', 'completed');
+      if (p === activePhase) {
+        step.classList.add('active');
+      } else if (completedPhases[p]) {
+        step.classList.add('completed');
+        step.querySelector('.step-num').innerHTML = '&#10003;';
+      }
+    });
+  }
+
+  /* ----------------------------------------------------------
+     OBJECTION TABS
+     ---------------------------------------------------------- */
+  window.switchObjection = function(objId, tabEl) {
+    // Deactivate all tabs + panels
+    document.querySelectorAll('.objection-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.objection-panel').forEach(function(p) { p.classList.remove('active'); });
+    // Activate selected
+    tabEl.classList.add('active');
+    document.getElementById(objId).classList.add('active');
+  };
+
+  /* ----------------------------------------------------------
+     COPY COMPLIANCE VERBATIM
+     ---------------------------------------------------------- */
+  window.copyCompliance = function(btn, textId) {
+    var el = document.getElementById(textId);
+    if (!el) return;
+    // Get the plain text (strip HTML), convert smart quotes for clipboard
+    var text = el.innerText || el.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1500);
+    }).catch(function() {
+      // Fallback
+      btn.textContent = 'Error';
+      setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+    });
+  };
+
+  /* ----------------------------------------------------------
+     TIE-BACK NOTEPAD: localStorage persistence
+     ---------------------------------------------------------- */
+  var noteFields = ['np-device', 'np-risk'];
+
+  window.saveNotes = function() {
+    var data = {};
+    noteFields.forEach(function(id) {
+      data[id] = document.getElementById(id).value;
+    });
+    try { localStorage.setItem('xmc-tiebacks', JSON.stringify(data)); } catch(e) {}
+  };
+
+  function loadNotes() {
+    try {
+      var raw = localStorage.getItem('xmc-tiebacks');
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      noteFields.forEach(function(id) {
+        if (data[id]) document.getElementById(id).value = data[id];
+      });
+    } catch(e) {}
+  }
+  loadNotes();
+
+  /* ----------------------------------------------------------
+     NOTEPAD: Minimize / Expand toggle
+     ---------------------------------------------------------- */
+  window.toggleNotepad = function() {
+    var np = document.getElementById('notepad');
+    var btn = np.querySelector('.toggle-btn');
+    np.classList.toggle('minimized');
+    btn.innerHTML = np.classList.contains('minimized') ? '+' : '&minus;';
+  };
+
+  /* ----------------------------------------------------------
+     NOTEPAD: Draggable
+     ---------------------------------------------------------- */
+  (function() {
+    var np = document.getElementById('notepad');
+    var handle = document.getElementById('notepad-drag-handle');
+    var isDragging = false;
+    var offsetX = 0, offsetY = 0;
+
+    handle.addEventListener('mousedown', function(e) {
+      if (e.target.tagName === 'BUTTON') return; // don't drag on toggle btn
+      isDragging = true;
+      var rect = np.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      np.style.transition = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      var x = e.clientX - offsetX;
+      var y = e.clientY - offsetY;
+      // Constrain to viewport
+      x = Math.max(0, Math.min(x, window.innerWidth - np.offsetWidth));
+      y = Math.max(0, Math.min(y, window.innerHeight - np.offsetHeight));
+      np.style.left = x + 'px';
+      np.style.top = y + 'px';
+      np.style.right = 'auto';
+      np.style.bottom = 'auto';
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (isDragging) {
+        isDragging = false;
+        np.style.transition = '';
+      }
+    });
+  })();
+
+})();
+</script>
+</body>
+</html>

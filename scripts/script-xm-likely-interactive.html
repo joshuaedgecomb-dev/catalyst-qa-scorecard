@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XM Likely: Xfinity Mobile for Internet Members - Interactive Script</title>
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  /* Phase colors */
+  --connect:   #6138f5;
+  --connect-bg:#f3eeff;
+  --explore:   #00b894;
+  --explore-bg:#e8f8f5;
+  --consult:   #0984e3;
+  --consult-bg:#e8f4fd;
+  --overcome:  #e67e22;
+  --overcome-bg:#fef5e7;
+  --review:    #00cec9;
+  --review-bg: #e8fffe;
+
+  /* Accent colors */
+  --compliance-bg:  #fef9e7;
+  --compliance-border: #f39c12;
+  --compliance-badge: #e67e22;
+  --tip-bg:     #f9f9f9;
+  --tip-badge:  #95a5a6;
+  --streamsaver:#ab47bc;
+
+  /* Neutrals */
+  --text:       #2d3436;
+  --text-light: #777;
+  --border:     #e0e0e0;
+  --bg-card:    #ffffff;
+  --bg-body:    #f5f5f7;
+
+  /* Layout */
+  --header-h:   56px;
+  --progress-h: 52px;
+  --radius:     8px;
+  --shadow:     0 2px 8px rgba(0,0,0,0.08);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg-body);
+  line-height: 1.55;
+  font-size: 14px;
+  padding-top: calc(var(--header-h) + var(--progress-h) + 8px);
+  padding-bottom: 80px;
+}
+
+/* ============================================================
+   FIXED TOP HEADER + PROGRESS BAR
+   ============================================================ */
+#top-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: #1e1e2e;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+}
+
+#header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 20px;
+  min-height: var(--header-h);
+}
+#header-text h1 {
+  font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 0.3px;
+}
+#header-text .subtitle {
+  font-size: 11px; color: #b8b8d0; margin-top: 2px;
+}
+
+/* Call timer */
+#call-timer {
+  font-size: 16px; font-weight: 600; color: #a8e6cf;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  padding: 4px 14px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Progress tracker */
+#progress-bar {
+  display: flex; align-items: stretch;
+  background: #16161f;
+  height: var(--progress-h);
+}
+.progress-step {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: #888;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s;
+  border-bottom: 3px solid transparent;
+  position: relative;
+  user-select: none;
+  padding: 0 6px;
+}
+.progress-step:hover { background: rgba(255,255,255,0.04); }
+.progress-step.active { color: #fff; }
+.progress-step.completed { color: #a8e6cf; }
+.progress-step .step-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  background: #333;
+  color: #888;
+  transition: background 0.25s, color 0.25s;
+  flex-shrink: 0;
+}
+.progress-step.active .step-num { color: #fff; }
+.progress-step.completed .step-num { background: #00b894; color: #fff; }
+.progress-step .step-label { white-space: nowrap; }
+/* Arrow between steps */
+.progress-step:not(:last-child)::after {
+  content: '\203A';
+  position: absolute; right: -4px;
+  font-size: 18px; color: #555;
+  z-index: 1;
+}
+
+/* Dynamic border color per step */
+.progress-step[data-phase="connect"].active   { border-bottom-color: var(--connect); }
+.progress-step[data-phase="explore"].active   { border-bottom-color: var(--explore); }
+.progress-step[data-phase="consult"].active   { border-bottom-color: var(--consult); }
+.progress-step[data-phase="overcome"].active  { border-bottom-color: var(--overcome); }
+.progress-step[data-phase="review"].active    { border-bottom-color: var(--review); }
+.progress-step[data-phase="connect"].active .step-num   { background: var(--connect); }
+.progress-step[data-phase="explore"].active .step-num   { background: var(--explore); }
+.progress-step[data-phase="consult"].active .step-num   { background: var(--consult); }
+.progress-step[data-phase="overcome"].active .step-num  { background: var(--overcome); }
+.progress-step[data-phase="review"].active .step-num    { background: var(--review); }
+
+/* ============================================================
+   PHASE SECTIONS
+   ============================================================ */
+.phase-section { margin: 12px 16px; }
+
+.phase-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  cursor: pointer;
+  user-select: none;
+  transition: border-radius 0.3s;
+}
+.phase-header.collapsed {
+  border-radius: var(--radius);
+}
+.phase-header .chevron {
+  font-size: 14px;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+.phase-header .chevron.open { transform: rotate(90deg); }
+.phase-header .phase-title {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.phase-header .pills {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto;
+}
+.phase-header .pill {
+  padding: 2px 8px;
+  font-size: 9px; font-weight: 600; color: #fff;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Phase body */
+.phase-body {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.35s ease, padding 0.35s ease;
+  padding: 0 18px;
+}
+.phase-body.open {
+  max-height: 8000px;
+  opacity: 1;
+  padding: 16px 18px;
+}
+
+/* Phase-specific header colors */
+.phase-section[data-phase="connect"] .phase-header  { background: var(--connect-bg); color: var(--connect); border-bottom: 2px solid var(--connect); }
+.phase-section[data-phase="explore"] .phase-header  { background: var(--explore-bg); color: var(--explore); border-bottom: 2px solid var(--explore); }
+.phase-section[data-phase="consult"] .phase-header  { background: var(--consult-bg); color: var(--consult); border-bottom: 2px solid var(--consult); }
+.phase-section[data-phase="overcome"] .phase-header { background: var(--overcome-bg); color: var(--overcome); border-bottom: 2px solid var(--overcome); }
+.phase-section[data-phase="review"] .phase-header   { background: var(--review-bg); color: var(--review); border-bottom: 2px solid var(--review); }
+
+/* ============================================================
+   CONTENT BLOCKS
+   ============================================================ */
+
+/* Say This blocks */
+.say-this {
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.7;
+  margin: 12px 0;
+  border-radius: 6px;
+}
+.say-this .label {
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  display: block; margin-bottom: 6px;
+}
+.say-this.internet  { background: #f3eeff; border-left: 6px solid var(--connect); }
+.say-this.internet .label { color: var(--connect); }
+.say-this.mobile    { background: #e8faf5; border-left: 6px solid var(--explore); }
+.say-this.mobile .label { color: var(--explore); }
+.say-this.stream    { background: #fce4ec; border-left: 6px solid var(--streamsaver); }
+.say-this.stream .label { color: var(--streamsaver); }
+.say-this.home      { background: #fff8e1; border-left: 6px solid var(--overcome); }
+.say-this.home .label { color: var(--overcome); }
+.say-this.voice     { background: #f5f5f5; border-left: 6px solid var(--text); }
+.say-this.voice .label { color: var(--text); }
+
+/* Product cards */
+.product-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 12px 0;
+}
+.product-card .card-header {
+  padding: 8px 14px;
+  font-weight: 700; font-size: 12px; color: #fff;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.product-card .card-header .badge {
+  font-size: 9px; background: rgba(255,255,255,0.25);
+  padding: 2px 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  border-radius: 3px;
+}
+.product-card .card-body { padding: 12px 14px; }
+
+/* Color variants */
+.product-card.internet .card-header { background: var(--connect); }
+.product-card.internet { border-color: #d4c8ff; }
+.product-card.mobile .card-header   { background: var(--explore); }
+.product-card.mobile { border-color: #b8f0e8; }
+.product-card.stream .card-header   { background: linear-gradient(90deg, #e040fb, #ab47bc); }
+.product-card.stream { border-color: #f0c4ff; }
+
+/* Tables inside cards */
+.data-table {
+  width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;
+}
+.data-table th {
+  text-align: left; padding: 5px 7px;
+  border-bottom: 1.5px solid var(--border);
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px;
+  background: #f5f5f5;
+}
+.data-table td {
+  padding: 4px 7px; border-bottom: 1px solid #f0f0f0;
+}
+.data-table tr:last-child td { border-bottom: none; }
+
+/* Two-column info panels */
+.info-panels {
+  display: flex; gap: 0; margin-top: 8px;
+}
+.info-panels .panel {
+  flex: 1; padding: 8px 12px;
+}
+.info-panels .panel-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+.info-panels .panel ul { list-style: none; font-size: 11px; line-height: 1.6; }
+.info-panels .panel ul li::before { content: '\2022\00a0'; }
+
+/* APPD callout */
+.appd-note {
+  background: var(--compliance-bg);
+  border-left: 3px solid var(--compliance-border);
+  padding: 6px 10px;
+  margin: 8px 0;
+  font-size: 10px; line-height: 1.4;
+}
+
+/* Compliance blocks */
+.compliance-block {
+  background: var(--compliance-bg);
+  border-left: 3px solid var(--compliance-border);
+  padding: 10px 14px;
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: 0 6px 6px 0;
+  position: relative;
+}
+.compliance-block .badge-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.compliance-block .comp-badge {
+  background: var(--compliance-badge); color: #fff;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; border-radius: 3px;
+}
+.compliance-block .comp-label { font-weight: 700; font-size: 13px; }
+.compliance-block .copy-btn {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-size: 10px; font-weight: 600;
+  background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s;
+}
+.compliance-block .copy-btn:hover { background: #f0f0f0; }
+.compliance-block .copy-btn.copied { background: #00b894; color: #fff; border-color: #00b894; }
+
+/* Tip blocks */
+.tip-block {
+  background: var(--tip-bg);
+  padding: 10px 14px;
+  margin: 10px 0;
+  font-size: 12px;
+  color: var(--text-light);
+  font-style: italic;
+  border-radius: 6px;
+}
+.tip-block .tip-badge {
+  background: var(--tip-badge); color: #fff;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; font-style: normal;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+.tip-block strong { font-style: normal; }
+
+/* Content labels (Greeting, Reason for Call, etc.) */
+.content-label {
+  display: inline-block;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; color: #fff;
+  border-radius: 3px; margin-bottom: 8px;
+}
+
+/* Discovery questions table */
+.discovery-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.discovery-table td {
+  padding: 8px 0;
+  border-bottom: 1px solid #e8f8f5;
+  line-height: 1.5;
+}
+.discovery-table tr:last-child td { border-bottom: none; }
+.discovery-table .dq-label { font-weight: 700; color: var(--explore); }
+.discovery-table .dq-followup { color: var(--text-light); font-size: 12px; font-style: italic; }
+
+/* Section headers inside phase bodies */
+.section-title {
+  font-size: 13px; font-weight: 700; margin: 16px 0 8px;
+}
+
+/* Order summary list */
+.order-list { list-style: none; font-size: 12px; line-height: 1.8; }
+.order-list li::before { content: '\2022\00a0\00a0'; }
+
+/* Rapport list */
+.rapport-list { list-style: none; font-size: 12px; line-height: 1.6; color: var(--text-light); font-style: italic; }
+.rapport-list li { padding: 2px 0; }
+.rapport-list li::before { content: '\2022\00a0\00a0'; }
+
+/* ============================================================
+   OBJECTION TABS
+   ============================================================ */
+.objection-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 0;
+}
+.objection-tab {
+  padding: 6px 12px;
+  font-size: 12px; font-weight: 600;
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.objection-tab:hover { background: var(--overcome-bg); }
+.objection-tab.active {
+  background: var(--overcome);
+  color: #fff;
+  border-color: var(--overcome);
+}
+.objection-panel {
+  display: none;
+  background: #fff;
+  border: 1.5px solid var(--overcome);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.objection-panel.active { display: block; }
+.objection-panel .step-num-obj {
+  display: inline-block; width: 22px;
+  font-weight: 700; color: var(--overcome);
+}
+
+/* ============================================================
+   TIE-BACK NOTEPAD
+   ============================================================ */
+#notepad {
+  position: fixed;
+  bottom: 16px; right: 16px;
+  width: 260px;
+  background: #fffde7;
+  border: 1.5px solid #f0e68c;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 999;
+  font-size: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+#notepad.minimized .notepad-body { display: none; }
+#notepad .notepad-header {
+  background: #f9e74a;
+  padding: 6px 12px;
+  font-weight: 700; font-size: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: move;
+  user-select: none;
+}
+#notepad .notepad-header .toggle-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; color: #333; line-height: 1;
+}
+#notepad .notepad-body { padding: 8px 12px 12px; }
+#notepad .notepad-body label {
+  display: block; font-weight: 600; color: #888;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px;
+  margin-top: 6px;
+}
+#notepad .notepad-body label:first-child { margin-top: 0; }
+#notepad .notepad-body input {
+  width: 100%; border: 1px solid #e8e0b0;
+  border-radius: 4px; padding: 4px 8px;
+  font-size: 12px; font-family: inherit;
+  background: #fffff0;
+  margin-top: 2px;
+}
+#notepad .notepad-body input:focus {
+  outline: none; border-color: var(--overcome);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 700px) {
+  .progress-step .step-label { font-size: 10px; }
+  .info-panels { flex-direction: column; }
+  #notepad { width: 220px; }
+  .objection-tabs { gap: 2px; }
+  .objection-tab { font-size: 10px; padding: 4px 8px; }
+  body { padding-left: 4px; padding-right: 4px; }
+  .phase-section { margin: 8px 8px; }
+}
+@media (max-width: 480px) {
+  .progress-step .step-label { display: none; }
+  .progress-step .step-num { width: 28px; height: 28px; font-size: 13px; }
+  #header-text h1 { font-size: 15px; }
+}
+
+/* Red text for verbal summary emphasis */
+.red-emphasis { color: #c0392b; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     FIXED TOP BAR: HEADER + PROGRESS
+     ============================================================ -->
+<div id="top-bar">
+  <div id="header">
+    <div id="header-text">
+      <h1>XM Likely: Xfinity Mobile for Internet Members</h1>
+      <div class="subtitle">Member Exists in Einstein &bull; Mobile &rarr; StreamSaver &rarr; Home</div>
+    </div>
+    <div id="call-timer">00:00</div>
+  </div>
+  <div id="progress-bar">
+    <div class="progress-step active" data-phase="connect" onclick="goToPhase('connect')">
+      <span class="step-num">1</span>
+      <span class="step-label">Connect</span>
+    </div>
+    <div class="progress-step" data-phase="explore" onclick="goToPhase('explore')">
+      <span class="step-num">2</span>
+      <span class="step-label">Explore</span>
+    </div>
+    <div class="progress-step" data-phase="consult" onclick="goToPhase('consult')">
+      <span class="step-num">3</span>
+      <span class="step-label">Consult</span>
+    </div>
+    <div class="progress-step" data-phase="overcome" onclick="goToPhase('overcome')">
+      <span class="step-num">4</span>
+      <span class="step-label">Overcome</span>
+    </div>
+    <div class="progress-step" data-phase="review" onclick="goToPhase('review')">
+      <span class="step-num">5</span>
+      <span class="step-label">Review</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 1: CONNECT
+     ============================================================ -->
+<div class="phase-section" data-phase="connect" id="phase-connect">
+  <div class="phase-header" onclick="togglePhase('connect')">
+    <span class="chevron open">&#9654;</span>
+    <span class="phase-title">Phase 1: Connect</span>
+    <div class="pills">
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body open">
+
+    <!-- Greeting -->
+    <span class="content-label" style="background:var(--connect);">GREETING</span>
+    <p style="margin-bottom:12px;">
+      &ldquo;Hi [Member Name], this is [Your Name] with Xfinity, thanks for being a loyal member.&rdquo;
+    </p>
+
+    <!-- Compliance C1 -->
+    <div class="compliance-block" id="c1">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C1: Recording Disclosure</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c1-text')">Copy</button>
+      </div>
+      <div id="c1-text">&ldquo;Before I continue, I need to inform you that the call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices please visit xfinity.com/privacy.&rdquo;</div>
+    </div>
+
+    <!-- Authentication -->
+    <div class="section-title" style="color:var(--connect);">Authentication</div>
+    <p style="margin-bottom:4px;">
+      &ldquo;Just so I can speak more specifically about your account, could you verify your service address and the phone number on the account?&rdquo;
+    </p>
+    <p style="color:var(--text-light); font-style:italic; font-size:13px; margin-bottom:12px;">
+      Or: &ldquo;I&rsquo;ll send a 6-digit verification code to confirm your identity.&rdquo;
+    </p>
+
+    <!-- Reason + Rewards -->
+    <div class="section-title" style="color:var(--connect);">Reason + Rewards</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;I see you&rsquo;ve been a member since [Year], which qualifies you for [Tier] level Xfinity Rewards, that&rsquo;s awesome. The reason I&rsquo;m calling is we have an incredible offer right now exclusively for members like you that I think you&rsquo;re going to love.&rdquo;
+    </p>
+
+    <!-- Tip: Rapport builders -->
+    <div class="tip-block">
+      <span class="tip-badge">TIP</span>
+      <strong>Rapport builders during authentication hold:</strong>
+      <ul class="rapport-list" style="margin-top:6px;">
+        <li>&ldquo;I see you&rsquo;re out in [City]. How do you like it out there?&rdquo;</li>
+        <li>&ldquo;You&rsquo;ve been with us since [Year], we really appreciate that.&rdquo;</li>
+        <li>&ldquo;Are you watching anything good lately? I&rsquo;m always looking for recommendations.&rdquo;</li>
+        <li>&ldquo;Sounds like you&rsquo;ve got a full house. How many people are you keeping connected?&rdquo;</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 2: EXPLORE
+     ============================================================ -->
+<div class="phase-section" data-phase="explore" id="phase-explore">
+  <div class="phase-header collapsed" onclick="togglePhase('explore')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 2: Explore</span>
+    <div class="pills">
+      <span class="pill" style="background:#27ae60;">Discover Needs</span>
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Transition -->
+    <p style="margin-bottom:12px;">
+      &ldquo;I want to make sure what I show you actually makes sense for you. I just need to ask a couple quick questions so I can show you the right option.&rdquo;
+    </p>
+
+    <!-- Discovery Questions -->
+    <table class="discovery-table">
+      <tr>
+        <td>
+          <span class="dq-label">Devices:</span> &ldquo;So on the mobile side, paint me a picture of what you&rsquo;ve got going on with [Provider] right now.&rdquo;<br>
+          <span class="dq-followup">Follow-up: &ldquo;How many lines? Any smartwatches or tablets on there?&rdquo;</span>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <span class="dq-label">Usage:</span> &ldquo;And on a typical day, how are you using your phone? Are you someone who&rsquo;s streaming and burning through data, or are you mostly on WiFi?&rdquo;<br>
+          <span class="dq-followup">Follow-up: &ldquo;Do you ever use hotspot? Any international travel?&rdquo;</span>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <span class="dq-label">Cost:</span> &ldquo;Just so I can see what we&rsquo;re working with. What&rsquo;s [Provider] running you each month for all of that?&rdquo;<br>
+          <span class="dq-followup">Follow-up: &ldquo;Is that for [X] lines? Are you in a contract or month to month?&rdquo;</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Tip: Tie-backs -->
+    <div class="tip-block" style="margin-top:12px;">
+      <span class="tip-badge">TIP</span>
+      Heavy data/4K/travel/hotspot &rarr; pitch Premium Unlimited. Regular use/Mexico calls &rarr; Unlimited. Mostly on WiFi/basics &rarr; Unlimited is still the play because of the included line deal.
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 3: CONSULT
+     ============================================================ -->
+<div class="phase-section" data-phase="consult" id="phase-consult">
+  <div class="phase-header collapsed" onclick="togglePhase('consult')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 3: Consult</span>
+    <div class="pills">
+      <span class="pill" style="background:#8e44ad;">Be an Ambassador</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Compliance C3 -->
+    <div class="compliance-block" id="c3">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C3: Broadband Labels</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c3-text')">Copy</button>
+      </div>
+      <div id="c3-text">&ldquo;Before I go into plan details, I wanted to let you know that you can now review a breakdown of pricing and features for Internet and mobile plans online, making it easy for you to compare them. For more information please visit xfinity.com/labels.&rdquo;</div>
+    </div>
+
+    <!-- ======== MOBILE PITCH ======== -->
+    <div class="say-this mobile">
+      <span class="label">Say This: Mobile Pitch</span>
+      &ldquo;So here&rsquo;s why I&rsquo;m so excited to tell you about this. You mentioned you&rsquo;re paying [Provider] $[X] for [X] lines. With Xfinity Mobile, because you already have Internet with us, you get your first line included at $0 a month for 12 months. That&rsquo;s a $480 savings right there. And after that, Unlimited is just $40 a month. You&rsquo;d be on the same Verizon network [if applicable], plus everywhere you go where there&rsquo;s an Xfinity WiFi hotspot, and there are millions of them, your phone automatically connects, which saves your data and speeds things up.&rdquo;
+    </div>
+
+    <!-- ======== PLAN RECOMMENDATION ======== -->
+    <div class="say-this mobile">
+      <span class="label">Say This: Plan Recommendation</span>
+      <em style="color:#777; font-size:13px;">Heavy data:</em> &ldquo;Based on what you told me about [streaming on the go / traveling / needing hotspot], I&rsquo;d go with Premium Unlimited at $50 a line. You get 100 GB of prioritized data, 30 GB hotspot, 4K streaming, and Global Travel Pass included.&rdquo;<br>
+      <em style="color:#777; font-size:13px;">Regular use:</em> &ldquo;Unlimited at $40 a line is perfect for what you&rsquo;re describing. 30 GB of prioritized data, and you&rsquo;re on WiFi at home most of the time anyway so you&rsquo;ll barely touch it.&rdquo;
+    </div>
+
+    <!-- ======== MOBILE CARD ======== -->
+    <div class="product-card mobile">
+      <div class="card-header">
+        Xfinity Mobile: Plans &amp; Promos
+        <span class="badge">THROUGH 4/21/26</span>
+      </div>
+      <div class="card-body">
+        <!-- Pricing table -->
+        <table class="data-table">
+          <tr>
+            <th style="color:#00b894;">Lines</th>
+            <th style="color:#00b894;">Unlimited (Promo)</th>
+            <th style="color:#00b894;">Premium (Promo)</th>
+            <th style="color:#00b894;">Unlimited</th>
+            <th style="color:#00b894;">Premium Unlimited</th>
+          </tr>
+          <tr>
+            <td><strong>1</strong></td>
+            <td style="color:#00b894; font-weight:bold;">$0</td>
+            <td style="color:#00b894; font-weight:bold;">$10</td>
+            <td>$40</td>
+            <td>$50</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td style="color:#00b894; font-weight:bold;">$20</td>
+            <td style="color:#00b894; font-weight:bold;">$40</td>
+            <td>$60</td>
+            <td>$80</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td style="color:#00b894; font-weight:bold;">$40</td>
+            <td style="color:#00b894; font-weight:bold;">$70</td>
+            <td>$80</td>
+            <td>$110</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td style="color:#00b894; font-weight:bold;">$60</td>
+            <td style="color:#00b894; font-weight:bold;">$100</td>
+            <td>$100</td>
+            <td>$140</td>
+          </tr>
+          <tr>
+            <td>5+</td>
+            <td style="color:#00b894; font-weight:bold;">+$20/line</td>
+            <td style="color:#00b894; font-weight:bold;">+$30/line</td>
+            <td>+$20/line</td>
+            <td>+$30/line</td>
+          </tr>
+        </table>
+        <div style="font-size:10px; color:#777; margin-bottom:10px; line-height:1.4;">
+          Promo: 1st Unlimited line on us for 12 mo ($480 value) - new XM, 300 Mbps+ Internet
+        </div>
+
+        <!-- Feature comparison -->
+        <table class="data-table">
+          <tr>
+            <th style="color:#00b894;">Feature</th>
+            <th style="color:#00b894;">Unlimited</th>
+            <th style="color:#00b894;">Premium</th>
+          </tr>
+          <tr>
+            <td>Priority data</td>
+            <td>30 GB</td>
+            <td><strong>100 GB</strong></td>
+          </tr>
+          <tr>
+            <td>Hotspot</td>
+            <td>Unlimited @ 3G</td>
+            <td><strong>30 GB @ 5G</strong></td>
+          </tr>
+          <tr>
+            <td>Video streaming</td>
+            <td>SD (480p)</td>
+            <td><strong>4K</strong></td>
+          </tr>
+          <tr>
+            <td>Global Travel Pass</td>
+            <td>$10/day</td>
+            <td><strong>Included</strong></td>
+          </tr>
+          <tr>
+            <td>Call Guard + Elite Upgrade</td>
+            <td>&#8212;</td>
+            <td><strong>Included</strong></td>
+          </tr>
+          <tr>
+            <td>Mexico &amp; Canada</td>
+            <td>Included</td>
+            <td>Included</td>
+          </tr>
+        </table>
+
+        <!-- Device Promos / How to Pitch It -->
+        <div class="info-panels">
+          <div class="panel" style="background:#e8faf5;">
+            <div class="panel-title" style="color:#00b894;">Device Promos</div>
+            <ul>
+              <li>iPhone 17e <strong>&ldquo;On Us&rdquo;</strong> w/ trade-in (Premium) - up to $599.99</li>
+              <li>Up to <strong>$1,100 off Samsung</strong> w/ trade-in (Premium)</li>
+              <li>Up to <strong>$830 off</strong> Apple/Google/Moto w/ trade-in</li>
+              <li><strong>$400 off</strong> iPhone 17e no trade-in (Premium, port req.)</li>
+              <li><strong>Waived $25 activation fee</strong></li>
+            </ul>
+          </div>
+          <div class="panel" style="background:#fff8e1;">
+            <div class="panel-title" style="color:#e67e22;">How to Pitch It</div>
+            <ul>
+              <li>&ldquo;Your first line is <strong>on us</strong> for a full year&rdquo;</li>
+              <li>&ldquo;You could get the new iPhone 17e <strong>at no cost</strong> with a trade-in&rdquo;</li>
+              <li>&ldquo;Premium gives you <strong>4K streaming, 100 GB data, and included travel pass</strong>&rdquo;</li>
+              <li>&ldquo;Same Verizon network, <strong>fraction of the cost</strong>&rdquo;</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== DEVICE PROMOS TALK TRACK ======== -->
+    <div class="say-this mobile">
+      <span class="label">Say This: Device Promos</span>
+      &ldquo;And if anyone&rsquo;s looking at a new phone, right now we&rsquo;ve got the iPhone 17e on us with a trade-in on Premium Unlimited. Or up to $1,100 off the latest Samsung. Plus we&rsquo;ll waive the $25 activation fee.&rdquo;
+    </div>
+
+    <!-- ======== STREAMSAVER ======== -->
+    <div class="say-this stream">
+      <span class="label">Say This: StreamSaver Cross-sell</span>
+      &ldquo;You mentioned you&rsquo;re using [Netflix/Disney+/Hulu/etc.]? Instead of paying for those separately, I can bundle them together with StreamSaver and save you over 25%. Xfinity is the only provider that offers this.&rdquo;
+    </div>
+
+    <div class="product-card stream">
+      <div class="card-header">
+        StreamSaver Bundles
+        <span class="badge">EXPANDED 3/17/26</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <!-- Left: Pricing table -->
+          <div style="flex:1.5; min-width:300px;">
+            <table class="data-table">
+              <tr>
+                <th style="color:#ab47bc;">Bundle</th>
+                <th style="color:#ab47bc;">Price</th>
+                <th style="color:#999;">Standalone</th>
+                <th style="color:#ab47bc;">Savings</th>
+              </tr>
+              <tr>
+                <td>Peacock + Disney+ + Hulu</td>
+                <td style="font-weight:700; color:#ab47bc; font-size:12px;">$15<span style="font-size:10px; font-weight:400;">/mo</span></td>
+                <td style="color:#999;">~$24</td>
+                <td style="font-weight:700; color:#ab47bc;">~38% off</td>
+              </tr>
+              <tr>
+                <td>Peacock + Netflix + Apple TV</td>
+                <td style="font-weight:700; color:#ab47bc; font-size:12px;">$18<span style="font-size:10px; font-weight:400;">/mo</span></td>
+                <td style="color:#999;">~$27</td>
+                <td style="font-weight:700; color:#ab47bc;">~33% off</td>
+              </tr>
+              <tr>
+                <td>Peacock + Netflix + HBO Max</td>
+                <td style="font-weight:700; color:#ab47bc; font-size:12px;">$22<span style="font-size:10px; font-weight:400;">/mo</span></td>
+                <td style="color:#999;">~$33</td>
+                <td style="font-weight:700; color:#ab47bc;">~33% off</td>
+              </tr>
+              <tr>
+                <td>Peacock + Apple TV + HBO Max</td>
+                <td style="font-weight:700; color:#ab47bc; font-size:12px;">$22<span style="font-size:10px; font-weight:400;">/mo</span></td>
+                <td style="color:#999;">~$30</td>
+                <td style="font-weight:700; color:#ab47bc;">~27% off</td>
+              </tr>
+              <tr>
+                <td>Peacock + Netflix + Disney+ + Hulu</td>
+                <td style="font-weight:700; color:#ab47bc; font-size:12px;">$22<span style="font-size:10px; font-weight:400;">/mo</span></td>
+                <td style="color:#999;">~$37</td>
+                <td style="font-weight:700; color:#ab47bc;">~41% off</td>
+              </tr>
+              <tr>
+                <td>Peacock + Netflix + Apple TV + HBO Max</td>
+                <td style="font-weight:700; color:#ab47bc; font-size:12px;">$30<span style="font-size:10px; font-weight:400;">/mo</span></td>
+                <td style="color:#999;">~$43</td>
+                <td style="font-weight:700; color:#ab47bc;">~30% off</td>
+              </tr>
+              <tr>
+                <td>Peacock + Netflix + Disney+ + Hulu + HBO Max</td>
+                <td style="font-weight:700; color:#ab47bc; font-size:12px;">$30<span style="font-size:10px; font-weight:400;">/mo</span></td>
+                <td style="color:#999;">~$49</td>
+                <td style="font-weight:700; color:#ab47bc;">~39% off</td>
+              </tr>
+              <tr>
+                <td>Peacock + Netflix + Apple TV + Disney+ + Hulu</td>
+                <td style="font-weight:700; color:#ab47bc; font-size:12px;">$30<span style="font-size:10px; font-weight:400;">/mo</span></td>
+                <td style="color:#999;">~$46</td>
+                <td style="font-weight:700; color:#ab47bc;">~35% off</td>
+              </tr>
+            </table>
+          </div>
+          <!-- Right: Key Benefits + Upgrades -->
+          <div style="flex:1; min-width:200px;">
+            <div style="background:#fdf2ff; padding:8px 12px; border-radius:6px; margin-bottom:8px;">
+              <div style="font-weight:700; font-size:10px; color:#ab47bc; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Key Benefits</div>
+              <ul style="list-style:none; font-size:10px; line-height:1.6;">
+                <li>&bull; <strong>Save 25-41%</strong> vs standalone subscriptions</li>
+                <li>&bull; Competitors offer <strong>ZERO</strong> streaming bundles</li>
+                <li>&bull; Xumo Stream Box included, $15 fee <strong>waived</strong></li>
+                <li>&bull; Keep profiles &amp; watch history when switching</li>
+                <li>&bull; Requires Xfinity Internet (postpaid)</li>
+              </ul>
+            </div>
+            <div style="background:#fdf2ff; padding:8px 12px; border-radius:6px;">
+              <div style="font-weight:700; font-size:9px; color:#ab47bc; margin-bottom:3px; text-transform:uppercase; letter-spacing:0.5px;">Upgrades Available</div>
+              <ul style="list-style:none; font-size:10px; line-height:1.6;">
+                <li>&bull; Netflix no-ads <strong>+$10</strong></li>
+                <li>&bull; HBO Max no-ads <strong>+$7.50</strong></li>
+                <li>&bull; Disney+/Hulu no-ads <strong>+$7</strong></li>
+                <li>&bull; Peacock Premium Plus <strong>+$6</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== HOME ======== -->
+    <div class="say-this home">
+      <span class="label">Say This: Home Cross-sell</span>
+      &ldquo;I also heard you say you [own your home / have kids / travel for work]. I set you up with Xfinity Smart Home so you can keep an eye on things from your phone. It&rsquo;s just $10/mo for 24/7 recording, AI detection, and Urgent Response.&rdquo;<br>
+      <em style="color:#777; font-size:12px;">Alt: &ldquo;We also have professionally monitored Home Security starting at $55/mo.&rdquo;</em>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 4: OVERCOME
+     ============================================================ -->
+<div class="phase-section" data-phase="overcome" id="phase-overcome">
+  <div class="phase-header collapsed" onclick="togglePhase('overcome')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 4: Overcome</span>
+    <div class="pills">
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#27ae60;">Discover Needs</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#8e44ad;">Be an Ambassador</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Objection tabs -->
+    <div class="objection-tabs" id="objection-tabs">
+      <div class="objection-tab active" data-obj="obj1" onclick="switchObjection('obj1', this)">&ldquo;Happy with my carrier.&rdquo;</div>
+      <div class="objection-tab" data-obj="obj2" onclick="switchObjection('obj2', this)">&ldquo;Don&rsquo;t want to switch number.&rdquo;</div>
+      <div class="objection-tab" data-obj="obj3" onclick="switchObjection('obj3', this)">&ldquo;Don&rsquo;t want the hassle.&rdquo;</div>
+    </div>
+
+    <!-- Objection 1 -->
+    <div class="objection-panel active" id="obj1">
+      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--overcome);">&ldquo;I&rsquo;m happy with my carrier.&rdquo;</p>
+      <p><span class="step-num-obj">1.</span> <strong>Understand:</strong> &ldquo;That&rsquo;s great. What do you like most about [Provider]?&rdquo;</p>
+      <p><span class="step-num-obj">2.</span> <strong>Empathize &amp; Overcome:</strong> &ldquo;I hear that a lot, and I respect it. Here&rsquo;s what usually surprises people. Xfinity Mobile actually runs on the same Verizon network [if applicable], so the coverage and reliability is identical. The difference is the price. You&rsquo;re paying [Provider] $[X], and I can get you the same experience for significantly less, especially with that included line.&rdquo;</p>
+      <p><span class="step-num-obj">3.</span> <strong>Restate Tie-backs:</strong> &ldquo;You mentioned you&rsquo;re paying $[X] for [X] lines, and with Xfinity Mobile that&rsquo;d be $[X], and your first line is included for 12 months.&rdquo;</p>
+      <p><span class="step-num-obj">4.</span> <strong>Add Value:</strong> &ldquo;And right now we&rsquo;re waiving the $25 activation fee, plus we&rsquo;ve got [device promo] if anyone&rsquo;s looking at an upgrade.&rdquo;</p>
+    </div>
+
+    <!-- Objection 2 -->
+    <div class="objection-panel" id="obj2">
+      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--overcome);">&ldquo;I don&rsquo;t want to switch my number.&rdquo;</p>
+      <p><span class="step-num-obj">1.</span> <strong>Understand:</strong> &ldquo;Totally get that, your number is your number.&rdquo;</p>
+      <p><span class="step-num-obj">2.</span> <strong>Empathize &amp; Overcome:</strong> &ldquo;Good news, you keep your exact same number. We port it right over from [Provider]. You won&rsquo;t miss a single call or text, and it usually happens within a couple hours.&rdquo;</p>
+      <p><span class="step-num-obj">3.</span> <strong>Restate Tie-backs:</strong> &ldquo;So nothing changes on your end except the bill gets smaller.&rdquo;</p>
+      <p><span class="step-num-obj">4.</span> <strong>Add Value:</strong> &ldquo;And if you&rsquo;re bringing your own device, there&rsquo;s no device payment at all, just the plan cost.&rdquo;</p>
+    </div>
+
+    <!-- Objection 3 -->
+    <div class="objection-panel" id="obj3">
+      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--overcome);">&ldquo;I don&rsquo;t want to deal with the hassle of switching.&rdquo;</p>
+      <p><span class="step-num-obj">1.</span> <strong>Understand:</strong> &ldquo;I hear you, switching anything feels like a headache.&rdquo;</p>
+      <p><span class="step-num-obj">2.</span> <strong>Empathize &amp; Overcome:</strong> &ldquo;Here&rsquo;s the thing, I handle everything right here on this call. You don&rsquo;t have to go to a store, you don&rsquo;t have to call your old provider. We port your number, ship your SIM if needed, and you&rsquo;re up and running.&rdquo;</p>
+      <p><span class="step-num-obj">3.</span> <strong>Restate Tie-backs:</strong> &ldquo;For the savings you&rsquo;d be getting, $[X]/mo less than what you&rsquo;re paying now, it&rsquo;s worth the 20 minutes.&rdquo;</p>
+      <p><span class="step-num-obj">4.</span> <strong>Add Value:</strong> &ldquo;And remember, there&rsquo;s no contract. If for any reason it&rsquo;s not what you expected, you&rsquo;re not stuck.&rdquo;</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     PHASE 5: REVIEW
+     ============================================================ -->
+<div class="phase-section" data-phase="review" id="phase-review">
+  <div class="phase-header collapsed" onclick="togglePhase('review')">
+    <span class="chevron">&#9654;</span>
+    <span class="phase-title">Phase 5: Review</span>
+    <div class="pills">
+      <span class="pill" style="background:#00cec9;">Show Appreciation</span>
+      <span class="pill" style="background:#e74c3c;">Engage Actively</span>
+      <span class="pill" style="background:#f39c12;">Own It</span>
+      <span class="pill" style="background:#3498db;">Make It Effortless</span>
+    </div>
+  </div>
+  <div class="phase-body">
+
+    <!-- Assume the Sale -->
+    <div class="section-title" style="color:var(--review);">Assume the Sale</div>
+    <p style="margin-bottom:8px;">
+      &ldquo;Alright [Member Name], let&rsquo;s get you set up and start saving. I&rsquo;ll get this mobile line added to your account right now.&rdquo;
+    </p>
+
+    <div class="tip-block">
+      <span class="tip-badge">TIP</span>
+      Don&rsquo;t ask &ldquo;Would you like to move forward?&rdquo; Assume. &ldquo;Let me get this set up for you&rdquo; is the move.
+    </div>
+
+    <!-- Reaffirm -->
+    <div class="section-title" style="color:var(--review);">Reaffirm</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;This is going to save you a ton. You&rsquo;re going from $[X]/mo with [Provider] down to $[X]/mo, same great coverage, and your first line is on us for 12 months.&rdquo;
+    </p>
+
+    <!-- Compliance C4 -->
+    <div class="compliance-block" id="c4">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C4: Before Submitting</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c4-text')">Copy</button>
+      </div>
+      <div id="c4-text">&ldquo;Before submitting your order, I want to spend a few minutes confirming with you that I&rsquo;ve accurately captured the services you want. I&rsquo;ll ask you to review the order, and then if it&rsquo;s correct, please approve it. What phone number or email address would you like to use to complete this process?&rdquo;</div>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="section-title" style="color:var(--review);">Order Summary</div>
+    <p style="margin-bottom:6px;">Review the following with the member:</p>
+    <ul class="order-list">
+      <li>Services on the order and monthly price for each</li>
+      <li>Promotional pricing and how long it lasts</li>
+      <li>Roll-to rate after promo ends</li>
+      <li>One-time charges (activation fees, equipment)</li>
+      <li>Applicable taxes and fees</li>
+      <li>APPD discount if enrolled</li>
+    </ul>
+
+    <!-- Compliance C5 -->
+    <div class="compliance-block" id="c5" style="margin-top:14px;">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C5: Text Consent</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c5-text')">Copy</button>
+      </div>
+      <div id="c5-text">&ldquo;Thanks. I&rsquo;ll now send you a text message at the number you provided with a link to confirm your order. Message and data rates may apply. Okay?&rdquo;</div>
+    </div>
+
+    <!-- Compliance C6 -->
+    <div class="compliance-block" id="c6">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C6: Verbal Summary</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c6-text')">Copy</button>
+      </div>
+      <div id="c6-text">If digital option fails, read the entire order summary top to bottom including legal disclaimer, taxes, fees, and one-time charges. Then say:<br><br><span class="red-emphasis">&ldquo;DO YOU AGREE TO ORDER AND BE BILLED FOR THE EQUIPMENT AND SERVICES THAT I JUST DESCRIBED?&rdquo;</span></div>
+    </div>
+
+    <!-- Compliance C7 -->
+    <div class="compliance-block" id="c7">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C7: Post-Approval</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c7-text')">Copy</button>
+      </div>
+      <div id="c7-text">&ldquo;Thank you. After we finalize your order, you&rsquo;ll receive a copy of your order summary within 6 hours at the email address listed on your account. You can also find it at xfinity.com/MyAccount.&rdquo;</div>
+    </div>
+
+    <!-- Activation -->
+    <div class="section-title" style="color:var(--review);">Activation</div>
+    <p style="margin-bottom:8px;">
+      &ldquo;Your SIM will ship out [today/tomorrow]. Once it arrives, just pop it in and your number will port over automatically. Usually takes a couple hours. You don&rsquo;t need to contact [Provider]. The port handles that.&rdquo;
+    </p>
+    <p style="margin-bottom:4px; color:var(--text-light); font-style:italic; font-size:13px;">
+      BYOD: &ldquo;Since you&rsquo;re bringing your own device, we&rsquo;ll ship you a SIM card or set up eSIM, either way it&rsquo;s quick and painless.&rdquo;
+    </p>
+    <p style="margin-bottom:12px; color:var(--text-light); font-style:italic; font-size:13px;">
+      New device: &ldquo;Your new [Device] will ship to your door. Once it arrives, power it on and follow the setup, your number and everything will be ready to go.&rdquo;
+    </p>
+
+    <!-- Xfinity App & Rewards -->
+    <div class="section-title" style="color:var(--review);">Xfinity App &amp; Rewards</div>
+    <p style="margin-bottom:12px;">
+      &ldquo;One last thing, download the Xfinity App if you haven&rsquo;t already. You can manage your account, check your bill, troubleshoot your WiFi, all from your phone. And as an Xfinity member, you&rsquo;ve got Xfinity Membership, that means exclusive access to rewards, experiences, and perks just for being with us.&rdquo;
+    </p>
+
+    <!-- Compliance C8 -->
+    <div class="compliance-block" id="c8">
+      <div class="badge-row">
+        <span class="comp-badge">COMPLIANCE</span>
+        <span class="comp-label">C8: Closing</span>
+        <button class="copy-btn" onclick="copyCompliance(this, 'c8-text')">Copy</button>
+      </div>
+      <div id="c8-text">&ldquo;Thank you for your time today, [Member Name]. If you have any questions about this call or any Xfinity products or services in your area, please feel free to call 1-800-XFINITY (934-6489) or visit xfinity.com. Have a great rest of your day!&rdquo;</div>
+    </div>
+
+    <!-- No-Sale Close -->
+    <div class="section-title" style="color:var(--review);">No-Sale Close</div>
+    <p style="margin-bottom:8px;">
+      &ldquo;I appreciate you taking the time to chat with me today, [Member Name]. If anything changes or you want to revisit this down the road, don&rsquo;t hesitate to call us at 1-800-XFINITY or visit xfinity.com. Have a great rest of your day!&rdquo;
+    </p>
+
+    <div class="tip-block">
+      <span class="tip-badge">TIP</span>
+      Even on a no-sale, leave the door open and leave a good impression. This person might call back, get another outbound call, or walk into a store. How you end the call matters.
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     TIE-BACK NOTEPAD
+     ============================================================ -->
+<div id="notepad">
+  <div class="notepad-header" id="notepad-drag-handle">
+    <span>Tie-Back Notes</span>
+    <button class="toggle-btn" onclick="toggleNotepad()" title="Minimize/Expand">&minus;</button>
+  </div>
+  <div class="notepad-body">
+    <label for="np-devices">Devices</label>
+    <input type="text" id="np-devices" placeholder="Lines, watches, tablets..." oninput="saveNotes()">
+    <label for="np-usage">Usage</label>
+    <input type="text" id="np-usage" placeholder="Streaming, hotspot, travel..." oninput="saveNotes()">
+    <label for="np-cost">Cost</label>
+    <input type="text" id="np-cost" placeholder="Provider, $/mo, # lines..." oninput="saveNotes()">
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  /* ----------------------------------------------------------
+     PHASE ORDER & STATE
+     ---------------------------------------------------------- */
+  var phases = ['connect', 'explore', 'consult', 'overcome', 'review'];
+  var activePhase = 'connect';
+  var completedPhases = {};
+
+  /* ----------------------------------------------------------
+     CALL TIMER
+     ---------------------------------------------------------- */
+  var timerStart = Date.now();
+  var timerEl = document.getElementById('call-timer');
+
+  function updateTimer() {
+    var elapsed = Math.floor((Date.now() - timerStart) / 1000);
+    var m = Math.floor(elapsed / 60);
+    var s = elapsed % 60;
+    timerEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  setInterval(updateTimer, 1000);
+
+  /* ----------------------------------------------------------
+     PHASE EXPAND / COLLAPSE
+     ---------------------------------------------------------- */
+  window.togglePhase = function(phase) {
+    if (activePhase === phase) {
+      // Collapse current
+      collapsePhase(phase);
+      activePhase = null;
+      updateProgress();
+      return;
+    }
+    // Collapse old
+    if (activePhase) collapsePhase(activePhase);
+    // Mark previous as completed
+    if (activePhase) completedPhases[activePhase] = true;
+    // Expand new
+    expandPhase(phase);
+    activePhase = phase;
+    updateProgress();
+  };
+
+  window.goToPhase = function(phase) {
+    // Mark all phases before this one as completed
+    for (var i = 0; i < phases.indexOf(phase); i++) {
+      completedPhases[phases[i]] = true;
+    }
+    if (activePhase && activePhase !== phase) collapsePhase(activePhase);
+    expandPhase(phase);
+    activePhase = phase;
+    updateProgress();
+    // Scroll to the phase
+    var el = document.getElementById('phase-' + phase);
+    if (el) {
+      var topBarH = document.getElementById('top-bar').offsetHeight;
+      var y = el.getBoundingClientRect().top + window.pageYOffset - topBarH - 8;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
+  function expandPhase(phase) {
+    var section = document.getElementById('phase-' + phase);
+    if (!section) return;
+    var body = section.querySelector('.phase-body');
+    var chevron = section.querySelector('.chevron');
+    var header = section.querySelector('.phase-header');
+    body.classList.add('open');
+    chevron.classList.add('open');
+    header.classList.remove('collapsed');
+  }
+
+  function collapsePhase(phase) {
+    var section = document.getElementById('phase-' + phase);
+    if (!section) return;
+    var body = section.querySelector('.phase-body');
+    var chevron = section.querySelector('.chevron');
+    var header = section.querySelector('.phase-header');
+    body.classList.remove('open');
+    chevron.classList.remove('open');
+    header.classList.add('collapsed');
+  }
+
+  function updateProgress() {
+    var steps = document.querySelectorAll('.progress-step');
+    steps.forEach(function(step) {
+      var p = step.getAttribute('data-phase');
+      step.classList.remove('active', 'completed');
+      if (p === activePhase) {
+        step.classList.add('active');
+      } else if (completedPhases[p]) {
+        step.classList.add('completed');
+        step.querySelector('.step-num').innerHTML = '&#10003;';
+      }
+    });
+  }
+
+  /* ----------------------------------------------------------
+     OBJECTION TABS
+     ---------------------------------------------------------- */
+  window.switchObjection = function(objId, tabEl) {
+    // Deactivate all tabs + panels
+    document.querySelectorAll('.objection-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.objection-panel').forEach(function(p) { p.classList.remove('active'); });
+    // Activate selected
+    tabEl.classList.add('active');
+    document.getElementById(objId).classList.add('active');
+  };
+
+  /* ----------------------------------------------------------
+     COPY COMPLIANCE VERBATIM
+     ---------------------------------------------------------- */
+  window.copyCompliance = function(btn, textId) {
+    var el = document.getElementById(textId);
+    if (!el) return;
+    // Get the plain text (strip HTML), convert smart quotes for clipboard
+    var text = el.innerText || el.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1500);
+    }).catch(function() {
+      // Fallback
+      btn.textContent = 'Error';
+      setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+    });
+  };
+
+  /* ----------------------------------------------------------
+     TIE-BACK NOTEPAD: localStorage persistence
+     ---------------------------------------------------------- */
+  var noteFields = ['np-devices', 'np-usage', 'np-cost'];
+
+  window.saveNotes = function() {
+    var data = {};
+    noteFields.forEach(function(id) {
+      data[id] = document.getElementById(id).value;
+    });
+    try { localStorage.setItem('xmlikely-tiebacks', JSON.stringify(data)); } catch(e) {}
+  };
+
+  function loadNotes() {
+    try {
+      var raw = localStorage.getItem('xmlikely-tiebacks');
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      noteFields.forEach(function(id) {
+        if (data[id]) document.getElementById(id).value = data[id];
+      });
+    } catch(e) {}
+  }
+  loadNotes();
+
+  /* ----------------------------------------------------------
+     NOTEPAD: Minimize / Expand toggle
+     ---------------------------------------------------------- */
+  window.toggleNotepad = function() {
+    var np = document.getElementById('notepad');
+    var btn = np.querySelector('.toggle-btn');
+    np.classList.toggle('minimized');
+    btn.innerHTML = np.classList.contains('minimized') ? '+' : '&minus;';
+  };
+
+  /* ----------------------------------------------------------
+     NOTEPAD: Draggable
+     ---------------------------------------------------------- */
+  (function() {
+    var np = document.getElementById('notepad');
+    var handle = document.getElementById('notepad-drag-handle');
+    var isDragging = false;
+    var offsetX = 0, offsetY = 0;
+
+    handle.addEventListener('mousedown', function(e) {
+      if (e.target.tagName === 'BUTTON') return; // don't drag on toggle btn
+      isDragging = true;
+      var rect = np.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      np.style.transition = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      var x = e.clientX - offsetX;
+      var y = e.clientY - offsetY;
+      // Constrain to viewport
+      x = Math.max(0, Math.min(x, window.innerWidth - np.offsetWidth));
+      y = Math.max(0, Math.min(y, window.innerHeight - np.offsetHeight));
+      np.style.left = x + 'px';
+      np.style.top = y + 'px';
+      np.style.right = 'auto';
+      np.style.bottom = 'auto';
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (isDragging) {
+        isDragging = false;
+        np.style.transition = '';
+      }
+    });
+  })();
+
+})();
+</script>
+</body>
+</html>
