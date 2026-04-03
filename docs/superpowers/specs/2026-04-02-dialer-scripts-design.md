@@ -12,11 +12,11 @@ Build 5 standalone HTML scripts for FCKeditor-based dialer, one per campaign/job
 ## Deliverables
 
 5 standalone HTML files:
-1. `script-nonsub.html` — Non-subscriber new customer acquisition
+1. `script-nonsub.html` — Non-subscriber new member acquisition
 2. `script-localizers.html` — Website visitors who didn't finalize (warm nonsub variant)
-3. `script-xm-likely.html` — Existing Internet customers pitched Xfinity Mobile
-4. `script-add-a-line.html` — Existing XM customers adding a line or wearable
-5. `script-xmc.html` — Existing XM customers pitched device protection
+3. `script-xm-likely.html` — Existing Internet members pitched Xfinity Mobile
+4. `script-add-a-line.html` — Existing XM members adding a line or wearable
+5. `script-xmc.html` — Existing XM members pitched device protection
 
 ## Constraints
 
@@ -52,7 +52,7 @@ Content block badges:
 ### Phase 1 — Connect
 - Greeting (campaign-specific opening)
 - Recording disclosure (compliance verbatim — all scripts)
-- Authentication (existing customer scripts: XM Likely, Add a Line, XMC)
+- Authentication (existing member scripts: XM Likely, Add a Line, XMC)
 - Reason for call (campaign-specific)
 - Rapport question (during system lookup)
 
@@ -112,8 +112,8 @@ Agent reads entire order summary top to bottom including legal disclaimer, taxes
 **C8 — Closing Compliance (every call — sale or no sale, Phase 5):**
 > "Thank you for your time today. If you have any questions about this call or any Xfinity products or services in your area, please feel free to call 1-800-XFINITY (934-6489) or visit xfinity.com. Have a great rest of your day."
 
-**No-Sale Close (all scripts — when customer declines):**
-> "I appreciate you taking the time to chat with me today, [Customer Name]. If anything changes or you want to revisit this down the road, don't hesitate to call us at 1-800-XFINITY or visit xfinity.com. Have a great rest of your day!"
+**No-Sale Close (all scripts — when member declines):**
+> "I appreciate you taking the time to chat with me today, [Member Name]. If anything changes or you want to revisit this down the road, don't hesitate to call us at 1-800-XFINITY or visit xfinity.com. Have a great rest of your day!"
 >
 > TIP: *Even on a no-sale, leave the door open and leave a good impression. This person might call back, get another outbound call, or walk into a store. How you end the call matters.*
 
@@ -186,11 +186,11 @@ Full standalone file. Contains all NonSub content with the following modificatio
 ### 3. XM Likely (script-xm-likely.html)
 
 **Connect:**
-- Existing customer greeting with name
+- Existing member greeting with name
 - Recording disclosure
 - Authentication (6-digit code or address + phone)
 - Rewards tier reference
-- Reason: Exclusive offer for existing customers
+- Reason: Exclusive offer for existing members
 
 **Explore (Usage + Cost focus):**
 - Devices: "How many phone lines do you have with [Provider]? Any smartwatches or tablets?"
@@ -218,7 +218,7 @@ Full standalone file. Contains all NonSub content with the following modificatio
 ### 4. Add a Line (script-add-a-line.html)
 
 **Connect:**
-- Existing customer greeting
+- Existing member greeting
 - Recording disclosure
 - Authentication
 - Rewards tier reference
@@ -248,7 +248,7 @@ Full standalone file. Contains all NonSub content with the following modificatio
 ### 5. XMC (script-xmc.html)
 
 **Connect:**
-- Existing customer greeting
+- Existing member greeting
 - Recording disclosure
 - Authentication
 - Reason: Making sure device is fully protected

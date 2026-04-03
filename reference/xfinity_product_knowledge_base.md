@@ -80,7 +80,7 @@ Deal details:
 - X1 4K box with Voice Remote, Fan View, Multiview, OddsZone
 - Premium networks, international channels, sports, kids content add-ons
 - 150-300 hours DVR
-- Target: "wants it all" customer
+- Target: "wants it all" member
 
 ### NOW TV (budget live TV)
 - Streaming-first with some live TV (125+ channels)
@@ -119,7 +119,7 @@ Key rules:
 - All new bundles require Xfinity Internet (postpaid)
 - Xumo Stream Box included with Internet; $15 activation fee waived with StreamSaver
 - Saves over 25% vs standalone subscriptions
-- Customers keep profiles/watch history when switching
+- Members keep profiles/watch history when switching
 - Competitors (AT&T, Verizon, T-Mobile) offer ZERO streaming bundles
 - Upgrade options: Netflix no-ads +$10, Premium +$17, Peacock Plus +$6, HBO Max no-ads +$7.50, Disney+/Hulu no-ads +$7
 
@@ -176,7 +176,7 @@ $25/mo charge if Internet canceled
 ## 8. Mobile Promos (as of March 2026, most through April 21)
 
 **Service deals:**
-- Free Unlimited line 12 months ($480 value) — new XM customers, 300 Mbps+ Internet
+- Free Unlimited line 12 months ($480 value) — new XM members, 300 Mbps+ Internet
 - Waived $25 activation fee (through 4/21)
 
 **Trade-in deals:**
@@ -221,7 +221,7 @@ Pitch with EVERY device sale.
 | Complete | 5 | 1 | 1 | $20/mo | $480 |
 | Ultimate | 10 | 2 | 1 | $25/mo | $600 |
 
-All tiers include touchpad + motion detector. Customer owns equipment after paid off.
+All tiers include touchpad + motion detector. Member owns equipment after paid off.
 Total monthly (APPD): Base $70, Complete $75, Ultimate $80.
 
 Discovery: How many first-floor windows? Entrances? Walkout basement? Deck access? Garage service entrance? Basement window wells?
@@ -264,7 +264,7 @@ APPD requires Next Gen Internet.
 
 ## Quick Reference: Discovery Triggers → Product Match
 
-| Customer says... | Suggest |
+| Member says... | Suggest |
 |-----------------|---------|
 | Sports/games/live TV | Xfinity TV |
 | YouTube TV/DirecTV/Hulu Live | Xfinity TV (competitive switch) |

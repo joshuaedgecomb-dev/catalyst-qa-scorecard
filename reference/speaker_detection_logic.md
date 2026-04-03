@@ -1,6 +1,6 @@
 # Speaker Detection Logic
 
-## How the Scorecard Determines Agent vs. Customer
+## How the Scorecard Determines Agent vs. Member
 
 *Updated March 29, 2026*
 
@@ -8,13 +8,13 @@
 
 ## Overview
 
-The scorecard uses a multi-path architecture to assign Agent or Customer labels to every line of a transcript. The primary path uses AI (Ollama native API or Claude). The fallback path uses content signals when AI is unavailable. A fourth path handles transcripts already normalized with Agent/Customer labels.
+The scorecard uses a multi-path architecture to assign Agent or Member labels to every line of a transcript. The primary path uses AI (Ollama native API or Claude). The fallback path uses content signals when AI is unavailable. A fourth path handles transcripts already normalized with Agent/Member labels.
 
 ```
 Transcript loaded
         |
         v
-Does transcript have Agent:/Customer: labels already?
+Does transcript have Agent:/Member: labels already?
         |
    YES  |                         NO
         |                          |
@@ -60,7 +60,7 @@ This is critical because qwen3 models on the OpenAI-compatible endpoint split ou
 The model reads the entire call and returns a JSON map:
 
 ```json
-{"speakers": {"SPEAKER_00": "agent", "SPEAKER_01": "customer", "SPEAKER_02": "customer"}}
+{"speakers": {"SPEAKER_00": "agent", "SPEAKER_01": "member", "SPEAKER_02": "member"}}
 ```
 
 ### Prompt instructs the model to look for
@@ -69,11 +69,11 @@ The model reads the entire call and returns a JSON map:
 - Introduces themselves by full name ("My name is First Last")
 - Mentions Xfinity or Comcast
 - Describes internet/mobile packages, speeds in Mbps, pricing
-- Asks questions about the customer household, usage, devices, current provider
+- Asks questions about the member household, usage, devices, current provider
 - Handles objections and closes the sale
 - Has the most lines and longest turns in the transcript
 
-**Customer signals:**
+**Member signals:**
 - Answers questions in short responses
 - Provides personal info when asked (name, address, letter-spelling like A-B-C)
 - Asks questions about offer price, contract, features
@@ -82,8 +82,8 @@ The model reads the entire call and returns a JSON map:
 
 **Key instructions given to the model:**
 - There is exactly ONE agent on every call
-- Multiple SPEAKER_XX IDs may belong to the same customer (transcription splitting)
-- Any SPEAKER_XX not explicitly mapped defaults to customer
+- Multiple SPEAKER_XX IDs may belong to the same member (transcription splitting)
+- Any SPEAKER_XX not explicitly mapped defaults to member
 
 ### How the result is used
 
@@ -93,9 +93,9 @@ Once the AI returns the map, two things happen:
 Before scoring, the transcript in the textarea is rewritten:
 ```
 SPEAKER_00: Hello.     -->     Agent: Hello.
-SPEAKER_01: Hi there.  -->     Customer: Hi there.
+SPEAKER_01: Hi there.  -->     Member: Hi there.
 ```
-This ensures all downstream code (evidence validation, transcript panel, step 3 agent-line filtering) uses Agent/Customer labels consistently.
+This ensures all downstream code (evidence validation, transcript panel, step 3 agent-line filtering) uses Agent/Member labels consistently.
 
 **2. Role assignment (`assignRolesBySpkId`):**
 For the transcript reference panel, every line gets a role:
@@ -104,8 +104,8 @@ For each line:
   Extract SPEAKER_XX label
   Look up in AI map
     -> "agent"    = label as Agent
-    -> "customer" = label as Customer
-    -> Not in map = label as Customer (agent already accounted for)
+    -> "member" = label as Member
+    -> Not in map = label as Member (agent already accounted for)
     -> No label   = label as Unknown
 ```
 
@@ -113,7 +113,7 @@ For each line:
 
 If speaker detection fails (returns null), **scoring does NOT proceed**. The UI shows:
 
-> "Speaker detection failed - could not identify Agent vs Customer. Check that your speaker detection model is running and try again."
+> "Speaker detection failed - could not identify Agent vs Member. Check that your speaker detection model is running and try again."
 
 This prevents the scoring model from receiving raw SPEAKER_XX labels, which would make all transcript evidence, discovery validation, and step filtering unreliable.
 
@@ -146,7 +146,7 @@ In the transcript reference panel, all lines are marked 'unknown' and the status
 
 ## Path C: No SPEAKER_XX Labels (Heuristic)
 
-Used when the transcript uses no speaker labels at all (raw text without any SPEAKER_XX or Agent/Customer markers).
+Used when the transcript uses no speaker labels at all (raw text without any SPEAKER_XX or Agent/Member markers).
 
 `assignRolesByHeuristic()` processes each line using a small set of high-confidence signals only. Anything ambiguous stays `unknown`.
 
@@ -168,17 +168,17 @@ Used when the transcript uses no speaker labels at all (raw text without any SPE
 | `i completely understand` | Agent empathy response |
 | Explicit `Agent:` / `REP:` label | Pre-labeled transcript |
 
-### Customer signals (definite match = Customer)
+### Member signals (definite match = Member)
 
 | Pattern | Reasoning |
 |---------|-----------|
-| `i'm not interested` | Customer objection |
-| `too expensive` | Customer objection |
-| `under contract` | Customer objection |
-| `already have (internet\|service)` | Customer explaining current service |
-| `call me back` | Customer objection |
-| `A-B-C-D` letter-spelling pattern | Customer providing name/info when asked |
-| Explicit `Customer:` / `CUST:` label | Pre-labeled transcript |
+| `i'm not interested` | Member objection |
+| `too expensive` | Member objection |
+| `under contract` | Member objection |
+| `already have (internet\|service)` | Member explaining current service |
+| `call me back` | Member objection |
+| `A-B-C-D` letter-spelling pattern | Member providing name/info when asked |
+| Explicit `Member:` / `CUST:` label | Pre-labeled transcript |
 
 If no signal matches, the line stays `unknown`.
 
@@ -186,16 +186,16 @@ If no signal matches, the line stays `unknown`.
 
 ## Path D: Pre-Normalized Labels
 
-Added March 2026. Used when the transcript already has `Agent:` / `Customer:` labels (either from prior normalization or from a transcript source that pre-labels speakers).
+Added March 2026. Used when the transcript already has `Agent:` / `Member:` labels (either from prior normalization or from a transcript source that pre-labels speakers).
 
-`renderTranscriptRef` checks for `Agent:` / `Customer:` patterns FIRST, before checking for SPEAKER_XX. If found, it maps directly:
+`renderTranscriptRef` checks for `Agent:` / `Member:` patterns FIRST, before checking for SPEAKER_XX. If found, it maps directly:
 ```
 Agent:    -> 'agent'
-Customer: -> 'customer'
+Member: -> 'member'
 anything else -> 'unknown'
 ```
 
-This path is hit after `analyzeTranscript` normalizes the textarea. The transcript panel re-renders after scoring completes, and by that point the textarea has Agent/Customer labels, so Path D applies.
+This path is hit after `analyzeTranscript` normalizes the textarea. The transcript panel re-renders after scoring completes, and by that point the textarea has Agent/Member labels, so Path D applies.
 
 ---
 
@@ -222,15 +222,15 @@ The scorecard uses **two separate Ollama models** for different tasks:
 ### Why AI-first instead of pattern-matching-first
 
 Transcription software (Whisper, AWS Transcribe, etc.) frequently misattributes lines. A pattern-based classifier that looks at one line at a time will misclassify lines like:
-- "It's $60, which you're allowed to pay." - agent presenting price, but looks like customer confirming
-- "I understand you." - agent empathy, but reads like customer talking
-- "So the package is one gig." - agent pitching, but customer-sounding sentence structure
+- "It's $60, which you're allowed to pay." - agent presenting price, but looks like member confirming
+- "I understand you." - agent empathy, but reads like member talking
+- "So the package is one gig." - agent pitching, but member-sounding sentence structure
 
 The AI reads the full transcript holistically and makes a single judgment about which SPEAKER_XX is the agent based on the entire call arc.
 
-### Why one agent, everything-else-is-customer
+### Why one agent, everything-else-is-member
 
-There is always exactly one outbound sales agent on these calls. Once the AI identifies that SPEAKER_XX, every other ID is by definition the customer (or background noise/third party, which is treated as customer for labeling purposes). This avoids the "tied score" problem.
+There is always exactly one outbound sales agent on these calls. Once the AI identifies that SPEAKER_XX, every other ID is by definition the member (or background noise/third party, which is treated as member for labeling purposes). This avoids the "tied score" problem.
 
 ### Why cache the result
 
@@ -248,7 +248,7 @@ It's better to block and show an error than to produce silently wrong results.
 
 ### Why normalize the textarea
 
-After speaker detection, the textarea is updated with Agent/Customer labels. This means:
+After speaker detection, the textarea is updated with Agent/Member labels. This means:
 - The scoring model prompt receives clean labels (not SPEAKER_XX)
 - Evidence line validation (`/^Agent:/i`) works correctly
 - The transcript panel re-render (after scoring) picks up Path D
@@ -262,13 +262,13 @@ After speaker detection, the textarea is updated with Agent/Customer labels. Thi
 |----------|------------------|
 | Agent uses an alias not matching the filename | AI reads call content, not filename |
 | Transcription splits one person across two SPEAKER_IDs | AI is told this can happen, maps both to same role |
-| Customer asks agent-like questions | AI resolves from full call context |
-| AI returns partial map (some IDs missing) | Missing IDs default to Customer |
+| Member asks agent-like questions | AI resolves from full call context |
+| AI returns partial map (some IDs missing) | Missing IDs default to Member |
 | Ollama not running | Speaker detection fails, scoring blocked |
 | No SPEAKER_XX labels at all | Path C heuristic on explicit role labels |
 | AI returns malformed JSON | `repairJSON()` attempts fix, then fails gracefully |
 | qwen3 thinking mode consumes all tokens | Native `/api/chat` avoids reasoning/content split |
-| Transcript already normalized | Path D maps Agent/Customer directly |
+| Transcript already normalized | Path D maps Agent/Member directly |
 | Scoring model field empty | Falls back to speaker detection model |
 
 ---
@@ -280,21 +280,21 @@ From the Veronica Abreu transcript (428 lines, 7 SPEAKER_IDs, February 2026):
 | Speaker | Lines | Assigned Role |
 |---------|-------|---------------|
 | SPEAKER_02 | 192 | Agent |
-| SPEAKER_04 | 168 | Customer |
-| SPEAKER_03 | 22 | Customer (alias "Verna Cabrero") |
-| SPEAKER_00 | 15 | Customer |
-| SPEAKER_01 | 11 | Customer |
-| SPEAKER_05 | 13 | Customer |
-| SPEAKER_06 | 8 | Customer |
+| SPEAKER_04 | 168 | Member |
+| SPEAKER_03 | 22 | Member (alias "Verna Cabrero") |
+| SPEAKER_00 | 15 | Member |
+| SPEAKER_01 | 11 | Member |
+| SPEAKER_05 | 13 | Member |
+| SPEAKER_06 | 8 | Member |
 
-100% accuracy. SPEAKER_03's name-intro line was correctly outweighed by customer-like turns in the overall tally.
+100% accuracy. SPEAKER_03's name-intro line was correctly outweighed by member-like turns in the overall tally.
 
 From Mariano Holland transcript (445 lines, 3 SPEAKER_IDs, March 2026):
 
 | Speaker | Lines | Assigned Role |
 |---------|-------|---------------|
 | SPEAKER_00 | ~350 | Agent |
-| SPEAKER_01 | ~80 | Customer |
-| SPEAKER_02 | ~15 | Customer |
+| SPEAKER_01 | ~80 | Member |
+| SPEAKER_02 | ~15 | Member |
 
 100% accuracy. Consistent across multiple runs (temperature 0).
