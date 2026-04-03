@@ -380,6 +380,62 @@ body {
 .rapport-list li::before { content: '\2022\00a0\00a0'; }
 
 /* ============================================================
+   OPENING OBJECTION TABS
+   ============================================================ */
+.opening-card {
+  border: 1.5px solid #c0392b;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 14px 0;
+}
+.opening-card-header {
+  background: #c0392b;
+  color: #fff;
+  padding: 10px 14px 8px;
+}
+.opening-card-header h3 {
+  font-size: 14px; font-weight: 700; margin: 0;
+}
+.opening-card-header .opening-subtitle {
+  font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 2px; font-style: italic;
+}
+.opening-card-body {
+  background: #fff;
+  padding: 12px 14px;
+}
+.opening-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px;
+}
+.opening-tab {
+  padding: 6px 12px;
+  font-size: 12px; font-weight: 600;
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.opening-tab:hover { background: #fdecea; }
+.opening-tab.active {
+  background: #c0392b;
+  color: #fff;
+  border-color: #c0392b;
+}
+.opening-panel {
+  display: none;
+  background: #fff9f8;
+  border-left: 5px solid #c0392b;
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.65;
+  border-radius: 0 6px 6px 0;
+  color: var(--text);
+}
+.opening-panel.active { display: block; }
+
+/* ============================================================
    OBJECTION TABS
    ============================================================ */
 .objection-tabs {
@@ -474,6 +530,8 @@ body {
   #notepad { width: 220px; }
   .objection-tabs { gap: 2px; }
   .objection-tab { font-size: 10px; padding: 4px 8px; }
+  .opening-tabs { gap: 2px; }
+  .opening-tab { font-size: 10px; padding: 4px 8px; }
   body { padding-left: 4px; padding-right: 4px; }
   .phase-section { margin: 8px 8px; }
 }
@@ -580,6 +638,34 @@ body {
         <li>&ldquo;Are you watching anything good lately? I&rsquo;m always looking for recommendations.&rdquo;</li>
         <li>&ldquo;Sounds like you&rsquo;ve got a full house. How many people are you keeping connected?&rdquo;</li>
       </ul>
+    </div>
+
+    <!-- Opening Objections -->
+    <div class="opening-card">
+      <div class="opening-card-header">
+        <h3>Opening Objections: Get Past the Gate</h3>
+        <div class="opening-subtitle">If you can get past the initial objection, you&rsquo;re on your way to a yes.</div>
+      </div>
+      <div class="opening-card-body">
+        <div class="opening-tabs">
+          <div class="opening-tab active" onclick="showOpeningTab('time1', this)">Not a good time</div>
+          <div class="opening-tab" onclick="showOpeningTab('time2', this)">Don&rsquo;t have time</div>
+          <div class="opening-tab" onclick="showOpeningTab('bad', this)">Bad experience</div>
+          <div class="opening-tab" onclick="showOpeningTab('prices', this)">Prices go up</div>
+        </div>
+        <div class="opening-panel active" id="opening-time1">
+          &ldquo;I totally understand that. This will only take a few minutes, and a lot of our members end up saving quite a bit of money just by hearing what&rsquo;s available. I&rsquo;d hate for you to miss out.&rdquo;
+        </div>
+        <div class="opening-panel" id="opening-time2">
+          &ldquo;I completely get it, you&rsquo;re busy. Tell you what, I&rsquo;ll keep this really quick. If what I show you doesn&rsquo;t make sense, we&rsquo;ll wrap up right away. Fair enough?&rdquo;
+        </div>
+        <div class="opening-panel" id="opening-bad">
+          &ldquo;I&rsquo;m sorry to hear that, and I appreciate you being honest with me. Comcast has invested millions to make our network the most reliable it&rsquo;s ever been. We&rsquo;re calling with some fantastic offers because we want to earn your loyalty back.&rdquo;
+        </div>
+        <div class="opening-panel" id="opening-prices">
+          &ldquo;You&rsquo;re not the first person to feel that way, and we heard you. That&rsquo;s exactly why we now have pricing that locks in for up to 5 years without a contract. No surprises, no jumps.&rdquo;
+        </div>
+      </div>
     </div>
 
   </div>
@@ -1218,6 +1304,16 @@ body {
     // Activate selected
     tabEl.classList.add('active');
     document.getElementById(objId).classList.add('active');
+  };
+
+  /* ----------------------------------------------------------
+     OPENING OBJECTION TABS
+     ---------------------------------------------------------- */
+  window.showOpeningTab = function(tabId, tabEl) {
+    document.querySelectorAll('.opening-panel').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.opening-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.getElementById('opening-' + tabId).classList.add('active');
+    tabEl.classList.add('active');
   };
 
   /* ----------------------------------------------------------
