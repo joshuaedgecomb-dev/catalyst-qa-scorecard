@@ -1917,14 +1917,24 @@ Respond with valid JSON only. Start with {
 // ─── Validate & normalise Pass-1 extraction ────────────────────────────────
 function validateExtraction(ext, lineCount){
   if(!ext||typeof ext!=='object') return {valid:false,reason:'Extraction is not an object'};
-  const required=['customerType','opening','discovery','pitch','close','reaffirmAndClose'];
-  for(const key of required){
-    if(!(key in ext)) return {valid:false,reason:'Missing required field: '+key};
+  // Hard requirements: structural sections needed for scoring (reject without these)
+  const hardRequired=['opening','discovery','pitch'];
+  for(const key of hardRequired){
+    if(!(key in ext)||typeof ext[key]!=='object') return {valid:false,reason:'Missing required section: '+key};
   }
-  if(!ext.opening.greetingLines&&!ext.opening.recordingDisclosure) return {valid:false,reason:'Opening missing greetingLines and recordingDisclosure'};
-  if(!Array.isArray(ext.discovery.agentQuestions)) return {valid:false,reason:'discovery.agentQuestions must be an array'};
-  if(!Array.isArray(ext.discovery.pillarsAsked)) return {valid:false,reason:'discovery.pillarsAsked must be an array'};
-  if(!Array.isArray(ext.pitch.productsPitched)) return {valid:false,reason:'pitch.productsPitched must be an array'};
+  // Soft defaults: fill in missing fields with safe defaults instead of rejecting
+  if(!ext.customerType) ext.customerType='existing';
+  if(!ext.close) ext.close={assumptiveAsk:{present:false,lines:[]},customerResponse:'unknown'};
+  if(!ext.reaffirmAndClose) ext.reaffirmAndClose={reaffirmation:{present:false,lines:[]},positiveClose:{present:false,lines:[]},closingCompliance:{delivered:false,lines:[]}};
+  if(!ext.opening) ext.opening={};
+  if(!ext.opening.greetingLines) ext.opening.greetingLines=[];
+  if(!ext.opening.recordingDisclosure) ext.opening.recordingDisclosure={present:false,lines:[]};
+  if(!ext.discovery.agentQuestions) ext.discovery.agentQuestions=[];
+  if(!Array.isArray(ext.discovery.agentQuestions)) ext.discovery.agentQuestions=[];
+  if(!ext.discovery.pillarsAsked) ext.discovery.pillarsAsked=[];
+  if(!Array.isArray(ext.discovery.pillarsAsked)) ext.discovery.pillarsAsked=[];
+  if(!ext.pitch.productsPitched) ext.pitch.productsPitched=[];
+  if(!Array.isArray(ext.pitch.productsPitched)) ext.pitch.productsPitched=[];
 
   if(!Array.isArray(ext.objections)) ext.objections=[];
   if(!Array.isArray(ext.processIssues)) ext.processIssues=[];
@@ -3798,6 +3808,9 @@ function clearBulkQueue(){
 }
 
 // ── Ollama chat helper (reusable for both passes) ───────────────────────────
+// Uses native /api/chat endpoint (not OpenAI-compatible /v1/chat/completions)
+// because qwen3 models split output into empty content + reasoning on the
+// OpenAI endpoint, causing JSON parse failures.
 async function ollamaChat(systemMsg, userMsg, maxTokens=16384){
   const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
   const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
@@ -3805,19 +3818,17 @@ async function ollamaChat(systemMsg, userMsg, maxTokens=16384){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
   try{
-    const res=await fetch(`${base}/v1/chat/completions`,{
+    const res=await fetch(`${base}/api/chat`,{
       method:'POST',signal:controller.signal,
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model,
         messages:[
           {role:'system',content:systemMsg},
-          {role:'user',content:userMsg}
+          {role:'user',content:userMsg+'\n/no_think'}
         ],
-        max_tokens:maxTokens,
         stream:false,
-        temperature:0.1,
-        options:{num_ctx:65536,num_predict:maxTokens}
+        options:{temperature:0.1,num_ctx:32768,num_predict:maxTokens}
       })
     });
     clearTimeout(timer);
@@ -3826,9 +3837,9 @@ async function ollamaChat(systemMsg, userMsg, maxTokens=16384){
       throw new Error(`Ollama ${res.status}${txt?' — '+txt.slice(0,80):''}`);
     }
     const d=await res.json();
-    const bmsg=d?.choices?.[0]?.message||{};
-    let raw=bmsg.content||'';
-    if(!raw||raw.trim().length<10) raw=bmsg.reasoning||'';
+    let raw=d?.message?.content||'';
+    console.log('ollamaChat response length:', raw.length, 'done_reason:', d?.done_reason);
+    if(!raw||raw.trim().length<10) raw=d?.message?.reasoning||'';
     return raw;
   } catch(e){
     clearTimeout(timer);
