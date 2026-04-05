@@ -2812,6 +2812,101 @@ function assignRolesByHeuristic(lines){
   });
 }
 
+function fixSpeakerLabels(normalizedTranscript){
+  // Post-processing pass: fix misattributed speaker labels using content patterns.
+  // Transcription systems often lump customer responses into the agent's SPEAKER_XX.
+  // This function flips high-confidence misattributions after the initial AI speaker mapping.
+  // IMPORTANT: Uses ORIGINAL labels for context checks — no cascade.
+  const lines=normalizedTranscript.split(/\r?\n/);
+  const originalLabels=lines.map(line=>{
+    if(/^Agent:\s/i.test(line)) return 'agent';
+    if(/^Customer:\s/i.test(line)) return 'customer';
+    return 'other';
+  });
+
+  // ── Agent signals: if a line has these, it's definitely the agent ──
+  const agentSignals=[
+    /on behalf of (xfinity|comcast)/i,
+    /calling (from|with|on behalf of) (xfinity|comcast)/i,
+    /my name is [A-Za-z]+ [A-Za-z]+/i,
+    /the reason i.m calling/i,
+    /i have your account/i,
+    /based on what you told me/i,
+    /\d+\s*mbps/i,
+    /price (is )?guaranteed/i,
+    /no (down )?payment/i,
+    /xfinity rewards/i,
+    /digital consent/i,
+    /i completely understand/i,
+    /call (is )?(being )?(recorded|monitored)/i,
+    /xfinity\.com/i,
+    /before i proceed/i,
+    /\b(qualify|qualifies)\b/i,
+  ];
+
+  // ── Customer signals: if a line has these, it's definitely the customer ──
+  const customerSignals=[
+    /^i('m| am) not interested/i,
+    /too expensive/i,
+    /under contract/i,
+    /already have (internet|service)/i,
+    /call me back/i,
+    /[A-Z]-[A-Z](-[A-Z])+/,
+  ];
+
+  // ── Unconditional customer-only phrases ──
+  // Exact match (entire line is just this phrase)
+  const customerOnlyExact=/^(yeah|yep|yup|nah|mm-?hmm|uh-?huh|mhm|that'?s me|i'?m good|i'?m fine|not really|no thank you|no thanks|hello|hi|hey|bye|goodbye|how are you)\.?\??$/i;
+  // Contains match — for short lines (< 6 words) that contain a customer-only phrase
+  const customerOnlyContains=/\b(that'?s me|i'?m good|i'?m fine|how are you|no thank you|no thanks|not really)\b/i;
+
+  // ── Contextual acknowledgments: only flip when previous ORIGINAL line was Agent ending in ? ──
+  const contextualAck=/^(yes|sure|okay|ok|right|correct|exactly|absolutely|definitely|sounds good|go ahead|i understand|good|great|fine|one|two|three|four|five)\.?$/i;
+
+  const corrected=lines.map(function(line,i){
+    const text=line.replace(/^(Agent|Customer):\s*/i,'').trim();
+    const label=originalLabels[i];
+    const prevLabel=i>0?originalLabels[i-1]:'other';
+    const prevLine=i>0?lines[i-1]:'';
+    const prevEndsQ=/\?\s*$/.test(prevLine);
+    const wordCount=text.split(/\s+/).filter(Boolean).length;
+
+    if(label==='agent'){
+      // Rule 1: Contextual short response — compound condition
+      if(wordCount<=4 && prevLabel==='agent' && prevEndsQ && contextualAck.test(text)){
+        return 'Customer: '+text;
+      }
+      // Rule 2: Unconditional customer-only phrases
+      if(customerOnlyExact.test(text)){
+        return 'Customer: '+text;
+      }
+      // Rule 2b: Short lines containing customer-only phrases (e.g. "Yeah, that's me")
+      if(wordCount<6 && customerOnlyContains.test(text)){
+        return 'Customer: '+text;
+      }
+      // Rule 3: Customer signal patterns
+      for(var j=0;j<customerSignals.length;j++){
+        if(customerSignals[j].test(text)) return 'Customer: '+text;
+      }
+      // Rule 4: Personal info — short line with number/dollar after agent question
+      if(wordCount<5 && prevLabel==='agent' && prevEndsQ && /^\$?\d|^i (pay|have|got|just|only)/i.test(text)){
+        return 'Customer: '+text;
+      }
+    }
+
+    if(label==='customer'){
+      // Flip to agent if strong agent signals present
+      for(var k=0;k<agentSignals.length;k++){
+        if(agentSignals[k].test(text)) return 'Agent: '+text;
+      }
+    }
+
+    return line; // no change
+  });
+
+  return corrected.join('\n');
+}
+
 
 async function renderTranscriptRef(transcript, stepEvidenceMap){
   const body=document.getElementById('tp-ref-body');
@@ -3764,6 +3859,7 @@ async function callAI(transcript, attempt=1, onStatus){
         const label=role==='agent'?'Agent':'Customer';
         return label+': '+line.slice(m[0].length);
       }).join('\n');
+      normalizedTranscript=fixSpeakerLabels(normalizedTranscript);
       // Notify caller that speakers are identified — pass normalized transcript for immediate UI update
       status('Extracting evidence…', {normalizedTranscript});
     }
