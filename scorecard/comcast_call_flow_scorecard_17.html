@@ -1318,6 +1318,35 @@ function parseAIJSON(raw){
     // Nuclear fallback: strip ALL escaped quotes and retry
     if(!result) try{result=JSON.parse(clean.replace(/\\"/g,'"'));}catch(e4){}
     if(!result) try{result=JSON.parse(repairJSON(clean.replace(/\\"/g,'"')));}catch(e5){}
+    // Single-quote fallback: model used ' instead of " for string values
+    if(!result){
+      // Replace single-quoted values at JSON structural positions while preserving apostrophes in words
+      let sqFixed=clean;
+      // Step 1: Mark apostrophes in contractions (don't, I'm, you're) to protect them
+      sqFixed=sqFixed.replace(/([a-zA-Z])'([a-zA-Z])/g,'$1\x00$2');
+      // Step 2: Replace all remaining single quotes with double quotes (these are JSON delimiters)
+      sqFixed=sqFixed.replace(/'/g,'"');
+      // Step 3: Restore apostrophes
+      sqFixed=sqFixed.replace(/\x00/g,"'");
+      try{result=JSON.parse(sqFixed);}catch(e6){}
+      if(!result) try{result=JSON.parse(repairJSON(sqFixed));}catch(e7){}
+    }
+    // Truncation recovery: if JSON was cut off, try closing brackets
+    if(!result){
+      let truncated=repairJSON(clean);
+      // Close any open strings, arrays, and objects
+      const opens=(truncated.match(/\{/g)||[]).length;
+      const closes=(truncated.match(/\}/g)||[]).length;
+      const openBrackets=(truncated.match(/\[/g)||[]).length;
+      const closeBrackets=(truncated.match(/\]/g)||[]).length;
+      // Trim trailing comma or incomplete value
+      truncated=truncated.replace(/,\s*"?[^"{}[\]]*$/,'');
+      for(let i=0;i<openBrackets-closeBrackets;i++) truncated+=']';
+      for(let i=0;i<opens-closes;i++) truncated+='}';
+      try{result=JSON.parse(truncated);console.log('parseAIJSON: truncation recovery succeeded');}catch(e6){
+        console.warn('parseAIJSON: truncation recovery failed:', e6.message);
+      }
+    }
   }
   if(!result) throw new Error('Could not parse AI JSON response');
   return result;
@@ -1579,12 +1608,21 @@ function buildProductTimeline(txLines){
     {rx:/iphone\s*16/i, name:'iPhone 16'},
     {rx:/iphone\s*15/i, name:'iPhone 15'},
     {rx:/iphone\s*14/i, name:'iPhone 14'},
+    {rx:/galaxy\s*s\s*26\s*ultra/i, name:'Samsung Galaxy S26 Ultra'},
+    {rx:/samsung\s*s\s*26\s*ultra/i, name:'Samsung Galaxy S26 Ultra'},
+    {rx:/galaxy\s*s\s*26/i, name:'Samsung Galaxy S26'},
+    {rx:/samsung\s*s\s*26/i, name:'Samsung Galaxy S26'},
+    {rx:/galaxy\s*s\s*25\s*ultra/i, name:'Samsung Galaxy S25 Ultra'},
+    {rx:/samsung\s*s\s*25\s*ultra/i, name:'Samsung Galaxy S25 Ultra'},
     {rx:/galaxy\s*s\s*25/i, name:'Samsung Galaxy S25'},
+    {rx:/samsung\s*s\s*25/i, name:'Samsung Galaxy S25'},
     {rx:/galaxy\s*s\s*24/i, name:'Samsung Galaxy S24'},
+    {rx:/samsung\s*s\s*24/i, name:'Samsung Galaxy S24'},
     {rx:/galaxy\s*a\s*17\s*5g/i, name:'Samsung Galaxy A17 5G'},
     {rx:/galaxy\s*a\s*16\s*5g/i, name:'Samsung Galaxy A16 5G'},
     {rx:/galaxy\s*a\s*15/i, name:'Samsung Galaxy A15'},
     {rx:/galaxy\s*a\s*\d{2}/i, name:'Samsung Galaxy A-series'},
+    {rx:/samsung\s*s\s*\d{2}/i, name:'Samsung Galaxy S-series'},
     {rx:/samsung\s*galaxy/i, name:'Samsung Galaxy'},
     {rx:/pixel\s*\d/i, name:'Google Pixel'},
     {rx:/a17\s*5g|a\s*17\s*5g/i, name:'Samsung Galaxy A17 5G'},
@@ -1630,7 +1668,7 @@ function buildProductTimeline(txLines){
     }
   });
 
-  // Determine primary sale: first product mentioned that has a subsequent order event
+  // Determine primary sale using campaign signals from the agent's opening
   const orderLines=timeline.filter(e=>e.event==='order_initiated'||e.event==='order_approved');
   const firstOrderLine=orderLines.length?orderLines[0].line:Infinity;
   const productMentions=timeline.filter(e=>e.event==='mentioned');
@@ -1639,7 +1677,48 @@ function buildProductTimeline(txLines){
   const lastConfirmLine=confirmLine.length?Math.max(...confirmLine.map(e=>e.line)):0;
   const postSaleProducts=[...new Set(productMentions.filter(e=>e.line>lastConfirmLine&&!preOrderProducts.includes(e.product)).map(e=>e.product))];
 
-  const primaryKey=preOrderProducts[0]||productMentions[0]?.product||null;
+  // Campaign detection: scan opening agent lines to determine call intent
+  const openingText=txLines.slice(0,60).filter(l=>/^Agent:/i.test(l)).join(' ').toLowerCase();
+  let campaignKey=null;
+  // XMC — device protection pitch
+  if(/device.*(protect|insur)|protect.*device|cracked screen|lost phone|mobile care/i.test(openingText)) campaignKey='xmc';
+  // Add-a-Line — adding a mobile line to existing account
+  else if(/add.*(another|a) line|second line|new line.*\$20|free mobile line|free line.*12 month|gifting.*eligible|free.*for (one year|12 month)/i.test(openingText)) campaignKey='mobileLine';
+  // XM-Likely — mobile cross-sell to internet members
+  else if(/exclusively.*internet member|mobile service|incredible offer.*internet/i.test(openingText)&&!/internet.*plan|internet.*service.*in your area/i.test(openingText)) campaignKey='mobileLine';
+  // Localizers — website visitor follow-up
+  else if(/checking out.*xfinity|browsing.*plan|noticed you were.*plan|reach out personally/i.test(openingText)) campaignKey='internet';
+  // NonSub — new customer acquisition
+  else if(/(just launched|new deals.*your area|before they.re gone|exciting.*deals).*internet/i.test(openingText)||/internet.*service.*your area|promotions.*internet/i.test(openingText)) campaignKey='internet';
+
+  // If device discussion happened (phone model selected, colors chosen), it's a mobile sale
+  if(!campaignKey&&devicesDetected.size>0) campaignKey='phone';
+
+  // Pivot detection: Nonsub/Localizers campaigns (~30% are existing members)
+  // If opening signals internet but the call pivots to mobile (agent discovers customer already has internet),
+  // follow the pivot — the primary sale is what was actually pitched/sold, not the original campaign intent
+  if(campaignKey==='internet'){
+    const fullText=txLines.filter(l=>/^Agent:/i.test(l)).join(' ').toLowerCase();
+    const alreadyHasInternet=/already have (internet|service|xfinity)|current (internet|xfinity)|see.*you.*have.*internet|you.re already.*member|loyal.*customer|existing.*customer/i.test(fullText);
+    const pivotedToMobile=/free mobile line|free line.*12 month|add.*(a|another) line|mobile service/i.test(fullText);
+    if(alreadyHasInternet&&pivotedToMobile) campaignKey='mobileLine';
+    else if(devicesDetected.size>0&&pivotedToMobile) campaignKey='phone';
+  }
+
+  console.log('Campaign detection:', campaignKey||'none', '| opening signals:', openingText.slice(0,200));
+
+  // Use campaign signal to override first-mention ordering
+  const allProducts=[...new Set(productMentions.map(e=>e.product))];
+  let primaryKey;
+  if(campaignKey&&allProducts.includes(campaignKey)){
+    primaryKey=campaignKey;
+  } else if(campaignKey==='mobileLine'&&allProducts.includes('phone')){
+    primaryKey='phone'; // mobile campaign but phone product detected
+  } else if(campaignKey==='phone'&&allProducts.includes('mobileLine')){
+    primaryKey='mobileLine'; // device detected but mobileLine is the category
+  } else {
+    primaryKey=preOrderProducts[0]||productMentions[0]?.product||null;
+  }
   let primary=primaryKey?products[primaryKey]?.name:'Unknown';
   const hasSale=orderLines.length>0;
   const upsellKeys=postSaleProducts.filter(k=>k!==primaryKey);
@@ -1671,6 +1750,7 @@ function buildProductTimeline(txLines){
     timeline,
     primaryProduct:primary,
     primaryKey,
+    campaignKey:campaignKey||null,
     deviceName,
     devicesDetected:devices,
     hasSale,
@@ -1693,7 +1773,11 @@ function buildExtractionPrompt(transcript){
 
   return `You are a call transcript analyst. Extract structured facts from this Xfinity outbound telesales call. Report ONLY what you observe — no scores, no judgments, no recommendations.
 
-TRANSCRIPTION NOTE: These are auto-generated transcripts with speech-to-text errors. "required to monitor" = "recorded and monitored", "trust privacy" = "Xfinity.com/privacy". Look for intent, not perfect text.
+TRANSCRIPTION NOTE: These are auto-generated transcripts with speech-to-text errors. Proper nouns and URLs are ALWAYS garbled:
+- Company names: "Xtreme Geek", "Infinity", "Xfiniti", "Xfintiy", "Mitsunidi" all mean "Xfinity". An agent saying "calling on behalf of [garbled]" or "calling from [garbled] Comcast" IS correctly introducing themselves.
+- URLs: "xcne.com", "xcd.com", "xfin.com" all mean "xfinity.com". Any garbled URL followed by "slash privacy", "slash labels", or "slash my account" IS the correct compliance URL.
+- Phrases: "required to monitor" = "recorded and monitored", "trust privacy" = "Xfinity.com/privacy".
+Do NOT flag garbled names, URLs, or phrases as inaccurate information or service issues — they are transcription artifacts, not agent errors.
 
 SPEAKER ROLES: Lines starting with "Agent:" are the sales agent. Lines starting with "Customer:" are the customer.
 
@@ -2367,21 +2451,26 @@ function applyResult(result){
     if(campaignOptions.includes(aiCampaign)){
       detected=aiCampaign;
     } else {
-      // Infer from primarySale product or transcript context
+      // Infer from product timeline campaign detection + primarySale product
       const ps=result.primarySale||{};
       const product=(ps.product||aiCampaign||'').toLowerCase();
-      const txLower=transcript.toLowerCase();
-      if(/add.*line|additional.*line|another.*line/i.test(product)||/add.*line/i.test(txLower.slice(0,2000))){
-        detected='Xfinity Mobile Add A Line';
-      } else if(/xmc|mobile care|device protection|insurance/i.test(product)){
-        detected='Add XMC';
-      } else if(/mobile|phone|switch.*phone/i.test(product)&&/existing|already have.*internet/i.test(txLower.slice(0,2000))){
-        detected='XM Likely';
-      } else if(/nonsub|new customer|no.*current.*service/i.test(txLower.slice(0,2000))){
-        detected='Nonsub BAU';
-      } else {
-        detected=detectCampaignFromTranscript(transcript);
+      const pt=result._productTimeline;
+      const ptKey=pt?pt.campaignKey:null;
+      // Product timeline campaign key → dropdown value
+      if(ptKey==='xmc') detected='Add XMC';
+      else if(ptKey==='mobileLine'||ptKey==='phone') {
+        // Distinguish Add-a-Line vs XM-Likely: add-a-line is about adding a line, XM-likely is cross-sell
+        const txLower=transcript.toLowerCase();
+        if(/add.*(another|a) line|second line|\$20.*more/i.test(txLower.slice(0,3000))) detected='Xfinity Mobile Add A Line';
+        else detected='XM Likely';
       }
+      else if(ptKey==='internet') detected='Nonsub BAU';
+      // Fallback to product name analysis
+      else if(/add.*line|additional.*line|another.*line|free.*mobile.*line|free.*line/i.test(product)) detected='Xfinity Mobile Add A Line';
+      else if(/xmc|mobile care|device protection|insurance/i.test(product)) detected='Add XMC';
+      else if(/mobile|phone|samsung|iphone|galaxy/i.test(product)) detected='XM Likely';
+      else if(/internet|wifi|broadband/i.test(product)) detected='Nonsub BAU';
+      else detected=detectCampaignFromTranscript(transcript);
     }
     if(detected) setCampaignField(detected, 'f-campaign');
   }
@@ -4076,6 +4165,23 @@ function postProcessAIResult(result, transcript){
   } else {
     (result.redFlags||[]).forEach(rf=>{ if(rf.flagged){ const n=(rf.notes||'').toLowerCase(); if(/no.*flag|no.*issue|customer.*raised|no.*discovery|no.*question|technical|process/i.test(n)){ rf.flagged=false; rf.notes=''; } } });
   }
+
+  // Suppress false-positive red flags from transcription garbles (URLs, company names, phrases)
+  // Speech-to-text consistently mangles proper nouns — these are NOT agent errors
+  (result.redFlags||[]).forEach(rf=>{
+    if(!rf.flagged) return;
+    const n=(rf.notes||'').toLowerCase();
+    // Garbled URLs: xcne.com, xcd.com, etc. → xfinity.com
+    if((rf.id==='rf1'||rf.id==='rf2')&&/url|incorrect.*url|wrong.*url|wrong.*site|wrong.*web|xcne|xcd/i.test(n)){
+      rf.flagged=false;rf.notes='';rf.subs=[];
+      console.log('Suppressed red flag',rf.id,'— garbled URL is a transcription artifact');
+    }
+    // Garbled company names: "Xtreme Geek", "Mitsunidi", "Infinity", etc. → Xfinity
+    if((rf.id==='rf1'||rf.id==='rf2')&&/xtreme|mitsunidi|infinity|xfiniti|garbled|company.*name|wrong.*company|incorrect.*name/i.test(n)){
+      rf.flagged=false;rf.notes='';rf.subs=[];
+      console.log('Suppressed red flag',rf.id,'— garbled company name is a transcription artifact');
+    }
+  });
 
   (result.steps||[]).forEach(s=>{
     const sid=Number(s.id)||s.id;
