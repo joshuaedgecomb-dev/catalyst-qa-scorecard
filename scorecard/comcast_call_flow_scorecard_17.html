@@ -119,19 +119,12 @@
   .sp-pill{font-size:9px;font-weight:600;padding:1px 5px;border-radius:10px;white-space:nowrap;}
   @media(max-width:960px){.page{flex-direction:column;padding-top:100px;}.script-panel{width:100%;position:static;max-height:none;}.script-panel.collapsed{width:100%;height:36px;overflow:hidden;}.script-panel.collapsed .sp-hdr{flex-direction:row;}.script-panel.collapsed .sp-hdr-title{writing-mode:horizontal-tb;}.transcript-panel{display:block;width:100%;position:static;max-height:none;}.transcript-panel.collapsed{width:100%;}}
 
-  /* ── shared ── */
-  .hdr{background:var(--surface);box-shadow:var(--card-shadow);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 22px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;display:none;}
-  .hdr-left h1{font-size:19px;font-weight:700;margin-bottom:2px;}
-  .hdr-left p{font-size:12px;color:var(--text2);}
-  .hdr-right{display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
   .btn{padding:7px 13px;font-size:13px;font-weight:500;border-radius:var(--r-md);border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;transition:all 0.15s ease;white-space:nowrap;}
   .btn:hover{background:var(--bg2);}
   .btn-primary{background:var(--text);color:var(--bg);border-color:var(--text);}
   .btn-primary:hover{opacity:.85;}
   .btn-green{background:var(--green-bg);color:var(--green-tx);border-color:var(--green-bd);}
   .btn-green:hover{opacity:.85;}
-  .btn-purple{background:var(--purple-bg);color:var(--purple-tx);border-color:var(--purple-bd);font-weight:500;}
-  .btn-purple:hover{opacity:.85;}
   .btn-teal{background:var(--teal-bg);color:var(--teal-tx);border-color:var(--teal-bd);font-weight:500;}
   .btn-teal:hover{opacity:.85;}
   .btn-amber{background:var(--amber-bg);color:var(--amber-tx);border-color:var(--amber-bd);font-weight:500;}
@@ -205,16 +198,6 @@
   .ai-title{font-size:13px;font-weight:600;color:var(--purple-tx);display:flex;align-items:center;gap:6px;}
   .ai-body{padding:16px 18px;}
 
-  /* mode toggle */
-  .mode-toggle{display:flex;border:1px solid var(--border2);border-radius:var(--r-md);overflow:hidden;width:fit-content;margin-bottom:14px;}
-  .mode-btn{padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;border:none;background:var(--bg2);color:var(--text2);transition:all .15s;}
-  .mode-btn.active-cloud{background:var(--purple-bg);color:var(--purple-tx);}
-  .mode-btn.active-local{background:var(--teal-bg);color:var(--teal-tx);}
-  .mode-btn:not(.active-cloud):not(.active-local):hover{background:var(--bg3);}
-
-  /* config panes */
-  .cfg-pane{display:none;}
-  .cfg-pane.visible{display:block;}
   .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
   @media(max-width:560px){.cfg-grid{grid-template-columns:1fr;}}
   .cfg-field label{display:block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:4px;}
@@ -382,19 +365,15 @@
   .rf-flag-btn:hover{background:var(--bg2);}
   .rf-flag-btn.active{background:var(--red-bg);border-color:var(--red-bd);color:var(--red-tx);font-weight:600;}
 
-  /* ── sheets modal ── */
+  /* ── modal shared ── */
   .overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:200;align-items:center;justify-content:center;}
   .overlay.open{display:flex;}
   .modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);padding:24px;max-width:500px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15);}
   .modal h3{font-size:16px;font-weight:600;margin-bottom:8px;}
   .modal p{font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.55;}
-  .setup-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6;}
-  .setup-box strong{color:var(--text);}
-  .setup-box code{font-family:monospace;background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--accent-text);}
   .modal label{display:block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:4px;margin-top:10px;}
   .modal input,.modal select{width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--surface);color:var(--text);font-family:inherit;}
   .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
-  #sheets-status{font-size:13px;margin-top:10px;min-height:18px;}
 
   /* ── collapsible panel ── */
   .panel-collapsible .panel-body{overflow:hidden;transition:max-height .25s ease,opacity .2s ease;}
@@ -440,7 +419,7 @@
     .top-bar{display:none!important;}
     .script-panel{display:none;}
     .transcript-panel{display:none;}
-    .hdr-right,.overlay,.ai-panel,.ai-transcript-panel,.theme-toggle{display:none!important;}
+    .overlay,.ai-panel,.ai-transcript-panel,.theme-toggle{display:none!important;}
     .exec-panel{display:block!important;border-color:#aaa;}
     .notes-area{border:0.5px solid #ccc;}
     .scorecard-col{max-width:100%;}
@@ -462,7 +441,6 @@
       <button class="btn" onclick="clearAll()">Clear all</button>
       <button class="btn" onclick="window.print()">Print / PDF</button>
       <button class="btn btn-amber" onclick="openBulkModal()"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Bulk upload</button>
-      <button class="btn btn-green" onclick="openModal()">Send to Sheets <svg class="svg-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
       <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Toggle theme">
         <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -473,19 +451,6 @@
 <div class="page">
 <div class="scorecard-col">
 
-  <!-- Old header hidden, replaced by top-bar -->
-  <div class="hdr">
-    <div class="hdr-left">
-      <h1>Call Flow Scorecard — Catalyst Quality Behaviors</h1>
-      <p>Xfinity Outbound Telesales &nbsp;·&nbsp; Quality Monitoring</p>
-    </div>
-    <div class="hdr-right">
-      <button class="btn" onclick="clearAll()">Clear all</button>
-      <button class="btn" onclick="window.print()">Print / PDF</button>
-      <button class="btn btn-amber" onclick="openBulkModal()"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Bulk upload</button>
-      <button class="btn btn-green" onclick="openModal()">Send to Sheets</button>
-    </div>
-  </div>
 
   <!-- Meta -->
   <div class="meta">
@@ -521,36 +486,12 @@
     <div class="ai-hdr" style="cursor:pointer;" onclick="togglePanel('ai-settings-panel')">
       <span class="ai-title"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> AI Settings</span>
       <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:12px;color:var(--purple-tx);opacity:.8;" id="ai-settings-subtitle">Local (Ollama)</span>
+        <span style="font-size:12px;color:var(--purple-tx);opacity:.8;">Ollama</span>
         <button class="collapse-btn" onclick="event.stopPropagation();togglePanel('ai-settings-panel')"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       </div>
     </div>
     <div class="panel-body ai-body">
-      <div style="margin-bottom:12px;">
-        <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px;">AI mode</div>
-        <div class="mode-toggle">
-          <button class="mode-btn" id="mode-cloud" onclick="setMode('cloud')">Cloud (Anthropic)</button>
-          <button class="mode-btn active-local" id="mode-local" onclick="setMode('local')">Local (Ollama)</button>
-        </div>
-      </div>
-      <div class="cfg-pane" id="pane-cloud">
-        <div class="cfg-grid">
-          <div class="cfg-field">
-            <label>Anthropic API key</label>
-            <input type="password" id="ai-api-key" placeholder="sk-ant-..." oninput="save('catalyst_api_key',this.value)">
-            <div class="cfg-note">Stored in your browser. Only sent to api.anthropic.com. Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.</div>
-          </div>
-          <div class="cfg-field">
-            <label>Model</label>
-            <select id="cloud-model" onchange="save('catalyst_cloud_model',this.value)">
-              <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (recommended)</option>
-              <option value="claude-opus-4-20250514">Claude Opus 4 (highest quality)</option>
-              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="cfg-pane visible" id="pane-local">
+      <div id="pane-local">
         <div class="info-box">
           <strong>Run AI entirely on your own machine — no API key, no cost, no data leaves your hardware.</strong>
           <ul class="step-list">
@@ -595,7 +536,7 @@
     <div class="ai-hdr" style="cursor:pointer;" onclick="togglePanel('ai-transcript-panel')">
       <span class="ai-title"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg> Transcript Analyzer</span>
       <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:12px;color:var(--purple-tx);opacity:.8;" id="transcript-mode-badge">Ollama</span>
+        <span style="font-size:12px;color:var(--purple-tx);opacity:.8;">Ollama</span>
         <button class="collapse-btn" onclick="event.stopPropagation();togglePanel('ai-transcript-panel')"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       </div>
     </div>
@@ -1023,7 +964,7 @@
         <div>
           <label>Delay between calls (seconds)</label>
           <select id="bulk-delay">
-            <option value="2000">2 sec (cloud)</option>
+            <option value="2000">2 sec</option>
             <option value="5000" selected>5 sec (Ollama — recommended)</option>
             <option value="10000">10 sec (Ollama — slow hardware)</option>
             <option value="0">None</option>
@@ -1070,33 +1011,8 @@
       <button class="btn" id="bulk-stop-btn" onclick="stopBulk()" style="display:none">Stop</button>
       <button class="btn btn-green" id="bulk-csv-btn" onclick="exportBulkCSV()" style="display:none">Export CSV</button>
       <button class="btn btn-primary" id="bulk-zip-btn" onclick="downloadBulkZip()" style="display:none">Download Zip</button>
-      <button class="btn btn-green" id="bulk-sheets-btn" onclick="bulkToSheets()" style="display:none">Send all to Sheets</button>
       <button class="btn" onclick="clearBulkQueue()">Clear queue</button>
       <span id="bulk-footer-status"></span>
-    </div>
-  </div>
-</div>
-<div class="overlay" id="sheets-overlay">
-  <div class="modal">
-    <h3>Send to Google Sheets</h3>
-    <p>Each submission appends one row. Requires a one-time Google Apps Script setup.</p>
-    <div class="setup-box">
-      <strong>One-time setup:</strong><br>
-      1. Open your Google Sheet → <strong>Extensions → Apps Script</strong><br>
-      2. Paste the downloaded <code>sheets_script.gs</code> → Save<br>
-      3. <strong>Deploy → New deployment → Web app</strong>, access: <strong>Anyone</strong><br>
-      4. Copy the Web App URL below
-      <br><br>
-      <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="downloadScript()">Download sheets_script.gs</button>
-    </div>
-    <label>Web App URL</label>
-    <input type="url" id="sheets-url" placeholder="https://script.google.com/macros/s/.../exec">
-    <label>Remember URL in this browser?</label>
-    <select id="sheets-save"><option value="yes">Yes</option><option value="no">No – one time only</option></select>
-    <div id="sheets-status"></div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-green" onclick="sendToSheets()">Send row</button>
     </div>
   </div>
 </div>
@@ -1303,27 +1219,9 @@ const COMPLIANCE_ITEMS=[
 
 const scores={},trendChecked={},notes={},rfFlags={},rfSubs={},stepEvidence={},complianceScores={};
 let speakerSeedMap=null; // set by AI speaker detection, consumed by buildSpeakerMap
-let currentMode='local';
-
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 function save(k,v){try{if(v) localStorage.setItem(k,v);}catch(e){}}
 function load(k,def=''){try{return localStorage.getItem(k)||def;}catch(e){return def;}}
-
-// ─── Mode toggle ──────────────────────────────────────────────────────────────
-function setMode(m){
-  currentMode=m;
-  document.getElementById('pane-cloud').className='cfg-pane'+(m==='cloud'?' visible':'');
-  document.getElementById('pane-local').className='cfg-pane'+(m==='local'?' visible':'');
-  document.getElementById('mode-cloud').className='mode-btn'+(m==='cloud'?' active-cloud':'');
-  document.getElementById('mode-local').className='mode-btn'+(m==='local'?' active-local':'');
-  const btn=document.getElementById('analyze-btn');
-  btn.className=m==='cloud'?'btn btn-purple':'btn btn-teal';
-  const badge=document.getElementById('transcript-mode-badge');
-  if(badge) badge.textContent=m==='cloud'?'☁ Anthropic':'⬡ Ollama';
-  const sub=document.getElementById('ai-settings-subtitle');
-  if(sub) sub.textContent=m==='cloud'?'Cloud (Anthropic)':'Local (Ollama)';
-  save('catalyst_mode',m);
-}
 
 // ─── Collapsible panels ───────────────────────────────────────────────────────
 function togglePanel(id){
@@ -1454,187 +1352,7 @@ async function checkOllama(){
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(transcript){
-  if(currentMode==='local') return buildLocalPrompt(transcript);
-  return buildCloudPrompt(transcript);
-}
-
-function buildCloudPrompt(transcript){
-  const stepsJSON=JSON.stringify(STEPS.map(s=>({id:s.id,name:s.name,type:s.type,catalyst:s.catalyst,desc:s.desc,trending:s.trending})));
-  const complianceJSON=JSON.stringify(COMPLIANCE_ITEMS.map(c=>({id:c.id,name:c.name,desc:c.desc,na:c.na})));
-  const rfJSON=JSON.stringify(RED_FLAGS.map(rf=>({id:rf.id,name:rf.name,desc:rf.desc,subs:rf.subs})));
-  const catalystCriteriaJSON=JSON.stringify(CATALYST.map(c=>({id:c.id,name:c.name,intent:c.intent,criteria:c.criteria})));
-  return `You are an expert Xfinity outbound telesales quality evaluator using the Catalyst Quality Behavior framework. Analyze the call transcript below and score every step.
-
-CRITICAL — TRANSCRIPTION QUALITY:
-These transcripts are generated by automated speech-to-text systems and frequently contain errors: garbled words, merged sentences, missing punctuation, misheard phrases, and dropped words. You MUST evaluate the agent's INTENT and SUBSTANCE, not the literal transcribed text. Examples of common transcription artifacts:
-- "this will be required to monitor" = likely "the call is being recorded and monitored"
-- "trust privacy" = likely "Xfinity.com/privacy" or "Comcast privacy practices"
-- Words run together without punctuation or spacing
-- Proper nouns and URLs mangled (e.g. "xfinity dot com slash labels" → "xfinity.com labels")
-When evaluating compliance items, if the transcribed text contains recognizable fragments of the required language — even garbled — credit the agent for delivering it. Only mark compliance as failed when the required disclosure is genuinely ABSENT from the transcript, not when it is present but poorly transcribed.
-
-IMPORTANT SCORING PHILOSOPHY:
-Each call must be graded in a vacuum — evaluate what worked for this specific customer on this specific call. There is no single formula. One great discovery question that yields full household context is worth more than five surface-level questions. An agent who adapts to the customer and achieves the goal of each step effectively has demonstrated that behavior, even if the path looked different from a script.
-
-COMPLETENESS REQUIREMENT:
-You MUST score ALL steps, ALL compliance items, ALL red flags, and ALL catalyst behaviors. Every step must include a score, notes, insight, and transcriptEvidence — even if the step was N/A. Do not skip or omit any item from the response. If you are uncertain about a step, provide your best assessment with a note explaining the uncertainty.
-
-RATING SCALE:
-- type "cat" steps: use exactly one of: "ed" (Effectively Demonstrated), "pd" (Partially Demonstrated), "dnd" (Did Not Demonstrate), "na" (Not Applicable)
-- type "yn" steps: use exactly one of: "yes", "no", "na"
-- Score "na" only when genuinely not applicable (e.g. call ended early, no objection was raised for objection steps).
-- Base scores strictly on transcript evidence. Do not assume intent.
-
-CALL FLOW SEQUENCING:
-Steps follow the natural sequence of an outbound sales call. Each step's transcriptEvidence MUST come from the correct phase of the call — not from a random part of the transcript. The flow is:
-Opening (steps 1-2, first ~50 lines) → Discovery (step 3, question-asking phase) → Pitch (step 4, product presentation) → Close (step 5, asking for the sale) → Objection handling (steps 6-8, only if customer objects) → Reaffirm & close (steps 9-11, end of call after acceptance)
-Do NOT cite evidence from the close for an opening step, or from the opening for a closing step. If a step's behavior is absent from its expected call phase, that is grounds for "dnd" — do not search other phases to justify a passing score.
-EXCEPTION: If the customer objects immediately in the opening before discovery begins, objection handling (steps 6-8) can occur early in the call. The agent may need to overcome initial resistance before proceeding with the normal call flow.
-
-CUSTOMER TYPE DETECTION:
-Before scoring, determine the customer type from transcript context:
-- "existing" = customer already has Xfinity services (usually Internet) and agent is calling to add a product (usually Xfinity Mobile, another service, or a protection plan). Clues: agent references their current plan, account details, existing services, or the call is about adding/upgrading.
-- "new" = customer has no current Xfinity services (Nonsub/BAU campaign). Clues: agent pitches from scratch with no reference to existing services.
-Include the detected type in your response as "customerType": "existing" or "new".
-For existing customers: using the customer's name early in the opening is a meaningful signal of pre-call prep — factor it into Step 1 scoring. For new customers: name usage is not expected since there's no account to review.
-
-PRODUCT KNOWLEDGE — use to evaluate if agent pitched the correct product at the correct price. If the agent quotes a price, product, or promotion that does NOT match anything in this database, flag it in your response under "productFlags".
-${getProductKnowledge()}
-
-CATALYST BEHAVIORS — SCORING CRITERIA:
-Each of the 6 Catalyst behaviors must be scored independently, based on evidence across the ENTIRE transcript — not just the steps they map to. A behavior can show up (or fail to show up) anywhere in the call. Read the full transcript before scoring any behavior. Use the criteria below.
-${catalystCriteriaJSON}
-
-SCORECARD STEPS:
-${stepsJSON}
-
-RED FLAGS:
-${rfJSON}
-
-COMPLIANCE CHECKLIST (11 items — score each as yes, no, or na):
-Each item must be scored. Use "yes" if clearly addressed, "no" if applicable but omitted, "na" if genuinely not applicable to this call. The na field describes when N/A is appropriate.
-${complianceJSON}
-
-TRANSCRIPT:
-${transcript}
-
-Respond ONLY with valid JSON — no explanation, no markdown fences, no commentary:
-{
-  "customerType": "existing|new",
-  "steps": [
-    {
-      "id": 1,
-      "score": "ed|pd|dnd|na|yes|no",
-      "trending": [exact trending strings from this step that apply — empty array if none],
-      "notes": "1-2 sentence coaching note citing specific transcript evidence",
-      "insight": "A call-specific analytical observation for this step. For steps 4 (Discovery), 5 (Linking), 7-8 (Objection handling): write exactly 2 sentences — first sentence states what the agent did or missed with a specific quote, second sentence explains the impact on the customer or sale outcome. For other steps: 1 concise sentence tied to this call. Never use generic filler.",
-      "transcriptEvidence": "The exact verbatim lines or close paraphrase from the transcript that led to this score — quote the agent's actual words where possible. For step 1, quote the opening lines. For a DND score, quote what was missing or what the agent said instead. Keep to 1-3 lines maximum."
-    }
-  ],
-  "redFlags": [
-    {
-      "id": "rf1|rf2|rf3|rf4|rf5|rf6",
-      "flagged": true|false,
-      "subs": [exact sub-strings that apply — empty if not flagged],
-      "notes": "brief evidence note if flagged, empty string otherwise"
-    }
-  ],
-  "compliance": [
-    {
-      "id": "c1|c2|c3|c4|c5|c6|c7|c8|c9|c10|c11",
-      "score": "yes|no|na",
-      "notes": "1 sentence explaining the score — quote transcript evidence for no, explain why na for na"
-    }
-  ],
-  "catalystBehaviors": [
-    {
-      "id": "b1|b2|b3|b4|b5|b6",
-      "score": "ed|pd|dnd",
-      "notes": "1 sentence summarizing the evidence across the full call that drove this score"
-    }
-  ],
-  "productFlags": [{"issue":"brief description of price, product, or promo quoted by agent that does NOT match the product knowledge database","agentQuoted":"what the agent said","expected":"what the database says it should be"}],
-  "suggestedOutcome": "Successful sale | No sale – price | No sale – competitor | No sale – under contract | No sale – not interested | No sale – needs to consult | No sale – doesn't need product | No sale – other",
-  "suggestedCampaign": "Identify the campaign from these exact options based on transcript evidence — return the exact string or empty string if unclear:\n  Xfinity Mobile Add A Line — agent is calling an existing Xfinity Mobile customer to add a new phone line or wearable (Apple Watch etc.)\n  XM Likely — agent is calling an existing Xfinity Internet customer with no Xfinity Mobile, pitching a mobile line\n  Add XMC — agent is calling an existing Xfinity Mobile customer to sell Xfinity Mobile Care (device protection/insurance)\n  Nonsub BAU — agent is calling a non-subscriber (no current Xfinity service) selling services in this order: Internet first, then Mobile, then Xfinity Home / Xfinity Streamsaver, then Xfinity Home Phone",
-  "executiveSummary": {
-    "topPriority": "5-8 word headline naming the single most important thing this agent should work on next — must reference a specific behavior from THIS call, not a generic skill",
-    "summary": "2-3 sentences. MUST reference specific moments from the transcript. BAD: 'Agent could improve objection handling.' GOOD: 'When the customer said they needed to think about it, the agent moved on without discovering — asking what specifically concerned them would have kept the door open.' Every sentence must cite something the agent actually said or did on this call. Write to a manager who will share this with the agent.",
-    "strengths": ["MINIMUM 2 items. Each is a plain text sentence explaining what worked through Catalyst behaviors, with (line X) references."],
-    "opportunities": ["MINIMUM 2 items. Each is a plain text sentence explaining a gap through Catalyst behaviors, with (line X) references."],
-    "critical": ["only populate if there was a red flag or auto-fail — 1 phrase max, empty array otherwise"],
-    "salesCoaching": [
-      {
-        "compassPhase": "The Compass Navigator phase this recommendation belongs to — use exact phase names: Connect | Explore | Consult | Overcome | Review",
-        "focus": "Short label for this coaching focus area (e.g. Discovery Questions, Objection Handling, Tie-Backs, Consult Delivery)",
-        "what": "One sentence describing exactly what the agent should do differently. MUST reference a specific moment from the transcript — what the agent said, what the customer said, and what should have happened instead. Never use generic phrases like 'improve objection handling' or 'strengthen tie-backs' without citing the specific gap.",
-        "transcriptEvidence": "The EXACT quote from the transcript that shows the gap. Copy the agent's actual words. This is required and must be a real quote, not a paraphrase.",
-        "example": "A concrete script the agent could use next time in that exact situation — written as actual words they would say to this customer. Reference what was discovered on this call.",
-        "priority": "high|medium"
-      }
-    ],
-    "complianceCoaching": [
-      {
-        "compassPhase": "Connect | Review (whichever phase the compliance item belongs to)",
-        "focus": "Short label (e.g. Recording Disclosure, Authentication, Broadband Labels, Order Summary, Closing Statement)",
-        "what": "One sentence describing the compliance gap — what was required, what the agent said or omitted, and what they must say next time.",
-        "transcriptEvidence": "The EXACT quote showing the compliance gap, or note that the required language was completely absent.",
-        "example": "The exact verbatim compliance language the agent should have delivered.",
-        "priority": "high|medium"
-      }
-    ]
-
-COMPLIANCE REQUIREMENTS — EVERY CALL:
-These are mandatory disclosures. When scoring steps 2, 3, 5, 11, and 12, check specifically for each compliance item. A missing compliance item must be called out in the notes field for that step.
-
-1. RECORDING DISCLOSURE (Step 2) — Required in the opening on every call, before asking discovery questions:
-   Verbatim: "Before I continue, I need to inform you that the call is being recorded and monitored for the highest quality standards. For more information about Comcast privacy practices please visit Xfinity.com/privacy."
-   - Standard: delivered after greeting OR after reason for call
-   - IL and KY: must include permission-to-continue phrase
-   - CT: mandatory special script — "Do you have a few moments to continue this sales call, or would you prefer I disconnect or remove you from our list?"
-
-2. AUTHENTICATION (Step 3) — Required for existing customers ONLY IF account-sensitive information is discussed:
-   Authentication is only required when the agent discusses, confirms, or discloses any customer-sensitive or account-specific information — such as the customer's address, phone number, current package, current pricing, account history, or any detail that would only exist on their account.
-   If no account-specific information is discussed at any point in the call, authentication is NOT required — score this N/A.
-   When authentication IS required, it must occur before that sensitive information is shared. Authentication is satisfied by EITHER:
-   - A 6-digit verification code collected and confirmed — this alone is full authentication for any campaign, OR
-   - Full service address AND phone number on the account (fallback when no code is used)
-   IMPORTANT: When the agent asks for "best contact information including shipping address" and the customer provides an address and phone number, that IS authentication via address + phone. The agent collecting this information satisfies the authentication requirement — do not penalize just because the agent framed it as "contact information" rather than "verification."
-   ACSR scenarios require address + phone, but this is not determinable from a transcript — do not penalize if a code was collected.
-
-3. BROADBAND LABELS (Step 5) — Required whenever Internet or Mobile is offered:
-   Must be referenced between Explore and Consult phases.
-   Required language: "You can also see this information or information about our services at Xfinity.com/labels."
-
-4. BEFORE SUBMITTING (Step 11) — Required verbatim before sending any order summary:
-   "Before submitting your order, I want to spend a few minutes confirming with you that I have accurately captured the services you want. I'll ask you to review the order, and then if it's correct, please approve it. What phone number or email address would you like to use to complete this process?"
-
-5. TEXT CONSENT (Step 11) — Required when sending order link via text:
-   "Thanks. I'll now send you a text message at the number you provided with a link to confirm your order. Message and data rates may apply. Okay?"
-
-6. VERBAL ORDER SUMMARY (Step 11) — Required if digital option fails:
-   Agent must read the entire order summary top to bottom including legal disclaimer, taxes, fees, and one-time charges, then ask verbatim: "DO YOU AGREE TO ORDER AND BE BILLED FOR THE EQUIPMENT AND SERVICES THAT I JUST DESCRIBED?"
-
-7. POST-APPROVAL (Step 11) — Required after customer approves:
-   "Thank you. After we finalize your order, you'll receive a copy of your order summary within 6 hours at the email address listed on your account. You can also find it at xfinity.com/MyAccount."
-
-8. CLOSING COMPLIANCE (Step 11) — Required on every call, sale or no sale:
-   "Thank you for your time today. If you have any questions about this call or any Xfinity products or services in your area, please feel free to call 1-800-XFINITY (934-6489) or visit Xfinity.com. Have a great rest of your day."
-
-COMPASS NAVIGATOR CONTEXT:
-Agents follow the Compass Navigator call structure. Use this context when writing coaching recommendations:
-- Connect phase: Opening, rapport building, agenda setting, verifying account/address
-- Explore phase: Discovery questions covering Users, Usage, Devices, and Cost. Agents record tie-backs by product category (Internet, Video, Mobile, Security, Voice) during Explore to use in the Consult
-- Consult phase: Pitch delivery — "Based on what you told me, I think I have the perfect plan..." Each product recommendation must use a tie-back: "I heard you say [X], so I included [product] because [benefit]"
-- Overcome phase: 4-step objection framework (see below)
-- Review phase: Summarize the order (all services, promotional pricing & duration, roll-to rate), process digital consent, cover installation & activation details, mention Xfinity App & Rewards
-
-For Nonsub BAU calls, agents follow the "Customer Does Not Exist in Einstein" path.
-For XM campaigns (Add A Line, XM Likely, Add XMC), agents follow the "Customer Exists in Einstein" path.
-
-SPECIAL RULE FOR OBJECTION HANDLING RECOMMENDATIONS:
-If any objection handling step (steps 7 or 8) scored pd or dnd, you MUST include an objection handling coaching recommendation with compassPhase set to "Overcome". Structure the "what" field around the Compass Navigator 4-step framework in order: (1) Understand the objection — if the objection is unclear, ask "What about that plan didn't you like?" to find the real reason before responding. (2) Empathize and Overcome — open with "I completely understand that, however..." to show you heard them before pivoting. (3) Restate Key Tie-Backs — use what was learned in Explore: "I heard you say [X], so I wanted to make sure..." (4) Add Additional Value — introduce one additional product benefit relevant to this customer. Use the transcriptEvidence to show exactly where the framework broke down, and write the "example" field as a connected sequence walking through all 4 steps using the actual context from this call.
-  }
-}`;
+  return buildLocalPrompt(transcript);
 }
 
 // Condensed prompt for local/Ollama models — fits in smaller context windows
@@ -2378,7 +2096,7 @@ async function analyzeTranscript(){
     if(ab){ab.disabled=false;ab.style.opacity='';ab.style.pointerEvents='';}
   }
 
-  statusEl.textContent=currentMode==='cloud'?'Sending to Anthropic…':'Identifying speakers…';
+  statusEl.textContent='Identifying speakers…';
 
   try{
     const txEl=document.getElementById('ai-transcript');
@@ -2404,7 +2122,7 @@ async function analyzeTranscript(){
     } else {
       const filled=(result.steps||[]).filter(s=>s.score).length;
       statusEl.style.color='var(--green-tx)';
-      statusEl.textContent='\u2713 '+filled+' steps scored by AI ('+(currentMode==='cloud'?'Anthropic':'Ollama')+', '+(result._extraction?'two-pass':'single-pass')+'). Review before finalizing. ('+totalSec+'s)';
+      statusEl.textContent='\u2713 '+filled+' steps scored by AI (Ollama, '+(result._extraction?'two-pass':'single-pass')+'). Review before finalizing. ('+totalSec+'s)';
     }
   } catch(e){
     stopProgress(false);
@@ -2996,50 +2714,36 @@ Return ONLY valid JSON, no explanation, no markdown:
 {"speakers": {"SPEAKER_02": "agent", "SPEAKER_04": "customer"}}`;
 
     let raw='';
-    if(currentMode==='cloud'){
-      const key=load('catalyst_api_key');
-      if(!key) return null;
-      const model=load('catalyst_cloud_model')||'claude-sonnet-4-20250514';
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model,max_tokens:200,messages:[{role:'user',content:prompt}]})
-      });
-      if(!res.ok) return null;
-      const d=await res.json();
-      raw=d?.content?.[0]?.text||'';
-    } else {
-      const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
-      // Use dedicated speaker detection model if set, otherwise fall back to scoring model
-      const spkModel=(document.getElementById('ollama-speaker-model')?.value||'').trim();
-      const scoringModel=(document.getElementById('ollama-model').value||'').trim();
-      const model=spkModel||scoringModel;
-      if(!model) return null;
-      console.log('Speaker detection using model:', model);
-      // Use Ollama native /api/chat endpoint — avoids qwen3's reasoning/content split
-      const spkBody={
-        model,
-        messages:[
-          {role:'system',content:'Respond with only valid JSON. No thinking, no markdown, no explanation.'},
-          {role:'user',content:prompt+'\n/no_think'}
-        ],
-        stream:false,
-        options:{temperature:0,num_ctx:32768,num_predict:4096}
-      };
-      console.log('Speaker detection prompt size:', prompt.length, 'chars');
-      const res=await fetch(`${base}/api/chat`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(spkBody)
-      });
-      if(!res.ok){
-        console.error('Speaker detection HTTP error:', res.status);
-        return null;
-      }
-      const d=await res.json();
-      raw=d?.message?.content||'';
-      console.log('Speaker detection raw response length:', raw.length, 'done_reason:', d.done_reason, 'preview:', raw.slice(0,300));
+    const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
+    // Use dedicated speaker detection model if set, otherwise fall back to scoring model
+    const spkModel=(document.getElementById('ollama-speaker-model')?.value||'').trim();
+    const scoringModel=(document.getElementById('ollama-model').value||'').trim();
+    const model=spkModel||scoringModel;
+    if(!model) return null;
+    console.log('Speaker detection using model:', model);
+    // Use Ollama native /api/chat endpoint — avoids qwen3's reasoning/content split
+    const spkBody={
+      model,
+      messages:[
+        {role:'system',content:'Respond with only valid JSON. No thinking, no markdown, no explanation.'},
+        {role:'user',content:prompt+'\n/no_think'}
+      ],
+      stream:false,
+      options:{temperature:0,num_ctx:32768,num_predict:4096}
+    };
+    console.log('Speaker detection prompt size:', prompt.length, 'chars');
+    const res=await fetch(`${base}/api/chat`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(spkBody)
+    });
+    if(!res.ok){
+      console.error('Speaker detection HTTP error:', res.status);
+      return null;
     }
+    const d=await res.json();
+    raw=d?.message?.content||'';
+    console.log('Speaker detection raw response length:', raw.length, 'done_reason:', d.done_reason, 'preview:', raw.slice(0,300));
 
     let clean=stripToJSON(raw);
     let parsed;
@@ -3644,30 +3348,6 @@ function clearAll(silent){
   document.querySelectorAll('.step-chevron.open').forEach(c=>c.classList.remove('open'));
 }
 
-// ─── Sheets ───────────────────────────────────────────────────────────────────
-function openModal(){const s=localStorage.getItem('gc_scorecard_url');if(s) document.getElementById('sheets-url').value=s;document.getElementById('sheets-status').textContent='';document.getElementById('sheets-overlay').classList.add('open');}
-function closeModal(){document.getElementById('sheets-overlay').classList.remove('open');}
-
-async function sendToSheets(){
-  const url=document.getElementById('sheets-url').value.trim();
-  const status=document.getElementById('sheets-status');
-  if(!url){status.style.color='var(--red-tx)';status.textContent='Please enter a Web App URL.';return;}
-  if(document.getElementById('sheets-save').value==='yes') localStorage.setItem('gc_scorecard_url',url);
-  const p=buildPayload();
-  const row={Timestamp:new Date().toLocaleString(),Agent:p.meta.agent,TSR:p.meta.tsr||'',Supervisor:p.meta.supervisor||'',Evaluator:p.meta.evaluator,PhoneNumber:p.meta.phoneNumber||p.meta.callId,Campaign:p.meta.campaign,CallDate:p.meta.date,Outcome:p.meta.outcome,AutoFail:p.summary.autoFail?'YES':'NO',CatalystScore:p.summary.catalystSummary};
-  p.catalystBehaviors.forEach(c=>{row[`B_${c.name.replace(/\s+/g,'_')}`]=c.rating;});
-  p.steps.forEach(s=>{row[`S${s.step}_${s.name.replace(/[\s\/\-—]+/g,'_').substring(0,28)}`]=s.score||'';if((trendChecked[s.id]||[]).length) row[`S${s.step}_Coaching`]=s.trending.join('; ');if(s.notes) row[`S${s.step}_Notes`]=s.notes;});
-  p.redFlags.forEach(rf=>{row[`RF_${rf.name.replace(/[\s\/]+/g,'_').substring(0,28)}`]=rf.flagged?'FLAGGED':'';if(rf.subs.length) row[`RF_${rf.name.replace(/[\s\/]+/g,'_').substring(0,24)}_Detail`]=rf.subs.join('; ');});
-  status.style.color='var(--text2)';status.textContent='Sending…';
-  try{await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});status.style.color='var(--amber-tx)';status.textContent='Request sent — verify row appeared in your spreadsheet.';}
-  catch(e){status.style.color='var(--red-tx)';status.textContent='Error: '+e.message;}
-}
-
-function downloadScript(){
-  const s=`function doPost(e){try{var sheet=SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();var data=JSON.parse(e.postData.contents);var keys=Object.keys(data);if(sheet.getLastRow()===0){sheet.appendRow(keys);}else{var hdr=sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];keys.forEach(function(k){if(!hdr.includes(k)){sheet.getRange(1,sheet.getLastColumn()+1).setValue(k);hdr.push(k);}});}var hdr2=sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];sheet.appendRow(hdr2.map(function(h){return data[h]!==undefined?data[h]:''}));return ContentService.createTextOutput(JSON.stringify({status:'ok'})).setMimeType(ContentService.MimeType.JSON);}catch(err){return ContentService.createTextOutput(JSON.stringify({status:'error',message:err.message})).setMimeType(ContentService.MimeType.JSON);}}\nfunction doGet(){return ContentService.createTextOutput('Scorecard endpoint is live.');}`;
-  const blob=new Blob([s],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sheets_script.gs';a.click();
-}
-
 // ─── Bulk Upload ──────────────────────────────────────────────────────────────
 let bulkQueue=[];       // [{file, name, status, result, error}]
 let bulkResults=[];     // completed payloads for export
@@ -3700,7 +3380,6 @@ function handleBulkFiles(files){
   document.getElementById('bulk-overall').style.display='none';
   document.getElementById('bulk-result-grid').style.display='none';
   document.getElementById('bulk-csv-btn').style.display='none';
-  document.getElementById('bulk-sheets-btn').style.display='none';
   // Reset file input so same files can be re-added after clear
   document.getElementById('bulk-file-input').value='';
 }
@@ -3737,13 +3416,8 @@ async function runBulk(){
   if(bulkRunning) return;
   if(!bulkQueue.length){alert('No files in queue.');return;}
 
-  if(currentMode==='cloud'){
-    const key=(document.getElementById('ai-api-key').value||'').trim();
-    if(!key){alert('Please enter your Anthropic API key in the AI panel above.');return;}
-  } else {
-    const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
-    if(!model){alert('Please enter an Ollama model name in the AI panel above.');return;}
-  }
+  const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
+  if(!model){alert('Please enter an Ollama model name in the AI panel above.');return;}
 
   bulkRunning=true;bulkStopRequested=false;bulkResults=[];
   document.getElementById('bulk-run-btn').style.display='none';
@@ -3752,7 +3426,6 @@ async function runBulk(){
   document.getElementById('bulk-result-grid').style.display='none';
   document.getElementById('bulk-csv-btn').style.display='none';
   document.getElementById('bulk-zip-btn').style.display='none';
-  document.getElementById('bulk-sheets-btn').style.display='none';
 
   const delay=parseInt(document.getElementById('bulk-delay').value)||5000;
   const onError=document.getElementById('bulk-on-error').value;
@@ -3874,8 +3547,6 @@ async function runBulk(){
   if(bulkResults.length>0){
     document.getElementById('bulk-csv-btn').style.display='inline-block';
     document.getElementById('bulk-zip-btn').style.display='inline-block';
-    const sheetsUrl=localStorage.getItem('gc_scorecard_url');
-    if(sheetsUrl) document.getElementById('bulk-sheets-btn').style.display='inline-block';
   }
 }
 
@@ -3898,7 +3569,6 @@ function clearBulkQueue(){
   document.getElementById('bulk-result-grid').style.display='none';
   document.getElementById('bulk-csv-btn').style.display='none';
   document.getElementById('bulk-zip-btn').style.display='none';
-  document.getElementById('bulk-sheets-btn').style.display='none';
   document.getElementById('bulk-run-btn').disabled=true;
   document.getElementById('bulk-run-btn').style.display='inline-block';
   document.getElementById('bulk-stop-btn').style.display='none';
@@ -3974,96 +3644,68 @@ async function callAI(transcript, attempt=1, onStatus){
 
   let result;
 
-  if(currentMode==='cloud'){
-    status('Sending to Anthropic…');
-    // Cloud mode: single pass (unchanged)
-    const prompt=buildCloudPrompt(normalizedTranscript);
-    const apiKey=(document.getElementById('ai-api-key').value||'').trim();
-    const model=document.getElementById('cloud-model').value;
-    const TIMEOUT_MS=5*60*1000;
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
+  // Two-pass architecture
+  const lineCount=normalizedTranscript.split(/\r?\n/).length;
+  let extraction=null;
+  let usedFallback=false;
+
+  // ── Pass 1: Evidence Extraction ──
+  // Build product timeline once — shared by both passes
+  const productTimeline=buildProductTimeline(normalizedTranscript.split(/\r?\n/));
+  console.log('Product timeline:', JSON.stringify(productTimeline.summary));
+
+  status('Extracting evidence…');
+  try{
+    const sysMsg='Respond with only valid JSON. No thinking, no markdown, no explanation.';
+    const extractionPrompt=buildExtractionPrompt(normalizedTranscript);
+    console.log('Pass 1 (extraction) prompt size:', extractionPrompt.length, 'chars (~'+Math.round(extractionPrompt.length/4)+' tokens)');
+    const rawExtraction=await ollamaChat(sysMsg, extractionPrompt, 8192);
+    const parsed=parseAIJSON(rawExtraction);
+    const validation=validateExtraction(parsed, lineCount);
+    if(validation.valid) extraction=validation.extraction;
+    else console.warn('Extraction validation failed:', validation.reason);
+  } catch(e){
+    console.warn('Pass 1 extraction failed:', e.message);
+  }
+
+  if(extraction){
+    // ── Pass 2: Scoring Judgment ──
+    status('Scoring call…');
     try{
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',signal:controller.signal,
-        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model,max_tokens:8192,messages:[{role:'user',content:prompt}]})
-      });
-      clearTimeout(timer);
-      if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`API ${res.status}`);}
-      const d=await res.json();
-      const raw=d?.content?.[0]?.text||'';
+      const sysMsg='You are a precise JSON-only responder. Output ONLY valid JSON. All scores MUST be strings: "ed", "pd", "dnd", "na", "yes", or "no".';
+      const scoringPrompt=buildScoringPrompt(extraction, productTimeline);
+      console.log('Pass 2 (scoring) prompt size:', scoringPrompt.length, 'chars (~'+Math.round(scoringPrompt.length/4)+' tokens)');
+      const rawScoring=await ollamaChat(sysMsg, scoringPrompt, 16384);
+      result=parseAIJSON(rawScoring);
+      // Attach extraction for post-processing and downstream consumers
+      result._extraction=extraction;
+      result._productTimeline=productTimeline;
+      // Build discoveryPillars deterministically from extraction
+      result.discoveryPillars=buildDiscoveryPillars(extraction);
+    } catch(e){
+      console.warn('Pass 2 scoring failed:', e.message);
+      result=null;
+    }
+  }
+
+  // ── Fallback: single-pass if either pass failed ──
+  if(!result) status('Falling back to single-pass…');
+  if(!result){
+    usedFallback=true;
+    console.warn('Two-pass failed, falling back to single-pass');
+    const prompt=buildLocalPrompt(normalizedTranscript);
+    const sysMsg='You are a precise JSON-only responder. After any thinking, output ONLY valid JSON. No markdown fences, no backticks. All scores MUST be strings, NEVER numbers.';
+    const raw=await ollamaChat(sysMsg, prompt, 16384);
+    try{
       result=parseAIJSON(raw);
     } catch(e){
-      clearTimeout(timer);
-      if(e.name==='AbortError') throw new Error('Request timed out after 5 minutes');
-      throw e;
+      if(attempt<2){await sleep(3000);return callAI(transcript,2);}
+      throw new Error('Could not parse AI JSON response after 2 attempts');
     }
-    postProcessAIResult(result, normalizedTranscript);
-  } else {
-    // Local mode: two-pass architecture
-    const lineCount=normalizedTranscript.split(/\r?\n/).length;
-    let extraction=null;
-    let usedFallback=false;
-
-    // ── Pass 1: Evidence Extraction ──
-    // Build product timeline once — shared by both passes
-    const productTimeline=buildProductTimeline(normalizedTranscript.split(/\r?\n/));
-    console.log('Product timeline:', JSON.stringify(productTimeline.summary));
-
-    status('Extracting evidence…');
-    try{
-      const sysMsg='Respond with only valid JSON. No thinking, no markdown, no explanation.';
-      const extractionPrompt=buildExtractionPrompt(normalizedTranscript);
-      console.log('Pass 1 (extraction) prompt size:', extractionPrompt.length, 'chars (~'+Math.round(extractionPrompt.length/4)+' tokens)');
-      const rawExtraction=await ollamaChat(sysMsg, extractionPrompt, 8192);
-      const parsed=parseAIJSON(rawExtraction);
-      const validation=validateExtraction(parsed, lineCount);
-      if(validation.valid) extraction=validation.extraction;
-      else console.warn('Extraction validation failed:', validation.reason);
-    } catch(e){
-      console.warn('Pass 1 extraction failed:', e.message);
-    }
-
-    if(extraction){
-      // ── Pass 2: Scoring Judgment ──
-      status('Scoring call…');
-      try{
-        const sysMsg='You are a precise JSON-only responder. Output ONLY valid JSON. All scores MUST be strings: "ed", "pd", "dnd", "na", "yes", or "no".';
-        const scoringPrompt=buildScoringPrompt(extraction, productTimeline);
-        console.log('Pass 2 (scoring) prompt size:', scoringPrompt.length, 'chars (~'+Math.round(scoringPrompt.length/4)+' tokens)');
-        const rawScoring=await ollamaChat(sysMsg, scoringPrompt, 16384);
-        result=parseAIJSON(rawScoring);
-        // Attach extraction for post-processing and downstream consumers
-        result._extraction=extraction;
-        result._productTimeline=productTimeline;
-        // Build discoveryPillars deterministically from extraction
-        result.discoveryPillars=buildDiscoveryPillars(extraction);
-      } catch(e){
-        console.warn('Pass 2 scoring failed:', e.message);
-        result=null;
-      }
-    }
-
-    // ── Fallback: single-pass if either pass failed ──
-    if(!result) status('Falling back to single-pass…');
-    if(!result){
-      usedFallback=true;
-      console.warn('Two-pass failed, falling back to single-pass');
-      const prompt=buildLocalPrompt(normalizedTranscript);
-      const sysMsg='You are a precise JSON-only responder. After any thinking, output ONLY valid JSON. No markdown fences, no backticks. All scores MUST be strings, NEVER numbers.';
-      const raw=await ollamaChat(sysMsg, prompt, 16384);
-      try{
-        result=parseAIJSON(raw);
-      } catch(e){
-        if(attempt<2){await sleep(3000);return callAI(transcript,2);}
-        throw new Error('Could not parse AI JSON response after 2 attempts');
-      }
-    }
-
-    postProcessAIResult(result, normalizedTranscript);
-    if(usedFallback) result._fallback=true;
   }
+
+  postProcessAIResult(result, normalizedTranscript);
+  if(usedFallback) result._fallback=true;
 
   result._normalizedTranscript=normalizedTranscript;
   return result;
@@ -4508,29 +4150,6 @@ function csvEsc(v){
   const s=String(v??'');
   if(s.includes(',')||s.includes('"')||s.includes('\n')) return '"'+s.replace(/"/g,'""')+'"';
   return s;
-}
-
-// ── Send all to Sheets ────────────────────────────────────────────────────────
-async function bulkToSheets(){
-  const url=localStorage.getItem('gc_scorecard_url');
-  if(!url){alert('No Google Sheets URL saved. Use "Send to Sheets" on the main scorecard first to save your URL.');return;}
-  if(!bulkResults.length){alert('No results to send.');return;}
-  const btn=document.getElementById('bulk-sheets-btn');
-  const status=document.getElementById('bulk-footer-status');
-  btn.disabled=true;status.textContent=`Sending 0 / ${bulkResults.length} rows…`;
-  let sent=0,errs=0;
-  for(const p of bulkResults){
-    try{
-      const row=flattenPayload(p);
-      await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});
-      sent++;
-    }catch(e){errs++;}
-    status.textContent=`Sending ${sent+errs} / ${bulkResults.length} rows…`;
-    await sleep(300);
-  }
-  btn.disabled=false;
-  status.style.color=errs?'var(--amber-tx)':'var(--green-tx)';
-  status.textContent=`Sent ${sent} rows to Sheets${errs?` (${errs} errors)`:''} — verify rows appeared in your spreadsheet.`;
 }
 
 // ── Download Zip (individual coaching reports + trend report) ────────────────
@@ -5152,9 +4771,6 @@ function buildTrendReportHTML(results){
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 document.getElementById('f-date').valueAsDate=new Date();
 
-// Restore saved prefs — default to local if nothing saved
-const savedMode=load('catalyst_mode','local');
-setMode(savedMode);
 // ─── Products modal ──────────────────────────────────────────────────────────
 const DEFAULT_PRODUCT_CORE=`INTERNET WiFi DEALS (w/ APPD pricing):
 300M=$40/mo(5Y), 500M=$50(5Y)/$45(1Y), 1G=$60(5Y)/$55(1Y), 1.2/2G=$100(5Y)/$95(1Y). Without APPD add $10.
@@ -5346,12 +4962,9 @@ function updateRosterBadge(){
 // Load cached roster on startup
 try{const cached=load('catalyst_roster_cache');if(cached){rosterData=JSON.parse(cached);updateRosterBadge();}}catch(e){}
 
-const savedKey=load('catalyst_api_key');if(savedKey) document.getElementById('ai-api-key').value=savedKey;
-const savedCloudModel=load('catalyst_cloud_model');if(savedCloudModel){const s=document.getElementById('cloud-model');for(let i=0;i<s.options.length;i++){if(s.options[i].value===savedCloudModel){s.selectedIndex=i;break;}}}
 const savedOllamaUrl=load('catalyst_ollama_url');if(savedOllamaUrl) document.getElementById('ollama-url').value=savedOllamaUrl;
 const savedOllamaModel=load('catalyst_ollama_model');if(savedOllamaModel) document.getElementById('ollama-model').value=savedOllamaModel;
 const savedSpkModel=load('catalyst_ollama_speaker_model');if(savedSpkModel) document.getElementById('ollama-speaker-model').value=savedSpkModel;
-const savedSheetsUrl=load('gc_scorecard_url');if(savedSheetsUrl) document.getElementById('sheets-url').value=savedSheetsUrl;
 // Load product knowledge
 document.getElementById('prod-core').value=load('catalyst_product_core')||DEFAULT_PRODUCT_CORE;
 document.getElementById('prod-deals').value=load('catalyst_product_deals')||DEFAULT_PRODUCT_DEALS;
