@@ -3906,7 +3906,7 @@ async function callAI(transcript, attempt=1, onStatus){
     const sysMsg='Respond with only valid JSON. No thinking, no markdown, no explanation.';
     const extractionPrompt=buildExtractionPrompt(normalizedTranscript);
     console.log('Pass 1 (extraction) prompt size:', extractionPrompt.length, 'chars (~'+Math.round(extractionPrompt.length/4)+' tokens)');
-    const rawExtraction=await ollamaChat(sysMsg, extractionPrompt, 8192);
+    const rawExtraction=await ollamaChat(sysMsg, extractionPrompt, 16384);
     const parsed=parseAIJSON(rawExtraction);
     const validation=validateExtraction(parsed, lineCount);
     if(validation.valid) extraction=validation.extraction;
