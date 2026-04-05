@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Comcast OBS – Call Flow Scorecard (Catalyst)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
@@ -413,17 +414,6 @@
   /* ── Inline SVG icons ── */
   .svg-icon{display:inline-block;vertical-align:middle;flex-shrink:0;}
 
-  @media print{
-    body{background:white;color:black;}
-    .page{padding:0;max-width:100%;display:block;}
-    .top-bar{display:none!important;}
-    .script-panel{display:none;}
-    .transcript-panel{display:none;}
-    .overlay,.ai-panel,.ai-transcript-panel,.theme-toggle{display:none!important;}
-    .exec-panel{display:block!important;border-color:#aaa;}
-    .notes-area{border:0.5px solid #ccc;}
-    .scorecard-col{max-width:100%;}
-  }
 </style>
 </head>
 <body>
@@ -439,7 +429,7 @@
       <button class="btn" id="nav-topbar-btn" style="background:var(--purple-bg);border-color:var(--purple-bd);color:var(--purple-tx);" onclick="toggleNavOverlay()">Compass Navigator</button>
       <button class="btn" onclick="openRosterModal()" id="roster-btn">Roster <span id="roster-badge" style="font-size:10px;opacity:.7;"></span></button>
       <button class="btn" onclick="clearAll()">Clear all</button>
-      <button class="btn" onclick="window.print()">Print / PDF</button>
+      <button class="btn" onclick="exportCoachingPDF()">Export</button>
       <button class="btn btn-amber" onclick="openBulkModal()"><svg class="svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Bulk upload</button>
       <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Toggle theme">
         <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -1219,6 +1209,7 @@ const COMPLIANCE_ITEMS=[
 
 const scores={},trendChecked={},notes={},rfFlags={},rfSubs={},stepEvidence={},complianceScores={};
 let speakerSeedMap=null; // set by AI speaker detection, consumed by buildSpeakerMap
+let lastAIResult=null; // stored by applyResult(), used by single-card PDF export
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 function save(k,v){try{if(v) localStorage.setItem(k,v);}catch(e){}}
 function load(k,def=''){try{return localStorage.getItem(k)||def;}catch(e){return def;}}
@@ -2187,6 +2178,7 @@ function ensureArray(val){
   return [];
 }
 function applyResult(result){
+  lastAIResult=result;
   result.steps=normalizeArray(result.steps);
   result.catalystBehaviors=normalizeArray(result.catalystBehaviors||result.catalyst||result.behaviors||result.catalyst_behaviors);
   result.redFlags=normalizeArray(result.redFlags||result.red_flags||result.flags);
@@ -3281,6 +3273,145 @@ function onTrend(id,idx,chk){if(!trendChecked[id]) trendChecked[id]=[];if(chk){i
 function onRfSub(id,idx,chk){if(!rfSubs[id]) rfSubs[id]=[];if(chk){if(!rfSubs[id].includes(idx)) rfSubs[id].push(idx);}else rfSubs[id]=rfSubs[id].filter(i=>i!==idx);const has=rfSubs[id].length>0;rfFlags[id]=has;const b=document.getElementById(`${id}-btn`);b.className='rf-flag-btn'+(has?' active':'');b.textContent=has?'⛔ Flagged':'Flag';updateSummary();}
 function saveNote(id,v){notes[id]=v;}
 
+// ─── PDF export helpers ──────────────────────────────────────────────────────
+async function htmlToPdfBlob(htmlString){
+  // Parse the full HTML document properly
+  const parser=new DOMParser();
+  const doc=parser.parseFromString(htmlString,'text/html');
+  const container=document.createElement('div');
+  // Copy <style> from head
+  doc.querySelectorAll('head style').forEach(function(s){container.appendChild(s.cloneNode(true));});
+  // Copy body content
+  Array.from(doc.body.childNodes).forEach(function(n){container.appendChild(n.cloneNode(true));});
+  // Apply body inline styles
+  const bs=doc.body.getAttribute('style');
+  if(bs) container.setAttribute('style',bs);
+  // Position on-screen behind the overlay (z-index 250 < overlay 300) so html2canvas can render
+  container.style.position='absolute';
+  container.style.top='0';
+  container.style.left='0';
+  container.style.width='900px';
+  container.style.zIndex='250';
+  container.style.background='white';
+  document.body.appendChild(container);
+  console.log('PDF container: ',container.offsetWidth,'x',container.offsetHeight,', children:',container.children.length);
+  const opt={
+    margin:[0.3,0.3,0.3,0.3],
+    image:{type:'jpeg',quality:0.95},
+    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:900},
+    jsPDF:{unit:'in',format:'letter',orientation:'portrait'}
+  };
+  try{
+    return await html2pdf().set(opt).from(container).outputPdf('blob');
+  }finally{
+    document.body.removeChild(container);
+  }
+}
+
+async function exportCoachingPDF(){
+  if(!lastAIResult){alert('Run AI analysis before exporting.');return;}
+  if(typeof html2pdf==='undefined'){alert('PDF library failed to load. Check your internet connection.');return;}
+  const payload=buildPayload();
+  // Merge AI-only fields that buildPayload doesn't capture
+  payload.executiveSummary=lastAIResult.executiveSummary||{};
+  payload.discoveryPillars=lastAIResult.discoveryPillars||{};
+  payload.primarySale=lastAIResult.primarySale||{};
+  payload.upsell=lastAIResult.upsell||{};
+  payload.transcript=lastAIResult._normalizedTranscript||document.getElementById('ai-transcript').value||'';
+  // Fix step ID mismatch: buildPayload uses {step:id} but buildIndividualCoachingHTML reads s.id
+  payload.steps.forEach(s=>{s.id=s.step;});
+  const html=buildIndividualCoachingHTML(payload);
+  const safeName=(payload.meta.agent||'agent').replace(/[^a-zA-Z0-9_\- ]/g,'_');
+  const dateStr=payload.meta.date||new Date().toISOString().slice(0,10);
+  openExportPreview(html,`Coaching_${safeName}_${dateStr}.pdf`);
+}
+
+function openExportPreview(html,filename){
+  // Create overlay
+  const overlay=document.createElement('div');
+  overlay.id='export-preview-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;display:flex;align-items:center;justify-content:center;';
+  // Modal container
+  const modal=document.createElement('div');
+  modal.style.cssText='background:var(--surface);border-radius:12px;width:min(920px,95vw);height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText='padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;';
+  hdr.innerHTML='<span style="font-size:14px;font-weight:600;color:var(--text);">Export Preview</span><div id="export-preview-actions" style="display:flex;gap:8px;align-items:center;"></div>';
+  // Preview iframe
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='width:100%;flex:1;border:none;background:white;';
+  // Buttons
+  modal.appendChild(hdr);
+  modal.appendChild(iframe);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  // Write HTML to iframe
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(html);
+  iframe.contentDocument.close();
+  // Add buttons after DOM is ready
+  const actions=overlay.querySelector('#export-preview-actions');
+  const dlBtn=document.createElement('button');
+  dlBtn.className='btn btn-teal';
+  dlBtn.textContent='Download PDF';
+  dlBtn.onclick=async function(){
+    dlBtn.disabled=true;dlBtn.textContent='Generating PDF...';
+    try{
+      // Use a dedicated iframe at exact width so html2canvas captures at correct dimensions
+      const pdfFrame=document.createElement('iframe');
+      pdfFrame.style.cssText='position:fixed;top:0;left:0;width:900px;height:4000px;z-index:250;border:none;background:white;';
+      document.body.appendChild(pdfFrame);
+      pdfFrame.contentDocument.open();
+      pdfFrame.contentDocument.write(html);
+      pdfFrame.contentDocument.close();
+      // Wait for content to render
+      await new Promise(function(r){setTimeout(r,500);});
+      // Force light background directly on the iframe body
+      pdfFrame.contentDocument.body.style.cssText='background:#f0f2f5!important;color:#1a1a18!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:14px;margin:0;padding:24px 16px;';
+      pdfFrame.contentDocument.documentElement.style.background='#f0f2f5';
+      await html2pdf().set({
+        margin:[0.3,0.3,0.3,0.3],
+        filename:filename,
+        image:{type:'jpeg',quality:0.95},
+        html2canvas:{scale:2,useCORS:true,scrollY:0,backgroundColor:'#f0f2f5',onclone:function(clonedDoc){
+          // Fix .page layout — main scorecard uses display:flex which causes columns
+          var s=clonedDoc.createElement('style');
+          s.textContent='.page{display:block!important;max-width:860px!important;margin:0 auto!important;padding:24px 16px!important;gap:0!important;align-items:initial!important;} html,body{background:#f0f2f5!important;}';
+          clonedDoc.head.appendChild(s);
+          clonedDoc.body.style.background='#f0f2f5';
+        }},
+        jsPDF:{unit:'in',format:'letter',orientation:'portrait'}
+      }).from(pdfFrame.contentDocument.body).save();
+      document.body.removeChild(pdfFrame);
+      dlBtn.textContent='Downloaded!';
+      setTimeout(()=>{dlBtn.disabled=false;dlBtn.textContent='Download PDF';},2000);
+    }catch(e){
+      dlBtn.disabled=false;dlBtn.textContent='Download PDF';
+      alert('PDF generation failed: '+e.message);
+    }
+  };
+  const closeBtn=document.createElement('button');
+  closeBtn.className='btn';
+  closeBtn.textContent='Close';
+  closeBtn.onclick=function(){document.body.removeChild(overlay);};
+  const htmlBtn=document.createElement('button');
+  htmlBtn.className='btn';
+  htmlBtn.textContent='Download HTML';
+  htmlBtn.onclick=function(){
+    const blob=new Blob([html],{type:'text/html'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=filename.replace(/\.pdf$/,'.html');
+    a.click();
+  };
+  actions.appendChild(dlBtn);
+  actions.appendChild(htmlBtn);
+  actions.appendChild(closeBtn);
+  // Close on overlay click
+  overlay.addEventListener('click',function(e){if(e.target===overlay) document.body.removeChild(overlay);});
+}
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 function buildPayload(){
   const g=id=>document.getElementById(id)?.value||'';
@@ -3303,14 +3434,10 @@ function buildPayload(){
   };
 }
 
-function exportJSON(){
-  const p=buildPayload();const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`scorecard_${(p.meta.agent||'agent').replace(/\s+/g,'_')}_${p.meta.date||'nodate'}.json`;a.click();
-}
-
 function clearAll(silent){
   if(!silent&&!confirm('Clear all scores, flags, and notes?')) return;
   [scores,trendChecked,notes,rfFlags,rfSubs,stepEvidence,complianceScores].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
+  lastAIResult=null;
   const tpRefBody=document.getElementById('tp-ref-body');if(tpRefBody) tpRefBody.innerHTML='<div class="tp-empty" id="tp-ref-empty">Paste a transcript and run analysis to see the annotated call flow here.</div>';
   CATALYST.forEach(c=>{
     const el=document.getElementById(`cb-${c.id}`);if(el){el.className='cb-rating none';el.textContent='Not scored';}
@@ -4170,9 +4297,10 @@ async function downloadBulkZip(){
       const p=bulkResults[i];
       const safeName=(p.meta.agent||p.meta.filename||'agent').replace(/[^a-zA-Z0-9_\- ]/g,'_')+'_'+(i+1);
       const html=buildIndividualCoachingHTML(p);
-      coachingFolder.file(`${safeName}.html`,html);
-      if(i%10===9) status.textContent='Building zip ('+Math.min(i+1,bulkResults.length)+'/'+bulkResults.length+')...';
-      if(i%10===9) await sleep(10); // yield to UI
+      status.textContent='Converting to PDF ('+(i+1)+'/'+bulkResults.length+')...';
+      const pdfBlob=await htmlToPdfBlob(html);
+      coachingFolder.file(`${safeName}.pdf`,pdfBlob);
+      await sleep(10); // yield to UI after each PDF
     }
 
     status.textContent='Building trend report...';
@@ -4180,7 +4308,9 @@ async function downloadBulkZip(){
 
     // Trend report
     const trendHtml=buildTrendReportHTML(bulkResults);
-    folder.file(`Trend_Report_${dateStr}.html`,trendHtml);
+    status.textContent='Converting trend report to PDF...';
+    const trendPdf=await htmlToPdfBlob(trendHtml);
+    folder.file(`Trend_Report_${dateStr}.pdf`,trendPdf);
 
     status.textContent='Compressing zip...';
     await sleep(10);
@@ -4193,7 +4323,7 @@ async function downloadBulkZip(){
 
     btn.disabled=false;
     status.style.color='var(--green-tx)';
-    status.textContent=`Zip downloaded — ${bulkResults.length} coaching reports + 1 trend report.`;
+    status.textContent=`Zip downloaded — ${bulkResults.length} coaching PDFs + 1 trend report.`;
   }catch(e){
     console.error('Zip generation failed:',e);
     btn.disabled=false;
