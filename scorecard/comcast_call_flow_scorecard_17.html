@@ -1297,14 +1297,27 @@ function repairJSON(s){
   // 6. Fix mixed quotes — single quote used where double quote expected (e.g. ...tablet?','priority" → ...tablet?","priority")
   s=s.replace(/'([,}\]])/g,'"$1');
   s=s.replace(/([,{\[:])\s*'/g,'$1"');
+  // 7. Fix escaped quotes in structural positions — qwen3 outputs \" where " should be
+  //    e.g. "example": \"XMC covers...\" → "example": "XMC covers..."
+  s=s.replace(/:\s*\\"/g,':"');
+  s=s.replace(/\\"\s*([,}\]])/g,'"$1');
+  s=s.replace(/\\"\s*$/gm,'"');
   return s;
 }
 function parseAIJSON(raw){
   const clean=stripToJSON(raw);
   let result;
   try{result=JSON.parse(clean);}catch(e){
-    try{result=JSON.parse(repairJSON(clean));}catch(e2){}
-    if(!result){const m=clean.match(/\{[\s\S]*\}/);if(m) try{result=JSON.parse(repairJSON(m[0]));}catch(e3){}}
+    console.warn('parseAIJSON: initial parse failed:', e.message, '| cleaned preview:', clean.slice(0,300), '| tail:', clean.slice(-300));
+    try{result=JSON.parse(repairJSON(clean));}catch(e2){
+      console.warn('parseAIJSON: repair parse failed:', e2.message);
+    }
+    if(!result){const m=clean.match(/\{[\s\S]*\}/);if(m) try{result=JSON.parse(repairJSON(m[0]));}catch(e3){
+      console.warn('parseAIJSON: regex extract failed:', e3.message);
+    }}
+    // Nuclear fallback: strip ALL escaped quotes and retry
+    if(!result) try{result=JSON.parse(clean.replace(/\\"/g,'"'));}catch(e4){}
+    if(!result) try{result=JSON.parse(repairJSON(clean.replace(/\\"/g,'"')));}catch(e5){}
   }
   if(!result) throw new Error('Could not parse AI JSON response');
   return result;
