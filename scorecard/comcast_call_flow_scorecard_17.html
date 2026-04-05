@@ -2856,7 +2856,7 @@ function fixSpeakerLabels(normalizedTranscript){
 
   // ── Unconditional customer-only phrases ──
   // Exact match (entire line is just this phrase)
-  const customerOnlyExact=/^(yeah|yep|yup|nah|mm-?hmm|uh-?huh|mhm|that'?s me|i'?m good|i'?m fine|not really|no thank you|no thanks|hello|hi|hey|bye|goodbye|how are you)\.?\??$/i;
+  const customerOnlyExact=/^(yeah|yep|yup|nah|mm-?hmm|uh-?huh|mhm|that'?s me|i'?m good|i'?m fine|not really|no thank you|no thanks|bye|goodbye|how are you)\.?\??$/i;
   // Contains match — for short lines (< 6 words) that contain a customer-only phrase
   const customerOnlyContains=/\b(that'?s me|i'?m good|i'?m fine|how are you|no thank you|no thanks|not really)\b/i;
 
