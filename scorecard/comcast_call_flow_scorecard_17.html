@@ -1000,7 +1000,8 @@
       <button class="btn btn-amber" id="bulk-run-btn" onclick="runBulk()" disabled>Run all</button>
       <button class="btn" id="bulk-stop-btn" onclick="stopBulk()" style="display:none">Stop</button>
       <button class="btn btn-green" id="bulk-csv-btn" onclick="exportBulkCSV()" style="display:none">Export CSV</button>
-      <button class="btn btn-primary" id="bulk-zip-btn" onclick="downloadBulkZip()" style="display:none">Download Zip</button>
+      <button class="btn" id="bulk-html-btn" onclick="downloadBulkHtmlZip()" style="display:none">Download HTML</button>
+      <button class="btn btn-primary" id="bulk-zip-btn" onclick="downloadBulkZip()" style="display:none">Download PDF Zip</button>
       <button class="btn" onclick="clearBulkQueue()">Clear queue</button>
       <span id="bulk-footer-status"></span>
     </div>
@@ -1252,7 +1253,9 @@ function loadTranscriptFile(file){
     lookupRoster();
 
     // Show parsed details in the drop label
+    const lineCount = (e.target.result||'').split(/\r?\n/).filter(l=>l.trim()).length;
     let labelParts = ['✓ ' + file.name];
+    labelParts.push(lineCount + ' lines');
     if(fp.tsr)         labelParts.push('TSR ' + fp.tsr);
     if(fp.callDate)    labelParts.push(fp.callDate + (fp.callTime ? ' ' + fp.callTime : ''));
     if(fp.phoneNumber) labelParts.push('Phone: ' + fp.phoneNumber);
@@ -1283,6 +1286,10 @@ function stripToJSON(raw){
 }
 function repairJSON(s){
   // Fix common LLM JSON glitches:
+  // 0. Escape unescaped newlines/tabs inside JSON string values
+  s=s.replace(/"(?:[^"\\]|\\.)*"/g,function(m){
+    return m.replace(/\n/g,'\\n').replace(/\r/g,'\\r').replace(/\t/g,'\\t');
+  });
   // 1. Doubled/stray quotes before keys: ""score" or " "score" → "score"
   s=s.replace(/"\s*"([a-zA-Z])/g,'"$1');
   // 2. Trailing commas before } or ]
@@ -2216,7 +2223,7 @@ async function analyzeTranscript(){
     const totalSec=Math.round((Date.now()-startTime)/1000);
     if(result._fallback){
       statusEl.style.color='var(--amber-tx)';
-      statusEl.textContent='Evidence extraction failed \u2014 used single-pass analysis. Scores may be less accurate. ('+totalSec+'s)';
+      statusEl.textContent='Fallback to single-pass'+(result._fallbackReason?' ('+result._fallbackReason+')':'')+'. Scores may be less accurate. ('+totalSec+'s)';
     } else {
       const filled=(result.steps||[]).filter(s=>s.score).length;
       statusEl.style.color='var(--green-tx)';
@@ -3482,36 +3489,33 @@ function saveNote(id,v){notes[id]=v;}
 
 // ─── PDF export helpers ──────────────────────────────────────────────────────
 async function htmlToPdfBlob(htmlString){
-  // Parse the full HTML document properly
-  const parser=new DOMParser();
-  const doc=parser.parseFromString(htmlString,'text/html');
-  const container=document.createElement('div');
-  // Copy <style> from head
-  doc.querySelectorAll('head style').forEach(function(s){container.appendChild(s.cloneNode(true));});
-  // Copy body content
-  Array.from(doc.body.childNodes).forEach(function(n){container.appendChild(n.cloneNode(true));});
-  // Apply body inline styles
-  const bs=doc.body.getAttribute('style');
-  if(bs) container.setAttribute('style',bs);
-  // Position on-screen behind the overlay (z-index 250 < overlay 300) so html2canvas can render
-  container.style.position='absolute';
-  container.style.top='0';
-  container.style.left='0';
-  container.style.width='900px';
-  container.style.zIndex='250';
-  container.style.background='white';
-  document.body.appendChild(container);
-  console.log('PDF container: ',container.offsetWidth,'x',container.offsetHeight,', children:',container.children.length);
+  // Use an isolated iframe so the main page's CSS (e.g. .page{display:flex})
+  // doesn't leak into the generated HTML and break layout
+  const pdfFrame=document.createElement('iframe');
+  pdfFrame.style.cssText='position:fixed;top:0;left:0;width:900px;height:4000px;z-index:250;border:none;background:white;';
+  document.body.appendChild(pdfFrame);
+  pdfFrame.contentDocument.open();
+  pdfFrame.contentDocument.write(htmlString);
+  pdfFrame.contentDocument.close();
+  // Wait for content to render before html2canvas captures
+  await new Promise(function(r){setTimeout(r,300);});
+  pdfFrame.contentDocument.body.style.cssText='background:#f0f2f5!important;color:#1a1a18!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:14px;margin:0;padding:24px 16px;';
+  pdfFrame.contentDocument.documentElement.style.background='#f0f2f5';
   const opt={
     margin:[0.3,0.3,0.3,0.3],
     image:{type:'jpeg',quality:0.95},
-    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:900},
+    html2canvas:{scale:2,useCORS:true,scrollY:0,backgroundColor:'#f0f2f5',onclone:function(clonedDoc){
+      var s=clonedDoc.createElement('style');
+      s.textContent='.page{display:block!important;max-width:860px!important;margin:0 auto!important;padding:24px 16px!important;gap:0!important;align-items:initial!important;} html,body{background:#f0f2f5!important;}';
+      clonedDoc.head.appendChild(s);
+      clonedDoc.body.style.background='#f0f2f5';
+    }},
     jsPDF:{unit:'in',format:'letter',orientation:'portrait'}
   };
   try{
-    return await html2pdf().set(opt).from(container).outputPdf('blob');
+    return await html2pdf().set(opt).from(pdfFrame.contentDocument.body).outputPdf('blob');
   }finally{
-    document.body.removeChild(container);
+    document.body.removeChild(pdfFrame);
   }
 }
 
@@ -3526,7 +3530,13 @@ async function exportCoachingPDF(){
   payload.upsell=lastAIResult.upsell||{};
   payload.transcript=lastAIResult._normalizedTranscript||document.getElementById('ai-transcript').value||'';
   // Fix step ID mismatch: buildPayload uses {step:id} but buildIndividualCoachingHTML reads s.id
-  payload.steps.forEach(s=>{s.id=s.step;});
+  // Merge evidenceLines from AI result into payload steps
+  const aiSteps=lastAIResult.steps||[];
+  payload.steps.forEach(s=>{
+    s.id=s.step;
+    const aiStep=aiSteps.find(a=>Number(a.id)===s.id||a.id===s.id);
+    if(aiStep&&aiStep.evidenceLines) s.evidenceLines=aiStep.evidenceLines;
+  });
   const html=buildIndividualCoachingHTML(payload);
   const safeName=(payload.meta.agent||'agent').replace(/[^a-zA-Z0-9_\- ]/g,'_');
   const dateStr=payload.meta.date||new Date().toISOString().slice(0,10);
@@ -3699,15 +3709,16 @@ function closeBulkModal(){
   document.getElementById('bulk-overlay').classList.remove('open');
 }
 
-function handleBulkFiles(files){
+async function handleBulkFiles(files){
   const arr=Array.from(files).filter(f=>f.name.endsWith('.txt'));
   if(!arr.length){alert('Please select .txt files.');return;}
-  arr.forEach(f=>{
-    // Avoid duplicates by name
+  for(const f of arr){
     if(!bulkQueue.find(q=>q.name===f.name)){
-      bulkQueue.push({file:f,name:f.name,status:'pending',result:null,error:null});
+      const text=await f.text().catch(()=>'');
+      const lines=text.split(/\r?\n/).filter(l=>l.trim()).length;
+      bulkQueue.push({file:f,name:f.name,status:'pending',result:null,error:null,transcriptText:text,lineCount:lines});
     }
-  });
+  }
   renderQueue();
   document.getElementById('bulk-run-btn').disabled=false;
   document.getElementById('bulk-queue-wrap').style.display='block';
@@ -3727,9 +3738,11 @@ function renderQueue(){
     const badge={pending:'<span class="q-badge pending">Pending</span>',processing:'<span class="q-badge processing">Processing…</span>',done:'<span class="q-badge done">Done</span>',error:'<span class="q-badge error">Error</span>',skipped:'<span class="q-badge skipped">Skipped</span>'}[q.status]||'';
     const fp = parseFilename(q.name);
     const parsedInfo = fp.tsr ? `TSR ${fp.tsr}` + (fp.callDate ? ` · ${fp.callDate}` : '') + (fp.phoneNumber ? ` · ${fp.phoneNumber}` : '') : '';
-    const sub=q.status==='done'?`ED: ${q.result?.summary?.catalystED??'–'}/6 · Auto-fail: ${q.result?.summary?.autoFail?'YES':'No'} · ${q.result?.meta?.outcome||''}`:q.status==='error'?q.error:q.status==='processing'?'Analyzing transcript…':q.status==='skipped'?(q.error||'Skipped'):(parsedInfo||'Waiting');
+    const fbTag2=q.fallbackReason?` · ⚠ fallback: ${q.fallbackReason}`:'';
+    const sub=q.status==='done'?`${q.elapsed||0}s · ED: ${q.result?.summary?.catalystED??'–'}/6 · Auto-fail: ${q.result?.summary?.autoFail?'YES':'No'} · ${q.result?.meta?.outcome||''}${fbTag2}`:q.status==='error'?q.error:q.status==='processing'?'Analyzing transcript…':q.status==='skipped'?(q.error||'Skipped'):(parsedInfo||'Waiting');
+    const linesTag=q.lineCount?` · ${q.lineCount} lines`:'';
     return `<div class="q-item ${statusClass}" id="qi-${i}">
-      <div><div class="q-name">${esc2(q.name)}</div><div class="q-sub">${esc2(sub)}</div></div>
+      <div><div class="q-name">${esc2(q.name)}<span style="color:var(--text3);font-weight:400;">${linesTag}</span></div><div class="q-sub">${esc2(sub)}</div></div>
       ${badge}
     </div>`;
   }).join('');
@@ -3740,9 +3753,11 @@ function updateQueueItem(i){
   const q=bulkQueue[i];
   const statusClass={pending:'',processing:'q-processing',done:'q-done',error:'q-error',skipped:'q-skipped'}[q.status]||'';
   const badge={pending:'<span class="q-badge pending">Pending</span>',processing:'<span class="q-badge processing">Processing…</span>',done:'<span class="q-badge done">Done</span>',error:'<span class="q-badge error">Error</span>',skipped:'<span class="q-badge skipped">Skipped</span>'}[q.status]||'';
-  const sub=q.status==='done'?`ED: ${q.result?.summary?.catalystED??'–'}/6 · Auto-fail: ${q.result?.summary?.autoFail?'YES':'No'} · ${q.result?.meta?.outcome||''}`:q.status==='error'?q.error:q.status==='processing'?'Analyzing transcript…':q.status==='skipped'?(q.error||'Skipped'):'Waiting';
+  const fbTag=q.fallbackReason?` · ⚠ fallback: ${q.fallbackReason}`:'';
+  const sub=q.status==='done'?`${q.elapsed||0}s · ED: ${q.result?.summary?.catalystED??'–'}/6 · Auto-fail: ${q.result?.summary?.autoFail?'YES':'No'} · ${q.result?.meta?.outcome||''}${fbTag}`:q.status==='error'?q.error:q.status==='processing'?'Analyzing transcript…':q.status==='skipped'?(q.error||'Skipped'):'Waiting';
+  const linesTag2=q.lineCount?` · ${q.lineCount} lines`:'';
   el.className=`q-item ${statusClass}`;
-  el.innerHTML=`<div><div class="q-name">${esc2(q.name)}</div><div class="q-sub">${esc2(sub)}</div></div>${badge}`;
+  el.innerHTML=`<div><div class="q-name">${esc2(q.name)}<span style="color:var(--text3);font-weight:400;">${linesTag2}</span></div><div class="q-sub">${esc2(sub)}</div></div>${badge}`;
   el.scrollIntoView({block:'nearest'});
 }
 
@@ -3760,6 +3775,7 @@ async function runBulk(){
   document.getElementById('bulk-result-grid').style.display='none';
   document.getElementById('bulk-csv-btn').style.display='none';
   document.getElementById('bulk-zip-btn').style.display='none';
+  document.getElementById('bulk-html-btn').style.display='none';
 
   const delay=parseInt(document.getElementById('bulk-delay').value)||5000;
   const onError=document.getElementById('bulk-on-error').value;
@@ -3767,6 +3783,7 @@ async function runBulk(){
   const campaignOverride=document.getElementById('bulk-campaign').value;
   const total=bulkQueue.length;
   let done=0,errors=0,afs=0,fallbacks=0;
+  const bulkStartTime=Date.now();
 
   // Pre-read all file contents up front — avoids File object read issues mid-loop
   document.getElementById('bulk-progress-label').textContent='Reading files…';
@@ -3802,10 +3819,14 @@ async function runBulk(){
     let timerInterval=null;
     timerInterval=setInterval(()=>{
       const secs=Math.round((Date.now()-startTime)/1000);
+      const totalSecs=Math.round((Date.now()-bulkStartTime)/1000);
+      const totalMin=Math.floor(totalSecs/60);
+      const totalRemSecs=totalSecs%60;
+      const totalStr=totalMin>0?`${totalMin}m ${totalRemSecs}s`:`${totalSecs}s`;
       const el=document.getElementById(`qi-${i}`);
       const sub=el&&el.querySelector('.q-sub');
       if(sub) sub.textContent=`Analyzing… ${secs}s`;
-      document.getElementById('bulk-footer-status').textContent=`File ${i+1} of ${total}: ${q.name} — ${secs}s`;
+      document.getElementById('bulk-footer-status').textContent=`File ${i+1} of ${total}: ${q.name} — ${secs}s (total: ${totalStr})`;
     },1000);
 
     try{
@@ -3827,8 +3848,12 @@ async function runBulk(){
         date:new Date().toISOString().slice(0,10)
       });
       q.status='done';
+      q.elapsed=Math.round((Date.now()-startTime)/1000);
       q.result=payload;
-      if(aiResult._fallback) fallbacks++;
+      if(aiResult._fallback){
+        fallbacks++;
+        q.fallbackReason=aiResult._fallbackReason||'unknown';
+      }
       bulkResults.push(payload);
       done++;
       if(payload.summary.autoFail) afs++;
@@ -3869,8 +3894,12 @@ async function runBulk(){
   document.getElementById('bulk-stop-btn').style.display='none';
   document.getElementById('bulk-bar').style.width='100%';
   document.getElementById('bulk-progress-pct').textContent='100%';
-  document.getElementById('bulk-progress-label').textContent=`Complete — ${done} scored, ${errors} error${errors!==1?'s':''}`;
-  document.getElementById('bulk-footer-status').textContent=`Finished: ${done} scored, ${errors} error${errors!==1?'s':''}, ${afs} auto-fail${afs!==1?'s':''}`;
+  const totalElapsed=Math.round((Date.now()-bulkStartTime)/1000);
+  const elMin=Math.floor(totalElapsed/60);
+  const elSec=totalElapsed%60;
+  const elStr=elMin>0?`${elMin}m ${elSec}s`:`${totalElapsed}s`;
+  document.getElementById('bulk-progress-label').textContent=`Complete — ${done} scored, ${errors} error${errors!==1?'s':''} — ${elStr}`;
+  document.getElementById('bulk-footer-status').textContent=`Finished: ${done} scored, ${errors} error${errors!==1?'s':''}, ${afs} auto-fail${afs!==1?'s':''} — ${elStr} total`;
   document.getElementById('bulk-result-grid').style.display='grid';
   if(fallbacks>0){
     const pct=Math.round(fallbacks/total*100);
@@ -3880,6 +3909,7 @@ async function runBulk(){
   }
   if(bulkResults.length>0){
     document.getElementById('bulk-csv-btn').style.display='inline-block';
+    document.getElementById('bulk-html-btn').style.display='inline-block';
     document.getElementById('bulk-zip-btn').style.display='inline-block';
   }
 }
@@ -3902,6 +3932,7 @@ function clearBulkQueue(){
   document.getElementById('bulk-overall').style.display='none';
   document.getElementById('bulk-result-grid').style.display='none';
   document.getElementById('bulk-csv-btn').style.display='none';
+  document.getElementById('bulk-html-btn').style.display='none';
   document.getElementById('bulk-zip-btn').style.display='none';
   document.getElementById('bulk-run-btn').disabled=true;
   document.getElementById('bulk-run-btn').style.display='inline-block';
@@ -3913,9 +3944,14 @@ function clearBulkQueue(){
 // Uses native /api/chat endpoint (not OpenAI-compatible /v1/chat/completions)
 // because qwen3 models split output into empty content + reasoning on the
 // OpenAI endpoint, causing JSON parse failures.
-async function ollamaChat(systemMsg, userMsg, maxTokens=16384){
+let _lastOllamaDoneReason='';
+async function ollamaChat(systemMsg, userMsg, maxTokens=16384, ctxOverride){
   const base=(document.getElementById('ollama-url').value||'http://localhost:11434').trim();
   const model=(document.getElementById('ollama-model').value||document.getElementById('ollama-speaker-model')?.value||'').trim();
+  // Dynamic context: estimate input tokens and ensure headroom for output
+  const inputChars=systemMsg.length+userMsg.length;
+  const estimatedInputTokens=Math.ceil(inputChars/3.5);
+  const numCtx=ctxOverride||Math.max(32768, estimatedInputTokens+maxTokens+1024);
   const TIMEOUT_MS=5*60*1000;
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
@@ -3930,7 +3966,7 @@ async function ollamaChat(systemMsg, userMsg, maxTokens=16384){
           {role:'user',content:userMsg+'\n/no_think'}
         ],
         stream:false,
-        options:{temperature:0.1,num_ctx:32768,num_predict:maxTokens}
+        options:{temperature:0.1,num_ctx:numCtx,num_predict:maxTokens}
       })
     });
     clearTimeout(timer);
@@ -3940,7 +3976,9 @@ async function ollamaChat(systemMsg, userMsg, maxTokens=16384){
     }
     const d=await res.json();
     let raw=d?.message?.content||'';
-    console.log('ollamaChat response length:', raw.length, 'done_reason:', d?.done_reason);
+    const doneReason=d?.done_reason||'unknown';
+    console.log('ollamaChat response length:', raw.length, 'done_reason:', doneReason, 'num_ctx:', numCtx, 'input_est:', estimatedInputTokens);
+    _lastOllamaDoneReason=doneReason;
     if(!raw||raw.trim().length<10) raw=d?.message?.reasoning||'';
     return raw;
   } catch(e){
@@ -3984,51 +4022,70 @@ async function callAI(transcript, attempt=1, onStatus){
   const lineCount=normalizedTranscript.split(/\r?\n/).length;
   let extraction=null;
   let usedFallback=false;
+  let _fallbackReason='';
 
-  // ── Pass 1: Evidence Extraction ──
-  // Build product timeline once — shared by both passes
+  // ── Pass 1: Evidence Extraction (with retry) ──
   const productTimeline=buildProductTimeline(normalizedTranscript.split(/\r?\n/));
   console.log('Product timeline:', JSON.stringify(productTimeline.summary));
 
-  status('Extracting evidence…');
-  try{
-    const sysMsg='Respond with only valid JSON. No thinking, no markdown, no explanation.';
-    const extractionPrompt=buildExtractionPrompt(normalizedTranscript);
-    console.log('Pass 1 (extraction) prompt size:', extractionPrompt.length, 'chars (~'+Math.round(extractionPrompt.length/4)+' tokens)');
-    const rawExtraction=await ollamaChat(sysMsg, extractionPrompt, 16384);
-    const parsed=parseAIJSON(rawExtraction);
-    const validation=validateExtraction(parsed, lineCount);
-    if(validation.valid) extraction=validation.extraction;
-    else console.warn('Extraction validation failed:', validation.reason);
-  } catch(e){
-    console.warn('Pass 1 extraction failed:', e.message);
-  }
+  const p1SysMsg='Respond with only valid JSON. No thinking, no markdown, no explanation.';
+  const extractionPrompt=buildExtractionPrompt(normalizedTranscript);
+  console.log('Pass 1 (extraction) prompt size:', extractionPrompt.length, 'chars (~'+Math.round(extractionPrompt.length/3.5)+' tokens)');
 
-  if(extraction){
-    // ── Pass 2: Scoring Judgment ──
-    status('Scoring call…');
+  for(let p1Try=1;p1Try<=2&&!extraction;p1Try++){
+    status(p1Try===1?'Extracting evidence…':'Retrying extraction…');
     try{
-      const sysMsg='You are a precise JSON-only responder. Output ONLY valid JSON. All scores MUST be strings: "ed", "pd", "dnd", "na", "yes", or "no".';
-      const scoringPrompt=buildScoringPrompt(extraction, productTimeline);
-      console.log('Pass 2 (scoring) prompt size:', scoringPrompt.length, 'chars (~'+Math.round(scoringPrompt.length/4)+' tokens)');
-      const rawScoring=await ollamaChat(sysMsg, scoringPrompt, 16384);
-      result=parseAIJSON(rawScoring);
-      // Attach extraction for post-processing and downstream consumers
-      result._extraction=extraction;
-      result._productTimeline=productTimeline;
-      // Build discoveryPillars deterministically from extraction
-      result.discoveryPillars=buildDiscoveryPillars(extraction);
+      const rawExtraction=await ollamaChat(p1SysMsg, extractionPrompt, 16384);
+      if(_lastOllamaDoneReason==='length'){
+        console.warn(`Pass 1 attempt ${p1Try}: output truncated (done_reason=length)`);
+        _fallbackReason=`Pass 1 truncated (attempt ${p1Try})`;
+        continue;
+      }
+      const parsed=parseAIJSON(rawExtraction);
+      const validation=validateExtraction(parsed, lineCount);
+      if(validation.valid){ extraction=validation.extraction; }
+      else{
+        console.warn(`Pass 1 attempt ${p1Try} validation failed:`, validation.reason);
+        _fallbackReason=`Pass 1 validation: ${validation.reason}`;
+      }
     } catch(e){
-      console.warn('Pass 2 scoring failed:', e.message);
-      result=null;
+      console.warn(`Pass 1 attempt ${p1Try} failed:`, e.message);
+      _fallbackReason=`Pass 1 parse: ${e.message.slice(0,80)}`;
     }
   }
 
-  // ── Fallback: single-pass if either pass failed ──
+  // ── Pass 2: Scoring Judgment (with retry) ──
+  if(extraction){
+    const p2SysMsg='You are a precise JSON-only responder. Output ONLY valid JSON. All scores MUST be strings: "ed", "pd", "dnd", "na", "yes", or "no".';
+    const scoringPrompt=buildScoringPrompt(extraction, productTimeline);
+    console.log('Pass 2 (scoring) prompt size:', scoringPrompt.length, 'chars (~'+Math.round(scoringPrompt.length/3.5)+' tokens)');
+
+    for(let p2Try=1;p2Try<=3&&!result;p2Try++){
+      status(p2Try===1?'Scoring call…':'Retrying scoring (attempt '+p2Try+')…');
+      try{
+        const rawScoring=await ollamaChat(p2SysMsg, scoringPrompt, 16384);
+        if(_lastOllamaDoneReason==='length'){
+          console.warn(`Pass 2 attempt ${p2Try}: output truncated (done_reason=length)`);
+          _fallbackReason=`Pass 2 truncated (attempt ${p2Try})`;
+          continue;
+        }
+        result=parseAIJSON(rawScoring);
+        result._extraction=extraction;
+        result._productTimeline=productTimeline;
+        result.discoveryPillars=buildDiscoveryPillars(extraction);
+      } catch(e){
+        console.warn(`Pass 2 attempt ${p2Try} failed:`, e.message);
+        _fallbackReason=`Pass 2 parse: ${e.message.slice(0,80)}`;
+        result=null;
+      }
+    }
+  }
+
+  // ── Fallback: single-pass if both passes failed ──
   if(!result) status('Falling back to single-pass…');
   if(!result){
     usedFallback=true;
-    console.warn('Two-pass failed, falling back to single-pass');
+    console.warn('Two-pass failed, falling back to single-pass. Reason:', _fallbackReason);
     const prompt=buildLocalPrompt(normalizedTranscript);
     const sysMsg='You are a precise JSON-only responder. After any thinking, output ONLY valid JSON. No markdown fences, no backticks. All scores MUST be strings, NEVER numbers.';
     const raw=await ollamaChat(sysMsg, prompt, 16384);
@@ -4041,7 +4098,10 @@ async function callAI(transcript, attempt=1, onStatus){
   }
 
   postProcessAIResult(result, normalizedTranscript);
-  if(usedFallback) result._fallback=true;
+  if(usedFallback){
+    result._fallback=true;
+    result._fallbackReason=_fallbackReason;
+  }
 
   result._normalizedTranscript=normalizedTranscript;
   return result;
@@ -4214,6 +4274,109 @@ function postProcessAIResult(result, transcript){
   }
 }
 
+// ── Helper: fuzzy roster match (headless, no DOM) ────────────────────────────
+function fuzzyRosterMatch(agentName, tsr){
+  if(!rosterData.length) return null;
+  var match=null;
+  if(tsr) match=rosterData.find(function(r){return r.tsr===tsr;});
+  if(match) return match;
+  var name=(agentName||'').toLowerCase().replace(/[_\-]+/g,' ').trim();
+  if(!name) return null;
+  match=rosterData.find(function(r){return r.agent.toLowerCase()===name;});
+  if(match) return match;
+  var tokens=name.split(/\s+/).filter(function(t){return t.length>1;});
+  if(tokens.length>=2){
+    match=rosterData.find(function(r){
+      var rName=r.agent.toLowerCase();
+      return tokens.every(function(t){return rName.includes(t);});
+    });
+    if(match) return match;
+    var last=tokens[tokens.length-1];
+    var firstInitial=tokens[0][0];
+    match=rosterData.find(function(r){
+      var rName=r.agent.toLowerCase();
+      return rName.split(' ').pop()===last && rName.startsWith(firstInitial);
+    });
+    if(match) return match;
+  }
+  match=rosterData.find(function(r){
+    var rName=r.agent.toLowerCase();
+    return rName.includes(name)||name.includes(rName);
+  });
+  return match||null;
+}
+
+// ── Helper: classify a member objection by category ──────────────────────────
+function classifyObjection(summary){
+  var s=(summary||'').toLowerCase();
+  if(/not interested|i'm good|no thanks|don't need|i'm fine|no thank/i.test(s))
+    return {specific:false,category:'Vague/Not Interested'};
+  if(/price|cost|expensive|afford|budget|too much|money|bill|cheap/i.test(s))
+    return {specific:true,category:'Price/Cost'};
+  if(/t-?mobile|verizon|at&?t|spectrum|cricket|mint|visible|metro|google fi|another provider|competitor|switch/i.test(s))
+    return {specific:true,category:'Competitor'};
+  if(/contract|agreement|locked|commitment|early termination|etf/i.test(s))
+    return {specific:true,category:'Under Contract'};
+  if(/spouse|wife|husband|partner|family|someone else|decision|talk to/i.test(s))
+    return {specific:true,category:'Spouse/Decision-Maker'};
+  if(/later|think about|not now|timing|busy|call back|not a good time/i.test(s))
+    return {specific:true,category:'Timing/Not Now'};
+  if(s.length>20) return {specific:true,category:'Other'};
+  return {specific:false,category:'Vague/Not Interested'};
+}
+
+// ── Helper: extract competitor mentions from extraction + transcript ───────────
+function extractCompetitorMentions(extraction,transcript){
+  var mentions=[];
+  var competitors=[
+    {names:['t-mobile','tmobile','t mobile','team mobile'],label:'T-Mobile'},
+    {names:['verizon','horizon','rizen'],label:'Verizon'},
+    {names:['at&t','a t and t','at and t','att'],label:'AT&T'},
+    {names:['spectrum'],label:'Spectrum'},
+    {names:['cricket'],label:'Cricket'},
+    {names:['mint mobile','mint'],label:'Mint Mobile'},
+    {names:['visible'],label:'Visible'},
+    {names:['us mobile'],label:'US Mobile'},
+    {names:['google fi'],label:'Google Fi'},
+    {names:['metro','metro pcs','metropcs'],label:'Metro'}
+  ];
+  var txLower=(transcript||'').toLowerCase();
+  var ext=extraction||{};
+  (ext.objections||[]).forEach(function(obj){
+    var summary=(obj.customerObjection?.summary||'').toLowerCase();
+    competitors.forEach(function(c){
+      c.names.forEach(function(n){
+        if(summary.includes(n)){
+          mentions.push({competitor:c.label,context:'objection',
+            xfinityProduct:(ext.pitch?.primarySale||'Mobile'),
+            agentResponse:obj.rebuttalApproach||'none'});
+        }
+      });
+    });
+  });
+  (ext.pitch?.productsPitched||[]).forEach(function(p){
+    var desc=((p.tieBack||'')+' '+(p.product||'')).toLowerCase();
+    competitors.forEach(function(c){
+      c.names.forEach(function(n){
+        if(desc.includes(n)){
+          mentions.push({competitor:c.label,context:'pitch',
+            xfinityProduct:p.product||'Unknown',agentResponse:'reframe'});
+        }
+      });
+    });
+  });
+  var captured=mentions.map(function(m){return m.competitor;});
+  competitors.forEach(function(c){
+    if(captured.includes(c.label)) return;
+    var found=c.names.some(function(n){return txLower.includes(n);});
+    if(found){
+      mentions.push({competitor:c.label,context:'general',
+        xfinityProduct:(ext.pitch?.primarySale||''),agentResponse:'none'});
+    }
+  });
+  return mentions;
+}
+
 // ── Build payload from AI result for bulk (no DOM dependency) ─────────────────
 function buildBulkPayload(aiResult,meta){
   const hasAF=(aiResult.redFlags||[]).some(rf=>rf.flagged);
@@ -4239,7 +4402,7 @@ function buildBulkPayload(aiResult,meta){
     const sid=Number(s.id)||s.id;
     const step=STEPS.find(st=>st.id===sid);
     return{id:sid,step:sid,name:step?.name||'Step '+sid,catalyst:step?.catalyst||[],score:s.score||null,
-      trending:(s.trending||[]),notes:s.notes||''};
+      trending:(s.trending||[]),notes:s.notes||'',evidenceLines:s.evidenceLines||[]};
   });
   const rfData=(aiResult.redFlags||[]).map(rf=>{
     const rfd=RED_FLAGS.find(r=>r.id===rf.id);
@@ -4558,6 +4721,47 @@ async function downloadBulkZip(){
   }
 }
 
+async function downloadBulkHtmlZip(){
+  if(!bulkResults.length){alert('No results to export yet.');return;}
+  const btn=document.getElementById('bulk-html-btn');
+  const status=document.getElementById('bulk-footer-status');
+  btn.disabled=true;status.textContent='Building HTML zip...';
+
+  try{
+    const zip=new JSZip();
+    const dateStr=new Date().toISOString().slice(0,10);
+    const folder=zip.folder(`Bulk_Coaching_HTML_${dateStr}`);
+    const coachingFolder=folder.folder('Individual_Coaching');
+
+    for(let i=0;i<bulkResults.length;i++){
+      const p=bulkResults[i];
+      const safeName=(p.meta.agent||p.meta.filename||'agent').replace(/[^a-zA-Z0-9_\- ]/g,'_')+'_'+(i+1);
+      const html=buildIndividualCoachingHTML(p);
+      coachingFolder.file(`${safeName}.html`,html);
+    }
+
+    status.textContent='Building trend report...';
+    const trendHtml=buildTrendReportHTML(bulkResults);
+    folder.file(`Trend_Report_${dateStr}.html`,trendHtml);
+
+    status.textContent='Compressing zip...';
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`Bulk_Coaching_HTML_${dateStr}.zip`;
+    a.click();
+
+    btn.disabled=false;
+    status.style.color='var(--green-tx)';
+    status.textContent=`HTML zip downloaded — ${bulkResults.length} coaching reports + 1 trend report.`;
+  }catch(e){
+    console.error('HTML zip generation failed:',e);
+    btn.disabled=false;
+    status.style.color='var(--red-tx)';
+    status.textContent='HTML zip failed: '+e.message;
+  }
+}
+
 // ── Individual coaching HTML report — mirrors main form layout ──────────────
 function buildIndividualCoachingHTML(p){
   var es=p.executiveSummary||{};
@@ -4573,6 +4777,19 @@ function buildIndividualCoachingHTML(p){
 
   function pill(bg,col,txt){return '<span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:'+bg+';color:'+col+';">'+txt+'</span>';}
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  // Resolve (line X) / (lines X-Y) references to inline transcript quotes
+  var txLines=(p.transcript||'').split(/\r?\n/);
+  function linkify(text){
+    if(!text) return '';
+    return esc(text).replace(/\(line(?:s)?\s+(\d+)(?:\s*[-\u2013]\s*(\d+))?\)/gi,function(match,start){
+      var n=Number(start);var line=txLines[n-1]||'';
+      var cleaned=line.replace(/^(Agent|Customer):\s*/i,'').trim();
+      var snippet=cleaned.slice(0,100);
+      if(!snippet) return match;
+      var display='&quot;'+esc(snippet)+(cleaned.length>100?'...':'')+'&quot;';
+      return '<span style="color:#0d7377;font-weight:500;border-bottom:1.5px solid #0d9488;">'+display+'</span>';
+    });
+  }
   function card(border,content){return '<div style="background:white;border:1px solid '+border+';border-radius:12px;overflow:hidden;margin-bottom:14px;">'+content+'</div>';}
   function hdr(bg,color,title,right){return '<div style="background:'+bg+';border-bottom:1px solid '+color+';padding:10px 18px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:'+color+';">'+title+'</span>'+(right?'<span style="font-size:12px;font-weight:600;color:'+color+';">'+right+'</span>':'')+'</div>';}
   function secLabel(color,text){return '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:'+color+';margin:12px 0 6px;">'+text+'</div>';}
@@ -4604,7 +4821,7 @@ function buildIndividualCoachingHTML(p){
   if(es.topPriority||es.summary){
     summaryBlock+='<div style="font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e5e3df;">'+esc(es.topPriority||'')+'</div>';
     summaryBlock+=prodHtml;
-    summaryBlock+='<div style="font-size:13px;color:#5f5e5a;line-height:1.65;margin-bottom:4px;">'+esc(es.summary||'')+'</div>';
+    summaryBlock+='<div style="font-size:13px;color:#5f5e5a;line-height:1.65;margin-bottom:4px;">'+linkify(es.summary||'')+'</div>';
 
     // Discovery pillars
     var dpPillars=['users','usage','devices','cost'];
@@ -4629,19 +4846,19 @@ function buildIndividualCoachingHTML(p){
     var sItems=es.strengths||[];if(typeof sItems==='string') sItems=[sItems];
     if(sItems.length){
       summaryBlock+=secLabel('#3b6d11','What Worked');
-      sItems.forEach(function(s){summaryBlock+='<p style="font-size:13px;color:#5f5e5a;line-height:1.65;margin:0 0 8px 0;">'+esc(s)+'</p>';});
+      sItems.forEach(function(s){summaryBlock+='<p style="font-size:13px;color:#5f5e5a;line-height:1.65;margin:0 0 8px 0;">'+linkify(s)+'</p>';});
     }
     // Opportunities
     var oItems=es.opportunities||[];if(typeof oItems==='string') oItems=[oItems];
     if(oItems.length){
       summaryBlock+=secLabel('#854f0b','Areas of Opportunity');
-      oItems.forEach(function(s){summaryBlock+='<p style="font-size:13px;color:#5f5e5a;line-height:1.65;margin:0 0 8px 0;">'+esc(s)+'</p>';});
+      oItems.forEach(function(s){summaryBlock+='<p style="font-size:13px;color:#5f5e5a;line-height:1.65;margin:0 0 8px 0;">'+linkify(s)+'</p>';});
     }
     // Critical
     if((es.critical||[]).length){
       summaryBlock+='<div style="margin-top:10px;background:#fcebeb;border:1px solid #a32d2d;border-radius:8px;padding:10px 14px;">';
       summaryBlock+=secLabel('#791f1f','Critical');
-      (es.critical||[]).forEach(function(s){summaryBlock+='<p style="font-size:13px;color:#791f1f;margin:0 0 4px 0;">'+esc(s)+'</p>';});
+      (es.critical||[]).forEach(function(s){summaryBlock+='<p style="font-size:13px;color:#791f1f;margin:0 0 4px 0;">'+linkify(s)+'</p>';});
       summaryBlock+='</div>';
     }
   }
@@ -4658,8 +4875,13 @@ function buildIndividualCoachingHTML(p){
     coachHtml+='<span style="font-size:13px;font-weight:600;color:#1a1a18;">'+esc(r.focus||'Coaching')+'</span>';
     coachHtml+=pill(priBg,priCol,pri==='high'?'High priority':'Medium priority');
     coachHtml+='</div>';
-    coachHtml+='<div style="font-size:13px;color:#5f5e5a;line-height:1.5;margin-bottom:6px;">'+esc(r.what||'')+'</div>';
-    if(r.transcriptEvidence) coachHtml+='<div style="font-size:12px;color:#5f5e5a;background:#f7f6f3;border-radius:6px;padding:8px 10px;border-left:2px solid #a32d2d;font-style:italic;margin:6px 0;">'+esc(r.transcriptEvidence)+'</div>';
+    coachHtml+='<div style="font-size:13px;color:#5f5e5a;line-height:1.5;margin-bottom:6px;">'+linkify(r.what||'')+'</div>';
+    // Resolve evidenceLines to transcript text if transcriptEvidence is missing
+    var evidence=r.transcriptEvidence||r.evidence||'';
+    if(!evidence&&r.evidenceLines&&Array.isArray(r.evidenceLines)){
+      evidence=r.evidenceLines.map(function(n){return txLines[Number(n)-1]||'';}).filter(Boolean).join(' ');
+    }
+    if(evidence) coachHtml+='<div style="font-size:12px;color:#5f5e5a;background:#f7f6f3;border-radius:6px;padding:8px 10px;border-left:2px solid #a32d2d;font-style:italic;margin:6px 0;">'+esc(evidence)+'</div>';
     if(r.example) coachHtml+='<div style="font-size:12px;color:#1a1a18;background:#f7f6f3;border-radius:6px;padding:8px 10px;border-left:2px solid #085041;font-style:italic;margin-top:6px;">"'+esc(r.example)+'"</div>';
     coachHtml+='</div>';
   });
@@ -4685,7 +4907,7 @@ function buildIndividualCoachingHTML(p){
       var criteriaText=cat.criteria[criteriaKey]||'';
       if(criteriaText) cNotes=criteriaText.split('.').slice(0,2).join('.')+'.';
     }
-    if(cNotes) catHtml+='<div style="font-size:12px;color:#5f5e5a;line-height:1.5;padding:8px 10px;background:#f7f6f3;border-radius:6px;border-left:2px solid #534ab7;">'+esc(cNotes)+'</div>';
+    if(cNotes) catHtml+='<div style="font-size:12px;color:#5f5e5a;line-height:1.5;padding:8px 10px;background:#f7f6f3;border-radius:6px;border-left:2px solid #534ab7;">'+linkify(cNotes)+'</div>';
     catHtml+='</div>';
   });
 
@@ -4702,7 +4924,20 @@ function buildIndividualCoachingHTML(p){
     stepHtml+='<span style="font-size:12px;font-weight:600;color:#1a1a18;">'+s.id+'. '+esc(stepDef.name||s.name||'')+'</span>';
     stepHtml+=pill(bg,col,sr);
     stepHtml+='</div>';
-    if(s.notes) stepHtml+='<div style="font-size:12px;color:#5f5e5a;line-height:1.5;margin-bottom:4px;">'+esc(s.notes)+'</div>';
+    if(s.notes) stepHtml+='<div style="font-size:12px;color:#5f5e5a;line-height:1.5;margin-bottom:4px;">'+linkify(s.notes)+'</div>';
+    // Evidence lines — transcript quotes referenced by the AI
+    var evLines=(s.evidenceLines||[]).map(function(n){return Number(n);}).filter(function(n){return n>=1&&n<=txLines.length;});
+    if(evLines.length){
+      stepHtml+='<div style="display:flex;flex-direction:column;gap:3px;margin:4px 0 6px;">';
+      evLines.forEach(function(n){
+        var line=txLines[n-1]||'';
+        if(!line.trim()) return;
+        stepHtml+='<div style="font-size:11px;padding:4px 10px;background:#f7f6f3;border-radius:4px;border-left:2px solid #534ab7;color:#5f5e5a;line-height:1.5;">';
+        stepHtml+='<span style="font-size:10px;color:#888;margin-right:6px;">L'+n+'</span>'+esc(line);
+        stepHtml+='</div>';
+      });
+      stepHtml+='</div>';
+    }
     if((s.trending||[]).length) stepHtml+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">'+s.trending.map(function(t){return '<span style="font-size:10px;padding:2px 8px;border-radius:12px;background:#fcebeb;color:#791f1f;border:1px solid #fecaca;">'+esc(t)+'</span>';}).join('')+'</div>';
     stepHtml+='</div>';
   });
