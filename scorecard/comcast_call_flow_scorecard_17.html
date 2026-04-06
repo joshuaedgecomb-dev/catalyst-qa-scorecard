@@ -5428,6 +5428,121 @@ function buildTrendReportHTML(results){
     return out;
   }
 
+  function buildSiteReport(siteResults,siteName,color){
+    if(!siteResults.length) return '';
+    var n=siteResults.length;
+    var siteBS=computeBehaviorStats(siteResults);
+    var siteDP=computeDiscovery(siteResults);
+    var siteSales=siteResults.filter(function(r){return r.meta.outcome==='Successful sale';}).length;
+    var siteAF=siteResults.filter(function(r){return r.summary.autoFail;}).length;
+    var siteAvgED=n?(siteResults.reduce(function(a,r){return a+(r.summary.catalystED||0);},0)/n).toFixed(1):'0';
+    var siteIndicators=computeIndicators(siteResults);
+    var sales=siteResults.filter(function(r){return r.meta.outcome==='Successful sale';});
+    var nonsales=siteResults.filter(function(r){return r.meta.outcome!=='Successful sale';});
+
+    var out='';
+    // Site header banner
+    out+='<div style="background:'+color+';border-radius:12px;padding:16px 24px;margin:24px 0 16px;"><h2 style="font-size:20px;font-weight:700;color:white;margin:0;">'+esc(siteName)+'</h2><div style="font-size:12px;color:rgba(255,255,255,0.8);">'+n+' calls evaluated</div></div>';
+
+    // Site overview
+    out+='<div class="section">'+sectionHdr(siteName+' OVERVIEW',color);
+    out+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 18px;">';
+    out+=stat('Calls',n)+stat('Avg ED',siteAvgED+'/6',edCol(pct(parseFloat(siteAvgED)*10,60)));
+    out+=stat('Sale Rate',pct(siteSales,n)+'%',siteSales/n>=0.5?'#3b6d11':'#ba7517');
+    out+=stat('Auto-fails',siteAF,siteAF>0?'#791f1f':'#3b6d11');
+    out+='</div>';
+    var siteNarr=behaviorNarrative(siteBS,n,esc(siteName));
+    siteNarr+=discoveryNarrative(siteDP,n);
+    siteNarr+=indicatorPlainText(siteIndicators,n);
+    out+='<div style="padding:0 18px 12px;">'+narrative(siteNarr)+'</div>';
+    out+='<div style="padding:0 18px 4px;">'+indicatorNarrative(siteIndicators,n)+'</div>';
+    out+='<div style="padding:0 18px 12px;">'+behaviorTable(siteBS)+'</div>';
+    out+='<div style="padding:0 18px 16px;">'+discoveryGrid(siteDP,n)+'</div>';
+    out+='</div>';
+
+    // Sale + Non-sale sections
+    out+=saleAnalysisSection(sales,siteName);
+    out+=nonSaleAnalysisSection(nonsales,siteName);
+
+    // Supervisor breakdown within site
+    var siteSups={};
+    siteResults.forEach(function(r){
+      var sup=r.meta.supervisor||'Unassigned';
+      if(!siteSups[sup]) siteSups[sup]=[];
+      siteSups[sup].push(r);
+    });
+    var siteSupKeys=Object.keys(siteSups).sort();
+    if(siteSupKeys.length>0){
+      out+='<div class="section">'+sectionHdr(siteName+' — SUPERVISORS','#0891b2');
+      siteSupKeys.forEach(function(sup){
+        var calls=siteSups[sup];
+        var sn=calls.length;
+        var supBS2=computeBehaviorStats(calls);
+        var supSales2=calls.filter(function(r){return r.meta.outcome==='Successful sale';}).length;
+        var supAF2=calls.filter(function(r){return r.summary.autoFail;}).length;
+        var supAvgED2=sn?(calls.reduce(function(a,r){return a+(r.summary.catalystED||0);},0)/sn).toFixed(1):'0';
+        var supIndicators2=computeIndicators(calls);
+
+        out+='<div style="padding:14px 18px;border-bottom:1px solid #eee;">';
+        out+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+        out+='<div><span style="font-size:15px;font-weight:700;">'+esc(sup)+'</span><span style="font-size:12px;color:#888;margin-left:10px;">'+sn+' call'+(sn>1?'s':'')+'</span></div>';
+        out+='<div style="display:flex;gap:6px;">'+pill(edCol(pct(parseFloat(supAvgED2)*10,60))==='#3b6d11'?'#eaf3de':'#faeeda',edCol(pct(parseFloat(supAvgED2)*10,60)),supAvgED2+'/6 ED')+pill(supSales2/sn>=0.5?'#eaf3de':'#faeeda',supSales2/sn>=0.5?'#3b6d11':'#854f0b',pct(supSales2,sn)+'% sale rate')+(supAF2>0?pill('#fcebeb','#791f1f',supAF2+' AF'):'')+'</div>';
+        out+='</div>';
+        var supNarr2=behaviorNarrative(supBS2,sn,esc(sup)+'\'s team');
+        supNarr2+=indicatorPlainText(supIndicators2,sn);
+        out+=narrative(supNarr2);
+        out+=indicatorNarrative(supIndicators2,sn);
+        out+=behaviorTable(supBS2);
+        out+='</div>';
+      });
+      out+='</div>';
+    }
+
+    // Agent detail within site
+    var siteAgentGroups={};
+    siteResults.forEach(function(r){
+      var key=r.meta.tsr||r.meta.agent||r.meta.filename||'Unknown';
+      if(!siteAgentGroups[key]) siteAgentGroups[key]={agent:r.meta.agent||'Unknown',tsr:r.meta.tsr||'',supervisor:r.meta.supervisor||'',calls:[]};
+      siteAgentGroups[key].calls.push(r);
+    });
+    var sortedSiteAgents=Object.values(siteAgentGroups).sort(function(a,b){
+      var aED=a.calls.reduce(function(s,r){return s+(r.summary.catalystED||0);},0)/a.calls.length;
+      var bED=b.calls.reduce(function(s,r){return s+(r.summary.catalystED||0);},0)/b.calls.length;
+      return aED-bED;
+    });
+
+    out+='<div class="section">'+sectionHdr(siteName+' — AGENT DETAIL','#059669');
+    sortedSiteAgents.forEach(function(ag){
+      var an=ag.calls.length;
+      var agBS2=computeBehaviorStats(ag.calls);
+      var agSales2=ag.calls.filter(function(r){return r.meta.outcome==='Successful sale';}).length;
+      var agAF2=ag.calls.filter(function(r){return r.summary.autoFail;}).length;
+      var agAvgED2=an?(ag.calls.reduce(function(s,r){return s+(r.summary.catalystED||0);},0)/an).toFixed(1):'0';
+      out+='<div style="padding:14px 18px;border-bottom:1px solid #eee;">';
+      out+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+      out+='<div><span style="font-size:14px;font-weight:700;">'+esc(ag.agent)+'</span>';
+      if(ag.tsr) out+='<span style="font-size:11px;color:#888;margin-left:8px;">TSR '+esc(ag.tsr)+'</span>';
+      if(ag.supervisor) out+='<span style="font-size:11px;color:#888;margin-left:8px;">Sup: '+esc(ag.supervisor)+'</span>';
+      out+='<span style="font-size:11px;color:#888;margin-left:8px;">'+an+' call'+(an>1?'s':'')+'</span></div>';
+      out+='<div style="display:flex;gap:6px;">'+pill(edCol(pct(parseFloat(agAvgED2)*10,60))==='#3b6d11'?'#eaf3de':'#faeeda',edCol(pct(parseFloat(agAvgED2)*10,60)),agAvgED2+'/6 ED')+pill(agSales2/an>=0.5?'#eaf3de':'#fcebeb',agSales2/an>=0.5?'#3b6d11':'#791f1f',pct(agSales2,an)+'% sold')+(agAF2>0?pill('#fcebeb','#791f1f','AUTO-FAIL'):'')+'</div>';
+      out+='</div>';
+      var agNarr2='';
+      var alwaysDND2=[],alwaysED2=[];
+      Object.values(agBS2).forEach(function(b){var scored=b.ed+b.pd+b.dnd;if(scored>=2&&b.dnd===scored) alwaysDND2.push(b.name);if(scored>=2&&b.ed===scored) alwaysED2.push(b.name);});
+      if(alwaysDND2.length) agNarr2+='<strong>'+esc(ag.agent)+'</strong> consistently scored DND on <strong>'+alwaysDND2.join(', ')+'</strong>. ';
+      if(alwaysED2.length) agNarr2+=(agNarr2?'Strengths: ':'<strong>'+esc(ag.agent)+'</strong> strengths: ')+'<strong>'+alwaysED2.join(', ')+'</strong> (ED on all calls). ';
+      var agIndicators2=computeIndicators(ag.calls);
+      agNarr2+=indicatorPlainText(agIndicators2,an);
+      if(!agNarr2) agNarr2=esc(ag.agent)+': '+an+' call'+(an>1?'s':'')+', avg ED '+agAvgED2+'/6.';
+      out+=narrative(agNarr2);
+      out+=indicatorNarrative(agIndicators2,an);
+      out+='</div>';
+    });
+    out+='</div>';
+
+    return out;
+  }
+
   // ══════════════════════════════════════════════════════════
   // BUILD HTML
   // ══════════════════════════════════════════════════════════
@@ -5483,121 +5598,39 @@ function buildTrendReportHTML(results){
   html.push(outcomeHtml);
   html.push('</div>'); // close team section
 
-  // ── TIER 2: SUPERVISOR DRILLDOWN ──
-  var supKeys=Object.keys(supGroups).sort();
-  if(supKeys.length>1||(supKeys.length===1&&supKeys[0]!=='Unassigned')){
-    html.push('<div class="section">'+sectionHdr('SUPERVISOR BREAKDOWN','#0891b2'));
-    supKeys.forEach(function(sup){
-      var calls=supGroups[sup];
-      var n=calls.length;
-      var supBS=computeBehaviorStats(calls);
-      var supDP=computeDiscovery(calls);
-      var supSales=calls.filter(function(r){return r.meta.outcome==='Successful sale';}).length;
-      var supAF=calls.filter(function(r){return r.summary.autoFail;}).length;
-      var supAvgED=n?(calls.reduce(function(a,r){return a+(r.summary.catalystED||0);},0)/n).toFixed(1):'0';
+  // ── NEW: Overall Sale / Non-Sale / Product Mix / Compliance ──
+  var allSales=results.filter(function(r){return r.meta.outcome==='Successful sale';});
+  var allNonsales=results.filter(function(r){return r.meta.outcome!=='Successful sale';});
 
-      html.push('<div style="padding:16px 18px;border-bottom:1px solid #eee;">');
-      html.push('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">');
-      html.push('<div><span style="font-size:16px;font-weight:700;color:#1a1a18;">'+esc(sup)+'</span><span style="font-size:12px;color:#888;margin-left:10px;">'+n+' call'+(n>1?'s':'')+'</span></div>');
-      html.push('<div style="display:flex;gap:8px;">'+pill(edCol(pct(parseFloat(supAvgED)*10,60))==='#3b6d11'?'#eaf3de':'#faeeda',edCol(pct(parseFloat(supAvgED)*10,60)),supAvgED+'/6 ED')+pill(supSales/n>=0.5?'#eaf3de':'#faeeda',supSales/n>=0.5?'#3b6d11':'#854f0b',pct(supSales,n)+'% sale rate')+(supAF>0?pill('#fcebeb','#791f1f',supAF+' auto-fail'+(supAF>1?'s':'')):'')+'</div>');
-      html.push('</div>');
+  html.push(saleAnalysisSection(allSales,'OVERALL'));
+  html.push(nonSaleAnalysisSection(allNonsales,'OVERALL'));
+  html.push(productMixSection(results,'OVERALL'));
+  html.push(complianceGapsSection(results,'OVERALL'));
 
-      // Supervisor narrative
-      var supNarr=behaviorNarrative(supBS,n,esc(sup)+'\'s team');
-      supNarr+=discoveryNarrative(supDP,n);
-      // Find agents needing attention
-      var supAgents=[];
-      calls.forEach(function(r){
-        var key=r.meta.tsr||r.meta.agent||'?';
-        if(!supAgents.find(function(a){return a.key===key;})) supAgents.push({key:key,agent:r.meta.agent||'Unknown',ed:r.summary.catalystED||0,af:r.summary.autoFail});
-      });
-      var needsAtt=supAgents.filter(function(a){return a.ed<=2||a.af;}).sort(function(a,b){return a.ed-b.ed;});
-      if(needsAtt.length) supNarr+=' Agents requiring attention: '+needsAtt.slice(0,4).map(function(a){return '<strong>'+esc(a.agent)+'</strong> ('+a.ed+'/6 ED'+(a.af?' - AUTO-FAIL':'')+')';}).join(', ')+'.';
-      var supIndicators=computeIndicators(calls);
-      supNarr+=indicatorPlainText(supIndicators,n);
-      html.push(narrative(supNarr));
-      html.push(indicatorNarrative(supIndicators,n));
-
-      // Compact behavior + discovery
-      html.push(behaviorTable(supBS));
-      html.push(discoveryGrid(supDP,n));
-      html.push('</div>');
-    });
-    html.push('</div>');
-  }
-
-  // ── TIER 3: AGENT DRILLDOWN ──
-  html.push('<div class="section">'+sectionHdr('AGENT DETAIL','#059669'));
-  var sortedAgents=Object.values(agentGroups).sort(function(a,b){
-    var aED=a.calls.reduce(function(s,r){return s+(r.summary.catalystED||0);},0)/a.calls.length;
-    var bED=b.calls.reduce(function(s,r){return s+(r.summary.catalystED||0);},0)/b.calls.length;
-    return aED-bED; // worst first
+  // ── SITE REPORTS ──
+  var siteGroups={};
+  results.forEach(function(r){
+    var site=(r.meta.site||'').trim().toUpperCase();
+    if(!site) site='UNASSIGNED';
+    if(/BZ|BELIZE/i.test(site)) site='BELIZE';
+    else if(/SD|DR|SANTO|DOMINICAN/i.test(site)) site='SANTO DOMINGO';
+    if(!siteGroups[site]) siteGroups[site]=[];
+    siteGroups[site].push(r);
   });
 
-  sortedAgents.forEach(function(ag){
-    var n=ag.calls.length;
-    var agBS=computeBehaviorStats(ag.calls);
-    var agDP=computeDiscovery(ag.calls);
-    var agSales=ag.calls.filter(function(r){return r.meta.outcome==='Successful sale';}).length;
-    var agAF=ag.calls.filter(function(r){return r.summary.autoFail;}).length;
-    var agAvgED=n?(ag.calls.reduce(function(s,r){return s+(r.summary.catalystED||0);},0)/n).toFixed(1):'0';
-
-    html.push('<div style="padding:14px 18px;border-bottom:1px solid #eee;">');
-    html.push('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">');
-    html.push('<div><span style="font-size:14px;font-weight:700;">'+esc(ag.agent)+'</span>');
-    if(ag.tsr) html.push('<span style="font-size:11px;color:#888;margin-left:8px;">TSR '+esc(ag.tsr)+'</span>');
-    if(ag.supervisor) html.push('<span style="font-size:11px;color:#888;margin-left:8px;">Sup: '+esc(ag.supervisor)+'</span>');
-    html.push('<span style="font-size:11px;color:#888;margin-left:8px;">'+n+' call'+(n>1?'s':'')+'</span></div>');
-    html.push('<div style="display:flex;gap:6px;">'+pill(edCol(pct(parseFloat(agAvgED)*10,60))==='#3b6d11'?'#eaf3de':'#faeeda',edCol(pct(parseFloat(agAvgED)*10,60)),agAvgED+'/6 ED')+pill(agSales/n>=0.5?'#eaf3de':'#fcebeb',agSales/n>=0.5?'#3b6d11':'#791f1f',pct(agSales,n)+'% sold')+(agAF>0?pill('#fcebeb','#791f1f','AUTO-FAIL'):'')+'</div>');
-    html.push('</div>');
-
-    // Agent narrative
-    var agNarr='';
-    // Find consistent patterns
-    var alwaysDND=[], alwaysED=[];
-    Object.values(agBS).forEach(function(b){
-      var scored=b.ed+b.pd+b.dnd;
-      if(scored>=2&&b.dnd===scored) alwaysDND.push(b.name);
-      if(scored>=2&&b.ed===scored) alwaysED.push(b.name);
-    });
-    if(alwaysDND.length) agNarr+='<strong>'+esc(ag.agent)+'</strong> consistently scored DND on <strong>'+alwaysDND.join(', ')+'</strong> across all '+n+' reviewed calls. ';
-    if(alwaysED.length) agNarr+=(agNarr?'Strengths include ':'<strong>'+esc(ag.agent)+'</strong>\'s strengths include ')+'<strong>'+alwaysED.join(', ')+'</strong> (ED on all calls). ';
-
-    // Discovery pattern
-    var dpAll=computeDiscovery(ag.calls);
-    var neverDiscovered=[];
-    ['users','usage','devices','cost'].forEach(function(k){if(dpAll[k]===0) neverDiscovered.push(k);});
-    if(neverDiscovered.length>=3) agNarr+='Discovery is a critical gap - never explored '+neverDiscovered.join(', ')+' across any call. ';
-    else if(neverDiscovered.length) agNarr+='Did not explore '+neverDiscovered.join(' or ')+' in any call. ';
-
-    // Top priority from exec summaries
-    var priorities=ag.calls.map(function(r){return (r.executiveSummary||{}).topPriority||'';}).filter(Boolean);
-    if(priorities.length){
-      var priCount={};priorities.forEach(function(p){priCount[p]=(priCount[p]||0)+1;});
-      var topPri=Object.entries(priCount).sort(function(a,b){return b[1]-a[1];})[0];
-      if(topPri) agNarr+='Most common coaching priority: "'+esc(topPri[0])+'" ('+topPri[1]+' of '+n+' calls).';
+  var siteOrder=['BELIZE','SANTO DOMINGO'];
+  siteOrder.forEach(function(site){
+    if(siteGroups[site]&&siteGroups[site].length){
+      var color=site==='BELIZE'?'#0891b2':'#7c3aed';
+      html.push(buildSiteReport(siteGroups[site],site,color));
     }
-
-    var agIndicators=computeIndicators(ag.calls);
-    agNarr+=indicatorPlainText(agIndicators,n);
-    if(!agNarr) agNarr=esc(ag.agent)+' has '+n+' call'+(n>1?'s':'')+' evaluated with an average ED score of '+agAvgED+'/6.';
-    html.push(narrative(agNarr));
-    html.push(indicatorNarrative(agIndicators,n));
-
-    // Compact call list
-    if(n>1){
-      html.push('<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:6px;">');
-      ag.calls.forEach(function(r){
-        var edC=r.summary.catalystED||0;
-        var col=edC>=4?'#3b6d11':edC>=2?'#854f0b':'#791f1f';
-        html.push('<div style="font-size:11px;padding:6px 10px;background:#f7f6f3;border-radius:6px;border-left:2px solid '+col+';"><strong>'+edC+'/6 ED</strong> - '+esc(r.meta.outcome||'?')+(r.summary.autoFail?' <span style="color:#791f1f;font-weight:600;">AF</span>':'')+'<div style="color:#888;">'+esc(r.meta.callDate||'')+'</div></div>');
-      });
-      html.push('</div>');
-    }
-
-    html.push('</div>');
   });
-  html.push('</div>');
+  Object.keys(siteGroups).forEach(function(site){
+    if(siteOrder.includes(site)) return;
+    if(site==='UNASSIGNED'&&siteGroups[site].length){
+      html.push(buildSiteReport(siteGroups[site],'UNASSIGNED','#6b7280'));
+    }
+  });
 
   // ── FOOTER ──
   html.push('<div style="font-size:11px;color:#888;text-align:center;padding-top:8px;">Generated '+dateStr+' - '+total+' calls - Catalyst Quality - Xfinity Outbound Telesales</div>');
