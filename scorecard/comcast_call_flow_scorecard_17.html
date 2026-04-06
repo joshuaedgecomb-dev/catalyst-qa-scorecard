@@ -1323,7 +1323,12 @@ function repairJSON(s){
   // 5. Fix ) used instead of } — common qwen3 glitch
   s=s.replace(/"\)\s*([,\]])/g,'"} $1');
   s=s.replace(/"\)\s*$/gm,'"}');
-  // 6. Fix mixed quotes — single quote used where double quote expected (e.g. ...tablet?','priority" → ...tablet?","priority")
+  // 6. Fix single-quoted string values — model uses 'value' instead of "value"
+  //    Must escape internal double quotes before converting delimiters
+  s=s.replace(/([:,\[{]\s*)'([\s\S]*?)'(?=\s*[,}\]:\n])/g,function(m,pre,c){
+    return pre+'"'+c.replace(/"/g,'\\"')+'"';
+  });
+  // 6b. Catch remaining positional single quotes not captured above
   s=s.replace(/'([,}\]])/g,'"$1');
   s=s.replace(/([,{\[:])\s*'/g,'$1"');
   // 7. Fix escaped quotes in structural positions — qwen3 outputs \" where " should be
@@ -1349,13 +1354,16 @@ function parseAIJSON(raw){
     if(!result) try{result=JSON.parse(repairJSON(clean.replace(/\\"/g,'"')));}catch(e5){}
     // Single-quote fallback: model used ' instead of " for string values
     if(!result){
-      // Replace single-quoted values at JSON structural positions while preserving apostrophes in words
       let sqFixed=clean;
-      // Step 1: Mark apostrophes in contractions (don't, I'm, you're) to protect them
+      // Step 1: Structural fix — convert 'value' to "value", escaping internal double quotes
+      sqFixed=sqFixed.replace(/([:,\[{]\s*)'([\s\S]*?)'(?=\s*[,}\]:\n])/g,function(m,pre,c){
+        return pre+'"'+c.replace(/"/g,'\\"')+'"';
+      });
+      // Step 2: Mark apostrophes in contractions (don't, I'm, you're) to protect them
       sqFixed=sqFixed.replace(/([a-zA-Z])'([a-zA-Z])/g,'$1\x00$2');
-      // Step 2: Replace all remaining single quotes with double quotes (these are JSON delimiters)
+      // Step 3: Replace remaining single quotes with double quotes
       sqFixed=sqFixed.replace(/'/g,'"');
-      // Step 3: Restore apostrophes
+      // Step 4: Restore apostrophes
       sqFixed=sqFixed.replace(/\x00/g,"'");
       try{result=JSON.parse(sqFixed);}catch(e6){}
       if(!result) try{result=JSON.parse(repairJSON(sqFixed));}catch(e7){}
