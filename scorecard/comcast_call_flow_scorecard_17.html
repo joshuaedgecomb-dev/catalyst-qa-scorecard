@@ -1349,9 +1349,17 @@ function parseAIJSON(raw){
     if(!result){const m=clean.match(/\{[\s\S]*\}/);if(m) try{result=JSON.parse(repairJSON(m[0]));}catch(e3){
       console.warn('parseAIJSON: regex extract failed:', e3.message);
     }}
-    // Nuclear fallback: strip ALL escaped quotes and retry
-    if(!result) try{result=JSON.parse(clean.replace(/\\"/g,'"'));}catch(e4){}
-    if(!result) try{result=JSON.parse(repairJSON(clean.replace(/\\"/g,'"')));}catch(e5){}
+    // Nuclear fallback: strip \", collapse doubled quotes, remove orphan fragments
+    if(!result){
+      let eqn=clean.replace(/\\"/g,'"');
+      try{result=JSON.parse(eqn);}catch(e4){
+        // Doubled quotes and orphans from \" stripping — collapse and clean
+        eqn=eqn.replace(/"{2,}/g,'"');
+        eqn=eqn.replace(/,\s*"\s*,/g,',');
+        try{result=JSON.parse(eqn);}catch(e4b){}
+        if(!result) try{result=JSON.parse(repairJSON(eqn));}catch(e5){}
+      }
+    }
     // Single-quote fallback: model used ' instead of " for string values
     if(!result){
       let sqFixed=clean;
