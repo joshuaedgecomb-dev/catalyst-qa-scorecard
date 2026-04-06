@@ -1282,14 +1282,27 @@ function stripToJSON(raw){
   // 4. If there's trailing text after the last }, strip it
   const last=s.lastIndexOf('}');
   if(last>=0&&last<s.length-1) s=s.slice(0,last+1);
+  // 5. Handle fragmented output: model outputs labeled sections instead of wrapped JSON
+  //    e.g. "agentQuestions: [{...}]\n\ncustomerVolunteered: [{...}]"
+  //    Wrap in {} and convert "label:" to "label": at top level
+  s=s.trim();
+  if(s&&s[0]!=='{'&&/^[a-zA-Z_]\w*\s*:/m.test(s)){
+    // Wrap labeled sections into a JSON object
+    s='{'+s.replace(/^([a-zA-Z_]\w*)\s*:\s*/gm,'"$1": ')+'}';
+    // Re-strip to find proper boundaries
+    const last2=s.lastIndexOf('}');
+    if(last2>=0&&last2<s.length-1) s=s.slice(0,last2+1);
+  }
   return s.trim();
 }
 function repairJSON(s){
   // Fix common LLM JSON glitches:
-  // 0. Escape unescaped newlines/tabs inside JSON string values
+  // 0a. Escape unescaped newlines/tabs inside JSON string values
   s=s.replace(/"(?:[^"\\]|\\.)*"/g,function(m){
     return m.replace(/\n/g,'\\n').replace(/\r/g,'\\r').replace(/\t/g,'\\t');
   });
+  // 0b. Quote unquoted keys: {line:10, pillar:"cost"} → {"line":10, "pillar":"cost"}
+  s=s.replace(/([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g,'$1"$2":');
   // 1. Doubled/stray quotes before keys: ""score" or " "score" → "score"
   s=s.replace(/"\s*"([a-zA-Z])/g,'"$1');
   // 2. Trailing commas before } or ]
@@ -2784,7 +2797,7 @@ function esc2(s){const d=document.createElement('div');d.textContent=s;return d.
 
 async function detectSpeakersWithAI(transcript){
   // Identify which SPEAKER_XX is agent vs customer using AI.
-  // Sends first + last 40 lines for context (opening has intro, end has closing).
+  // Sends full transcript for context, with heuristic fallback if AI fails.
   // Returns an object like {SPEAKER_02:'agent', SPEAKER_04:'customer'} or null on failure.
   try {
     const lines=transcript.split(/\r?\n/).filter(l=>l.trim());
@@ -2840,7 +2853,8 @@ Return ONLY valid JSON, no explanation, no markdown:
         {role:'user',content:prompt+'\n/no_think'}
       ],
       stream:false,
-      options:{temperature:0,num_ctx:32768,num_predict:4096}
+      think:false,
+      options:{temperature:0,num_ctx:32768,num_predict:16384}
     };
     console.log('Speaker detection prompt size:', prompt.length, 'chars');
     const res=await fetch(`${base}/api/chat`,{
@@ -2854,6 +2868,8 @@ Return ONLY valid JSON, no explanation, no markdown:
     }
     const d=await res.json();
     raw=d?.message?.content||'';
+    // Fallback: some models put output in reasoning instead of content
+    if(!raw||raw.trim().length<10) raw=d?.message?.reasoning||'';
     console.log('Speaker detection raw response length:', raw.length, 'done_reason:', d.done_reason, 'preview:', raw.slice(0,300));
 
     let clean=stripToJSON(raw);
@@ -2862,13 +2878,36 @@ Return ONLY valid JSON, no explanation, no markdown:
       try{parsed=JSON.parse(repairJSON(clean));}catch(e2){}
     }
     if(parsed&&parsed.speakers&&typeof parsed.speakers==='object'){
-      console.log('Speaker detection succeeded:', JSON.stringify(parsed.speakers));
+      console.log('Speaker detection (AI) succeeded:', JSON.stringify(parsed.speakers));
       return parsed.speakers;
     }
-    console.warn('Speaker detection: no valid speakers map in response. Raw:', raw.slice(0,200));
-    return null;
+    console.warn('Speaker detection AI failed to return valid map, trying heuristic. Raw:', raw.slice(0,200));
   } catch(e){
-    console.warn('Speaker AI detection failed:',e);
+    console.warn('Speaker AI detection failed, trying heuristic:',e);
+  }
+
+  // ── Heuristic fallback — pattern-match agent signals ──
+  try {
+    const lines2=transcript.split(/\r?\n/).filter(l=>l.trim());
+    const spkIds2=[...new Set(transcript.match(/SPEAKER_\d+/g)||[])];
+    const agentSignals=/my name is|calling from|xfinity|comcast|reason.*(call|calling)|eligible|promotion|package|mbps|broadband|recording.*(monitor|call)/i;
+    const spkScore={}, spkChars={};
+    spkIds2.forEach(id=>{spkScore[id]=0;spkChars[id]=0;});
+    lines2.forEach(l=>{
+      const m=l.match(/^(SPEAKER_\d+):\s*(.*)/);
+      if(!m) return;
+      spkChars[m[1]]+=m[2].length;
+      if(agentSignals.test(m[2])) spkScore[m[1]]+=10;
+    });
+    let agentId=null, best=-1;
+    spkIds2.forEach(id=>{const s=spkScore[id]*1000+spkChars[id];if(s>best){best=s;agentId=id;}});
+    if(!agentId||spkScore[agentId]===0) agentId=spkIds2.reduce((a,b)=>spkChars[a]>spkChars[b]?a:b);
+    const result={};
+    spkIds2.forEach(id=>{result[id]=id===agentId?'agent':'customer';});
+    console.log('Speaker detection (heuristic fallback):', JSON.stringify(result));
+    return result;
+  } catch(e2){
+    console.warn('Speaker heuristic also failed:',e2);
     return null;
   }
 }
@@ -3966,6 +4005,7 @@ async function ollamaChat(systemMsg, userMsg, maxTokens=16384, ctxOverride){
           {role:'user',content:userMsg+'\n/no_think'}
         ],
         stream:false,
+        think:false,
         options:{temperature:0.1,num_ctx:numCtx,num_predict:maxTokens}
       })
     });
