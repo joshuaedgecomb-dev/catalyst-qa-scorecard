@@ -4417,12 +4417,14 @@ function buildBulkPayload(aiResult,meta){
 
   const fp = parseFilename(meta.filename);
   const resolvedDate = meta.date || fp.callDate || new Date().toISOString().slice(0,10);
+  const rosterMatch = fuzzyRosterMatch(fp.agentName, fp.tsr);
 
   return{
     meta:{
       agent:        fp.agentName,
       tsr:          fp.tsr,
-      supervisor:   (rosterData.find(r=>r.tsr===fp.tsr)||{}).supervisor||'',
+      supervisor:   rosterMatch?.supervisor||'',
+      site:         rosterMatch?.loc||'',
       callDate:     fp.callDate,
       callTime:     fp.callTime,
       phoneNumber:  fp.phoneNumber,
@@ -4444,7 +4446,16 @@ function buildBulkPayload(aiResult,meta){
     primarySale:aiResult.primarySale||{},
     upsell:aiResult.upsell||{},
     transcript:aiResult._normalizedTranscript||meta.transcriptText||'',
-    executiveSummary:aiResult.executiveSummary||null
+    executiveSummary:aiResult.executiveSummary||null,
+    objections:(aiResult._extraction?.objections||[]).map(function(o){
+      return {summary:o.customerObjection?.summary||'',line:o.customerObjection?.line||0,
+        acknowledged:!!o.agentAcknowledged,discoveredReason:!!o.agentDiscoveredReason,
+        rebuttalApproach:o.rebuttalApproach||'none',reClose:!!o.reClose?.present};
+    }),
+    competitorMentions:extractCompetitorMentions(aiResult._extraction,meta.transcriptText||''),
+    productsPitched:(aiResult._extraction?.pitch?.productsPitched||[]).map(function(p){
+      return {product:p.product||'',tiedToDiscovery:!!p.tiedToDiscovery,tieBack:p.tieBack||''};
+    })
   };
 }
 
