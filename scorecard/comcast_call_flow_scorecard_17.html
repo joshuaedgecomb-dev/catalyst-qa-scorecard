@@ -5194,6 +5194,240 @@ function buildTrendReportHTML(results){
     return html+'</div>';
   }
 
+  // Sale analysis section builder
+  function saleAnalysisSection(sales,label){
+    if(!sales.length) return '';
+    var n=sales.length;
+    var saleBS=computeBehaviorStats(sales);
+    var saleDP=computeDiscovery(sales);
+    var saleAvgED=n?(sales.reduce(function(a,r){return a+(r.summary.catalystED||0);},0)/n).toFixed(1):'0';
+
+    var prodCount={};
+    sales.forEach(function(r){
+      var prod=(r.primarySale?.product||'Unknown').trim();
+      prodCount[prod]=(prodCount[prod]||0)+1;
+    });
+    var upsellCount=sales.filter(function(r){
+      return r.upsell&&r.upsell.product&&r.upsell.product!=='None'&&r.upsell.product!=='N/A'
+        &&/sold|accepted/i.test(r.upsell.outcome||'');
+    }).length;
+
+    var out='<div class="section">'+sectionHdr(label+' — SALE ANALYSIS ('+n+' calls)','#3b6d11');
+    out+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 18px;">';
+    out+=stat('Sales',n)+stat('Avg ED',saleAvgED+'/6',edCol(pct(parseFloat(saleAvgED)*10,60)));
+    out+=stat('Upsell Attach',pct(upsellCount,n)+'%',upsellCount/n>=0.3?'#3b6d11':'#854f0b');
+    var allPitched=[],tiedCount=0;
+    sales.forEach(function(r){(r.productsPitched||[]).forEach(function(p){allPitched.push(p);if(p.tiedToDiscovery) tiedCount++;});});
+    out+=stat('Pitch Tied',allPitched.length?pct(tiedCount,allPitched.length)+'%':'N/A',tiedCount/Math.max(allPitched.length,1)>=0.5?'#3b6d11':'#854f0b');
+    out+='</div>';
+
+    var prodEntries=Object.entries(prodCount).sort(function(a,b){return b[1]-a[1];});
+    if(prodEntries.length){
+      out+='<div style="padding:0 18px 12px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#3b6d11;margin-bottom:6px;">Products Sold</div>';
+      out+='<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      prodEntries.forEach(function(e){
+        out+='<div style="background:#eaf3de;border-radius:8px;padding:6px 12px;"><span style="font-size:13px;font-weight:600;color:#3b6d11;">'+esc(e[0])+'</span> <span style="font-size:12px;color:#5f5e5a;">'+e[1]+' ('+pct(e[1],n)+'%)</span></div>';
+      });
+      out+='</div></div>';
+    }
+
+    out+='<div style="padding:0 18px 12px;">'+behaviorTable(saleBS)+'</div>';
+    out+='<div style="padding:0 18px 16px;">'+discoveryGrid(saleDP,n)+'</div>';
+    out+='</div>';
+    return out;
+  }
+
+  // Non-sale analysis section builder
+  function nonSaleAnalysisSection(nonsales,label){
+    if(!nonsales.length) return '';
+    var n=nonsales.length;
+    var nsBS=computeBehaviorStats(nonsales);
+    var nsDP=computeDiscovery(nonsales);
+    var nsAvgED=n?(nonsales.reduce(function(a,r){return a+(r.summary.catalystED||0);},0)/n).toFixed(1):'0';
+
+    var out='<div class="section">'+sectionHdr(label+' — NON-SALE ANALYSIS ('+n+' calls)','#854f0b');
+    out+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 18px;">';
+    out+=stat('Non-Sales',n)+stat('Avg ED',nsAvgED+'/6',edCol(pct(parseFloat(nsAvgED)*10,60)));
+    var nsAF=nonsales.filter(function(r){return r.summary.autoFail;}).length;
+    out+=stat('Auto-fails',nsAF,nsAF>0?'#791f1f':'#3b6d11');
+    out+='</div>';
+
+    // Objection breakdown
+    var allObjs=[];
+    nonsales.forEach(function(r){(r.objections||[]).forEach(function(o){allObjs.push(o);});});
+    var specificCount=0,nonSpecificCount=0;
+    var catCounts={};
+    var catApproach={};
+    allObjs.forEach(function(o){
+      var cls=classifyObjection(o.summary);
+      if(cls.specific) specificCount++; else nonSpecificCount++;
+      catCounts[cls.category]=(catCounts[cls.category]||0)+1;
+      if(!catApproach[cls.category]) catApproach[cls.category]={};
+      var app=o.rebuttalApproach||'none';
+      catApproach[cls.category][app]=(catApproach[cls.category][app]||0)+1;
+    });
+
+    if(allObjs.length){
+      out+='<div style="padding:0 18px 12px;">';
+      out+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#854f0b;margin-bottom:8px;">Objection Analysis ('+allObjs.length+' objections across '+n+' calls)</div>';
+      out+='<div style="display:flex;gap:8px;margin-bottom:10px;">';
+      out+='<div style="flex:1;background:#faeeda;border-radius:8px;padding:10px 14px;text-align:center;"><div style="font-size:11px;color:#854f0b;font-weight:600;">Specific</div><div style="font-size:22px;font-weight:700;color:#854f0b;">'+specificCount+'</div><div style="font-size:11px;color:#888;">'+pct(specificCount,allObjs.length)+'%</div></div>';
+      out+='<div style="flex:1;background:#fcebeb;border-radius:8px;padding:10px 14px;text-align:center;"><div style="font-size:11px;color:#791f1f;font-weight:600;">Non-Specific</div><div style="font-size:22px;font-weight:700;color:#791f1f;">'+nonSpecificCount+'</div><div style="font-size:11px;color:#888;">'+pct(nonSpecificCount,allObjs.length)+'%</div></div>';
+      out+='</div>';
+      var catEntries=Object.entries(catCounts).sort(function(a,b){return b[1]-a[1];});
+      out+='<table style="width:100%;border-collapse:collapse;margin-bottom:10px;"><thead><tr style="background:#f7f6f3;"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;">Reason</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">Count</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">%</th><th style="padding:8px 12px;font-size:11px;color:#888;">Top Agent Response</th></tr></thead><tbody>';
+      catEntries.forEach(function(e){
+        var topApp=Object.entries(catApproach[e[0]]||{}).sort(function(a,b){return b[1]-a[1];})[0];
+        var appLabel=topApp?topApp[0].replace(/_/g,' '):'—';
+        out+='<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:500;">'+esc(e[0])+'</td>';
+        out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:600;">'+e[1]+'</td>';
+        out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">'+pct(e[1],allObjs.length)+'%</td>';
+        out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#5f5e5a;">'+esc(appLabel)+'</td></tr>';
+      });
+      out+='</tbody></table>';
+      out+='</div>';
+    }
+
+    // Competitive landscape
+    var allComps=[];
+    nonsales.forEach(function(r){(r.competitorMentions||[]).forEach(function(c){allComps.push(c);});});
+    if(allComps.length){
+      out+='<div style="padding:0 18px 12px;">';
+      out+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#0891b2;margin-bottom:8px;">Competitive Landscape</div>';
+      var compGroups={};
+      allComps.forEach(function(c){
+        if(!compGroups[c.competitor]) compGroups[c.competitor]={count:0,products:{},responses:{}};
+        compGroups[c.competitor].count++;
+        compGroups[c.competitor].products[c.xfinityProduct||'Unknown']=(compGroups[c.competitor].products[c.xfinityProduct||'Unknown']||0)+1;
+        var resp=c.agentResponse||'none';
+        compGroups[c.competitor].responses[resp]=(compGroups[c.competitor].responses[resp]||0)+1;
+      });
+      var compEntries=Object.entries(compGroups).sort(function(a,b){return b[1].count-a[1].count;});
+      out+='<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f7f6f3;"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;">Competitor</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">Mentions</th><th style="padding:8px 12px;font-size:11px;color:#888;">Xfinity Product</th><th style="padding:8px 12px;font-size:11px;color:#888;">Agent Response</th></tr></thead><tbody>';
+      compEntries.forEach(function(e){
+        var topProd=Object.entries(e[1].products).sort(function(a,b){return b[1]-a[1];})[0];
+        var topResp=Object.entries(e[1].responses).sort(function(a,b){return b[1]-a[1];})[0];
+        var respLabel=(topResp?topResp[0]:'—').replace(/_/g,' ');
+        var respCol=respLabel==='reframe'?'#3b6d11':respLabel==='negative'?'#791f1f':'#854f0b';
+        out+='<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:600;">'+esc(e[0])+'</td>';
+        out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:600;">'+e[1].count+'</td>';
+        out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;">vs '+esc(topProd?topProd[0]:'—')+'</td>';
+        out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:'+respCol+';font-weight:500;">'+esc(respLabel)+'</td></tr>';
+      });
+      out+='</tbody></table></div>';
+    }
+
+    // Objection handling effectiveness
+    out+='<div style="padding:0 18px 12px;">';
+    out+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#534ab7;margin-bottom:8px;">Objection Handling Effectiveness</div>';
+    var approachCounts={};
+    allObjs.forEach(function(o){var a=o.rebuttalApproach||'none';approachCounts[a]=(approachCounts[a]||0)+1;});
+    out+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
+    Object.entries(approachCounts).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+      var label2=e[0].replace(/_/g,' ').replace(/\+/g,' + ');
+      var col=e[0]==='empathy+value'?'#3b6d11':e[0]==='pressure'?'#791f1f':'#854f0b';
+      out+=pill(col==='#3b6d11'?'#eaf3de':col==='#791f1f'?'#fcebeb':'#faeeda',col,label2+': '+e[1]);
+    });
+    out+='</div>';
+
+    var step678=['6','7','8'];
+    var nsStepNarr='';
+    step678.forEach(function(sid){
+      var scores=nonsales.map(function(r){var s=(r.steps||[]).find(function(st){return String(st.id)===sid;});return s?s.score:null;}).filter(Boolean);
+      var dndCount=scores.filter(function(v){return v==='dnd';}).length;
+      var naCount=scores.filter(function(v){return v==='na';}).length;
+      if(dndCount>0){
+        var stepDef=STEPS.find(function(s){return String(s.id)===sid;})||{};
+        nsStepNarr+='Step '+sid+' ('+esc(stepDef.name||'')+') scored DND on '+dndCount+' of '+(scores.length-naCount)+' applicable calls. ';
+      }
+    });
+    if(nsStepNarr) out+=narrative(nsStepNarr);
+    out+='</div>';
+
+    out+='<div style="padding:0 18px 12px;">'+behaviorTable(nsBS)+'</div>';
+    out+='<div style="padding:0 18px 16px;">'+discoveryGrid(nsDP,n)+'</div>';
+    out+='</div>';
+    return out;
+  }
+
+  // Product mix section builder
+  function productMixSection(subset,label){
+    if(!subset.length) return '';
+    var pitched={}, sold={};
+    subset.forEach(function(r){
+      (r.productsPitched||[]).forEach(function(p){
+        var prod=p.product||'Unknown';
+        if(!pitched[prod]) pitched[prod]={count:0,tied:0};
+        pitched[prod].count++;
+        if(p.tiedToDiscovery) pitched[prod].tied++;
+      });
+      var ps=r.primarySale?.product;
+      if(ps&&/sold/i.test(r.primarySale?.outcome||'')&&!/not/i.test(r.primarySale?.outcome||'')){
+        sold[ps]=(sold[ps]||0)+1;
+      }
+    });
+
+    var out='<div class="section">'+sectionHdr(label+' — PRODUCT MIX','#0891b2');
+    out+='<div style="padding:14px 18px;">';
+    out+='<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f7f6f3;"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;">Product</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">Pitched</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">Sold</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">Conversion</th><th style="padding:8px 12px;font-size:11px;color:#888;">Tied to Discovery</th></tr></thead><tbody>';
+    var allProducts=Object.keys(pitched);
+    Object.keys(sold).forEach(function(k){if(!allProducts.includes(k)) allProducts.push(k);});
+    allProducts.sort(function(a,b){return (pitched[b]?.count||0)-(pitched[a]?.count||0);});
+    allProducts.forEach(function(prod){
+      var p=pitched[prod]||{count:0,tied:0};
+      var s=sold[prod]||0;
+      var conv=p.count?pct(s,p.count):0;
+      var tieRate=p.count?pct(p.tied,p.count):0;
+      out+='<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:500;">'+esc(prod)+'</td>';
+      out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">'+p.count+'</td>';
+      out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;color:#3b6d11;font-weight:600;">'+s+'</td>';
+      out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">'+bar(conv,edCol(conv))+'</td>';
+      out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;">'+bar(tieRate,edCol(tieRate))+'</td></tr>';
+    });
+    out+='</tbody></table></div></div>';
+    return out;
+  }
+
+  // Compliance gaps section builder
+  function complianceGapsSection(subset,label){
+    if(!subset.length) return '';
+    var n=subset.length;
+    var cStats={};
+    COMPLIANCE_ITEMS.forEach(function(ci){cStats[ci.id]={id:ci.id,name:ci.name,yes:0,no:0,na:0};});
+    subset.forEach(function(r){
+      (r.compliance||[]).forEach(function(ci){
+        var s=cStats[ci.id];if(!s) return;
+        if(ci.score==='yes') s.yes++;
+        else if(ci.score==='no') s.no++;
+        else s.na++;
+      });
+    });
+
+    var out='<div class="section">'+sectionHdr(label+' — COMPLIANCE GAPS','#a32d2d');
+    out+='<div style="padding:14px 18px;">';
+    out+='<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f7f6f3;"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;">Item</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">Pass</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">Fail</th><th style="text-align:center;padding:8px;font-size:11px;color:#888;">N/A</th><th style="padding:8px 12px;font-size:11px;color:#888;">Fail Rate</th></tr></thead><tbody>';
+    Object.values(cStats).forEach(function(ci){
+      var applicable=ci.yes+ci.no;
+      var failRate=applicable?pct(ci.no,applicable):0;
+      var highlight=failRate>=20?'background:#fcebeb;':'';
+      out+='<tr style="'+highlight+'"><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;font-weight:500;">'+esc(ci.name)+'</td>';
+      out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">'+pill('#eaf3de','#3b6d11',ci.yes)+'</td>';
+      out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">'+(ci.no>0?pill('#fcebeb','#791f1f',ci.no):pill('#f1efe8','#888','0'))+'</td>';
+      out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;color:#888;">'+ci.na+'</td>';
+      out+='<td style="padding:8px 12px;border-bottom:1px solid #eee;">'+bar(failRate,failRate>=20?'#a32d2d':failRate>=10?'#ba7517':'#3b6d11')+'</td></tr>';
+    });
+    out+='</tbody></table>';
+    var gaps=Object.values(cStats).filter(function(ci){return ci.no>0&&(ci.yes+ci.no)>0;}).sort(function(a,b){
+      return pct(b.no,b.yes+b.no)-pct(a.no,a.yes+a.no);
+    }).slice(0,3);
+    if(gaps.length){
+      var gapNarr='Top compliance gaps: '+gaps.map(function(g){return '<strong>'+esc(g.name)+'</strong> ('+pct(g.no,g.yes+g.no)+'% fail rate, '+g.no+' of '+(g.yes+g.no)+' applicable calls)';}).join(', ')+'.';
+      out+=narrative(gapNarr);
+    }
+    out+='</div></div>';
+    return out;
+  }
+
   // ══════════════════════════════════════════════════════════
   // BUILD HTML
   // ══════════════════════════════════════════════════════════
